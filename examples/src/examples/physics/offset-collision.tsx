@@ -52,7 +52,7 @@ class OffsetCollisionExample {
                 lightEntity.setLocalEulerAngles(45, 30, 0);
 
                 // Set the gravity for our rigid bodies
-                app.systems.rigidbody.gravity.set(0, -9.81, 0);
+                app.systems.physics.gravity.set(0, -9.81, 0);
 
                 function createMaterial(color: pc.Color) {
                     const material = new pc.StandardMaterial();
@@ -76,8 +76,8 @@ class OffsetCollisionExample {
                 floor.setLocalScale(10, 1, 10);
                 floor.translateLocal(0, -0.5, 0);
 
-                // Add a rigidbody component so that other objects collide with it
-                floor.addComponent("rigidbody", {
+                // Add a physics component so that other objects collide with it
+                floor.addComponent("physics", {
                     type: "static",
                     restitution: 0.5
                 });
@@ -132,7 +132,7 @@ class OffsetCollisionExample {
 
                 // Add a rigid body and collision for the head with offset as the model's origin is
                 // at the feet on the floor
-                modelEntity.addComponent("rigidbody", {
+                modelEntity.addComponent("physics", {
                     type: "static",
                     restitution: 0.5
                 });
@@ -166,7 +166,7 @@ class OffsetCollisionExample {
                     type: "sphere"
                 });
 
-                ball.addComponent("rigidbody", {
+                ball.addComponent("physics", {
                     type: "dynamic",
                     mass: 50,
                     restitution: 0.5
@@ -194,7 +194,7 @@ class OffsetCollisionExample {
 
                             // Create a new ball to drop
                             const clone = ball.clone();
-                            clone.rigidbody.teleport(pc.math.random(-0.25, 0.25), 5, pc.math.random(-0.25, 0.25));
+                            clone.physics.teleport(pc.math.random(-0.25, 0.25), 5, pc.math.random(-0.25, 0.25));
 
                             app.root.addChild(clone);
                             clone.enabled = true;
@@ -203,7 +203,7 @@ class OffsetCollisionExample {
 
                     // Show active bodies in red and frozen bodies in gray
                     app.root.findByTag("shape").forEach(function (entity: pc.Entity) {
-                        entity.render.meshInstances[0].material = entity.rigidbody.isActive() ? red : gray;
+                        entity.render.meshInstances[0].material = entity.physics.isActive() ? red : gray;
                     });
 
                     // Render the offset collision

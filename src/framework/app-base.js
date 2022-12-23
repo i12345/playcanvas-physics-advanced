@@ -564,7 +564,7 @@ class AppBase extends EventHandler {
          * - light ({@link LightComponentSystem})
          * - model ({@link ModelComponentSystem})
          * - particlesystem ({@link ParticleSystemComponentSystem})
-         * - rigidbody ({@link RigidBodyComponentSystem})
+         * - physics ({@link PhysicsComponentSystem})
          * - render ({@link RenderComponentSystem})
          * - screen ({@link ScreenComponentSystem})
          * - script ({@link ScriptComponentSystem})
@@ -576,7 +576,7 @@ class AppBase extends EventHandler {
          * @type {ComponentSystemRegistry}
          * @example
          * // Set global gravity to zero
-         * this.app.systems.rigidbody.gravity.set(0, 0, 0);
+         * this.app.systems.physics.gravity.set(0, 0, 0);
          * @example
          * // Set the global sound volume to 50%
          * this.app.systems.sound.volume = 0.5;
@@ -1466,8 +1466,8 @@ class AppBase extends EventHandler {
     onLibrariesLoaded() {
         this._librariesLoaded = true;
 
-        if (this.systems.rigidbody) {
-            this.systems.rigidbody.onLibraryLoaded();
+        if (this.systems.physics) {
+            this.systems.physics.onLibraryLoaded();
         }
     }
 
@@ -1583,9 +1583,9 @@ class AppBase extends EventHandler {
     applySceneSettings(settings) {
         let asset;
 
-        if (this.systems.rigidbody && typeof Ammo !== 'undefined') {
+        if (this.systems.physics && typeof Ammo !== 'undefined') {
             const gravity = settings.physics.gravity;
-            this.systems.rigidbody.gravity.set(gravity[0], gravity[1], gravity[2]);
+            this.systems.physics.gravity.set(gravity[0], gravity[1], gravity[2]);
         }
 
         this.scene.applySettings(settings);

@@ -22,6 +22,9 @@ class Component extends EventHandler {
      */
     entity;
 
+    /** @type {boolean} */
+    enabled;
+
     /**
      * Base constructor for a Component.
      *

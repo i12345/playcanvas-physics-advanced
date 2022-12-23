@@ -119,20 +119,20 @@ class ComponentSystemRegistry extends EventHandler {
     particlesystem;
 
     /**
+     * Gets the {@link PhysicsComponentSystem} from the registry.
+     *
+     * @type {import('./physics/system.js').PhysicsComponentSystem|undefined}
+     * @readonly
+     */
+    physics;
+
+    /**
      * Gets the {@link RenderComponentSystem} from the registry.
      *
      * @type {import('./render/system.js').RenderComponentSystem|undefined}
      * @readonly
      */
     render;
-
-    /**
-     * Gets the {@link RigidBodyComponentSystem} from the registry.
-     *
-     * @type {import('./rigid-body/system.js').RigidBodyComponentSystem|undefined}
-     * @readonly
-     */
-    rigidbody;
 
     /**
      * Gets the {@link ScreenComponentSystem} from the registry.

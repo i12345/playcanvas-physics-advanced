@@ -1,19 +1,19 @@
 /**
- * Rigid body has infinite mass and cannot move.
+ * Physics body has infinite mass and cannot move.
  *
  * @type {string}
  */
 export const BODYTYPE_STATIC = 'static';
 
 /**
- * Rigid body is simulated according to applied forces.
+ * Physics body is simulated according to applied forces.
  *
  * @type {string}
  */
 export const BODYTYPE_DYNAMIC = 'dynamic';
 
 /**
- * Rigid body has infinite mass and does not respond to forces but can still be moved by setting
+ * Physics body has infinite mass and does not respond to forces but can still be moved by setting
  * their velocity or position.
  *
  * @type {string}

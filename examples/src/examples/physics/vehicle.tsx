@@ -42,7 +42,7 @@ class VehicleExample {
                     // @ts-ignore
                     pc.CollisionComponentSystem,
                     // @ts-ignore
-                    pc.RigidBodyComponentSystem
+                    pc.PhysicsComponentSystem
                 ];
                 createOptions.resourceHandlers = [
                     // @ts-ignore
@@ -77,7 +77,7 @@ class VehicleExample {
 
                     // Create a static ground shape for our car to drive on
                     const ground = new pc.Entity('Ground');
-                    ground.addComponent('rigidbody', {
+                    ground.addComponent('physics', {
                         type: 'static'
                     });
                     ground.addComponent('collision', {
@@ -110,7 +110,7 @@ class VehicleExample {
 
                     // Create a physical vehicle
                     const vehicle = new pc.Entity('Vehicle');
-                    vehicle.addComponent('rigidbody', {
+                    vehicle.addComponent('physics', {
                         mass: 800,
                         type: 'dynamic'
                     });
@@ -159,7 +159,7 @@ class VehicleExample {
                     for (let i = 0; i < 10; i++) {
                         for (let j = 0; j < 5; j++) {
                             const block = new pc.Entity('Block');
-                            block.addComponent('rigidbody', {
+                            block.addComponent('physics', {
                                 type: 'dynamic'
                             });
                             block.addComponent('collision', {

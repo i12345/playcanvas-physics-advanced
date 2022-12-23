@@ -1,3 +1,4 @@
+import { type } from 'src/core/core.js';
 import { Quat } from '../../../core/math/quat.js';
 import { Vec3 } from '../../../core/math/vec3.js';
 
@@ -9,10 +10,10 @@ const _vec3 = new Vec3();
 const _quat = new Quat();
 
 /**
- * A collision volume. Use this in conjunction with a {@link RigidBodyComponent} to make a
+ * A collision volume. Use this in conjunction with a {@link PhysicsComponent} to make a
  * collision volume that can be simulated using the physics engine.
  *
- * If the {@link Entity} does not have a {@link RigidBodyComponent} then this collision volume will
+ * If the {@link Entity} does not have a {@link PhysicsComponent} then this collision volume will
  * act as a trigger volume. When an entity with a dynamic or kinematic body enters or leaves an
  * entity with a trigger volume, both entities will receive trigger events.
  *
@@ -58,6 +59,20 @@ const _quat = new Quat();
  * @augments Component
  */
 class CollisionComponent extends Component {
+    /** @type {import('./system').CollisionComponentSystem} */
+    system;
+
+    /** @returns {import('./data').CollisionComponentData} */
+    get data() {
+        return super.data;
+    }
+
+    /** @type {import('ammojs3').default.btCollisionShape} */
+    shape;
+
+    /** @type {import('./data').CollisionComponentData['type']} */
+    type;
+
     /**
      * Create a new CollisionComponent.
      *
@@ -69,7 +84,10 @@ class CollisionComponent extends Component {
     constructor(system, entity) {
         super(system, entity);
 
-        /** @private */
+        /**
+         * @private
+         * @type {CollisionComponent}
+         */
         this._compoundParent = null;
         this._hasOffset = false;
 
@@ -89,35 +107,35 @@ class CollisionComponent extends Component {
     }
 
     /**
-     * The 'contact' event is fired when a contact occurs between two rigid bodies.
+     * The 'contact' event is fired when a contact occurs between two physics bodies.
      *
      * @event CollisionComponent#contact
-     * @param {ContactResult} result - Details of the contact between the two rigid bodies.
+     * @param {import('../physics/system').ContactResult} result - Details of the contact between the two physics bodies.
      */
 
     /**
-     * Fired when two rigid bodies start touching.
+     * Fired when two physics bodies start touching.
      *
      * @event CollisionComponent#collisionstart
-     * @param {ContactResult} result - Details of the contact between the two Entities.
+     * @param {import('../physics/system').ContactResult} result - Details of the contact between the two Entities.
      */
 
     /**
-     * Fired two rigid-bodies stop touching.
+     * Fired two physics bodies stop touching.
      *
      * @event CollisionComponent#collisionend
      * @param {import('../../entity.js').Entity} other - The {@link Entity} that stopped touching this collision volume.
      */
 
     /**
-     * Fired when a rigid body enters a trigger volume.
+     * Fired when a physics body enters a trigger volume.
      *
      * @event CollisionComponent#triggerenter
      * @param {import('../../entity.js').Entity} other - The {@link Entity} that entered this collision volume.
      */
 
     /**
-     * Fired when a rigid body exits a trigger volume.
+     * Fired when a physics body exits a trigger volume.
      *
      * @event CollisionComponent#triggerleave
      * @param {import('../../entity.js').Entity} other - The {@link Entity} that exited this collision volume.
@@ -329,11 +347,13 @@ class CollisionComponent extends Component {
     }
 
     /**
-     * @param {*} shape - Ammo shape.
+     * @param {import('ammojs3').default.btCollisionShape} shape - Ammo shape.
      * @returns {number|null} The shape's index in the child array of the compound shape.
      * @private
      */
     _getCompoundChildShapeIndex(shape) {
+        /** @type {import('ammojs3').default.btCompoundShape} */
+        // @ts-ignore
         const compound = this.data.shape;
         const shapes = compound.getNumChildShapes();
 
@@ -348,7 +368,7 @@ class CollisionComponent extends Component {
     }
 
     /**
-     * @param {GraphNode} parent - The parent node.
+     * @param {import('../../../scene/graph-node').GraphNode} parent - The parent node.
      * @private
      */
     _onInsert(parent) {
@@ -362,12 +382,18 @@ class CollisionComponent extends Component {
 
         if (this._compoundParent) {
             this.system.recreatePhysicalShapes(this);
-        } else if (!this.entity.rigidbody) {
+        } else if (!this.entity.physics) {
             let ancestor = this.entity.parent;
             while (ancestor) {
-                if (ancestor.collision && ancestor.collision.type === 'compound') {
-                    if (ancestor.collision.shape.getNumChildShapes() === 0) {
-                        this.system.recreatePhysicalShapes(ancestor.collision);
+                /** @type {import('../../entity').Entity} */
+                // @ts-ignore
+                const ancestorEntity = ancestor;
+                if (ancestorEntity.collision && ancestorEntity.collision.type === 'compound') {
+                    /** @type {import('ammojs3').default.btCompoundShape} */
+                    // @ts-ignore
+                    const compoundShape = ancestorEntity.collision.shape;
+                    if (compoundShape.getNumChildShapes() === 0) {
+                        this.system.recreatePhysicalShapes(ancestorEntity.collision);
                     } else {
                         this.system.recreatePhysicalShapes(this);
                     }
@@ -391,19 +417,19 @@ class CollisionComponent extends Component {
                 if (parent._dirtyLocal)
                     dirty = true;
 
+                // @ts-ignore
                 parent = parent.parent;
             }
 
             if (dirty) {
                 entity.forEach(this.system.implementations.compound._updateEachDescendantTransform, entity);
 
-                const bodyComponent = this._compoundParent.entity.rigidbody;
+                const bodyComponent = this._compoundParent.entity.physics;
                 if (bodyComponent)
                     bodyComponent.activate();
             }
         }
     }
-
 
     /**
      * @description Returns the world position for the collision shape taking into account of any offsets.
@@ -449,9 +475,9 @@ class CollisionComponent extends Component {
             }
         }
 
-        if (this.entity.rigidbody) {
-            if (this.entity.rigidbody.enabled) {
-                this.entity.rigidbody.enableSimulation();
+        if (this.entity.physics) {
+            if (this.entity.physics.enabled) {
+                this.entity.physics.enableSimulation();
             }
         } else if (this._compoundParent && this !== this._compoundParent) {
             if (this._compoundParent.shape.getNumChildShapes() === 0) {
@@ -461,8 +487,8 @@ class CollisionComponent extends Component {
                 this._compoundParent.shape.addChildShape(transform, this.data.shape);
                 Ammo.destroy(transform);
 
-                if (this._compoundParent.entity.rigidbody)
-                    this._compoundParent.entity.rigidbody.activate();
+                if (this._compoundParent.entity.physics)
+                    this._compoundParent.entity.physics.activate();
             }
         } else if (this.entity.trigger) {
             this.entity.trigger.enable();
@@ -471,14 +497,14 @@ class CollisionComponent extends Component {
 
     /** @private */
     onDisable() {
-        if (this.entity.rigidbody) {
-            this.entity.rigidbody.disableSimulation();
+        if (this.entity.physics) {
+            this.entity.physics.disableSimulation();
         } else if (this._compoundParent && this !== this._compoundParent) {
             if (!this._compoundParent.entity._destroying) {
                 this.system._removeCompoundChild(this._compoundParent, this.data.shape);
 
-                if (this._compoundParent.entity.rigidbody)
-                    this._compoundParent.entity.rigidbody.activate();
+                if (this._compoundParent.entity.physics)
+                    this._compoundParent.entity.physics.activate();
             }
         } else if (this.entity.trigger) {
             this.entity.trigger.disable();

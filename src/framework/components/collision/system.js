@@ -39,11 +39,19 @@ const _schema = [
 
 // Collision system implementations
 class CollisionSystemImpl {
+    /**
+     * @param {CollisionComponentSystem} system
+     */
     constructor(system) {
+        /** @type {CollisionComponentSystem} */
         this.system = system;
     }
 
-    // Called before the call to system.super.initializeComponentData is made
+    /**
+     * Called before the call to system.super.initializeComponentData is made
+     * @param {import('./component').CollisionComponent} component
+     * @param {import('./data').CollisionComponentData} data
+     */
     beforeInitialize(component, data) {
         data.shape = null;
 
@@ -51,19 +59,30 @@ class CollisionSystemImpl {
         data.model.graph = new GraphNode();
     }
 
-    // Called after the call to system.super.initializeComponentData is made
+    /**
+     * Called after the call to system.super.initializeComponentData is made
+     * @param {CollisionComponent} component
+     * @param {CollisionComponentData} data
+     */
     afterInitialize(component, data) {
         this.recreatePhysicalShapes(component);
         component.data.initialized = true;
     }
 
-    // Called when a collision component changes type in order to recreate debug and physical shapes
+    /**
+     * Called when a collision component changes type in order to recreate debug and physical shapes
+     * @param {CollisionComponent} component
+     * @param {CollisionComponentData} data
+     */
     reset(component, data) {
         this.beforeInitialize(component, data);
         this.afterInitialize(component, data);
     }
 
-    // Re-creates rigid bodies / triggers
+    /**
+     * Re-creates physics bodies / triggers
+     * @param {CollisionComponent} component
+     */
     recreatePhysicalShapes(component) {
         const entity = component.entity;
         const data = component.data;
@@ -78,8 +97,8 @@ class CollisionSystemImpl {
                 if (component._compoundParent) {
                     this.system._removeCompoundChild(component._compoundParent, data.shape);
 
-                    if (component._compoundParent.entity.rigidbody)
-                        component._compoundParent.entity.rigidbody.activate();
+                    if (component._compoundParent.entity.physics)
+                        component._compoundParent.entity.physics.activate();
                 }
 
                 Ammo.destroy(data.shape);
@@ -99,12 +118,15 @@ class CollisionSystemImpl {
                     entity.forEach(this.system.implementations.compound._updateEachDescendant, component);
                 }
 
-                if (!component.rigidbody) {
+                if (!component.physics) {
                     component._compoundParent = null;
                     let parent = entity.parent;
                     while (parent) {
-                        if (parent.collision && parent.collision.type === 'compound') {
-                            component._compoundParent = parent.collision;
+                        /** @type {import('../../entity').Entity} */
+                        // @ts-ignore
+                        const parentEntity = parent;
+                        if (parentEntity.collision && parentEntity.collision.type === 'compound') {
+                            component._compoundParent = parentEntity.collision;
                             break;
                         }
                         parent = parent.parent;
@@ -119,18 +141,18 @@ class CollisionSystemImpl {
                     } else {
                         this.system.updateCompoundChildTransform(entity);
 
-                        if (component._compoundParent.entity.rigidbody)
-                            component._compoundParent.entity.rigidbody.activate();
+                        if (component._compoundParent.entity.physics)
+                            component._compoundParent.entity.physics.activate();
                     }
                 }
             }
 
-            if (entity.rigidbody) {
-                entity.rigidbody.disableSimulation();
-                entity.rigidbody.createBody();
+            if (entity.physics) {
+                entity.physics.disableSimulation();
+                entity.physics.createBody();
 
-                if (entity.enabled && entity.rigidbody.enabled) {
-                    entity.rigidbody.enableSimulation();
+                if (entity.enabled && entity.physics.enabled) {
+                    entity.physics.enableSimulation();
                 }
             } else if (!component._compoundParent) {
                 if (!entity.trigger) {
@@ -142,26 +164,41 @@ class CollisionSystemImpl {
         }
     }
 
-    // Creates a physical shape for the collision. This consists
-    // of the actual shape that will be used for the rigid bodies / triggers of
-    // the collision.
+    /**
+     * Creates a physical shape for the collision. This consists
+     * of the actual shape that will be used for the rigid bodies / triggers of
+     * the collision.
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btCollisionShape}
+     */
     createPhysicalShape(entity, data) {
         return undefined;
     }
 
+    /**
+     * @param {CollisionComponent} component
+     * @param {Vec3} position
+     * @param {Quat} rotation
+     * @param {Vec3} scale
+     */
     updateTransform(component, position, rotation, scale) {
         if (component.entity.trigger) {
             component.entity.trigger.updateTransform();
         }
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponent} component
+     */
     beforeRemove(entity, component) {
         if (component.data.shape) {
             if (component._compoundParent && !component._compoundParent.entity._destroying) {
                 this.system._removeCompoundChild(component._compoundParent, component.data.shape);
 
-                if (component._compoundParent.entity.rigidbody)
-                    component._compoundParent.entity.rigidbody.activate();
+                if (component._compoundParent.entity.physics)
+                    component._compoundParent.entity.physics.activate();
             }
 
             component._compoundParent = null;
@@ -171,10 +208,14 @@ class CollisionSystemImpl {
         }
     }
 
-    // Called when the collision is removed
+    /**
+     * Called when the collision is removed
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     */
     remove(entity, data) {
-        if (entity.rigidbody && entity.rigidbody.body) {
-            entity.rigidbody.disableSimulation();
+        if (entity.physics && entity.physics.body) {
+            entity.physics.disableSimulation();
         }
 
         if (entity.trigger) {
@@ -183,7 +224,12 @@ class CollisionSystemImpl {
         }
     }
 
-    // Called when the collision is cloned to another entity
+    /**
+     * Called when the collision is cloned to another entity
+     * @param {import('../../entity').Entity} entity
+     * @param {import('../../entity').Entity} clone
+     * @returns {CollisionComponent}
+     */
     clone(entity, clone) {
         const src = this.system.store[entity.getGuid()];
 
@@ -202,12 +248,18 @@ class CollisionSystemImpl {
             render: src.data.render
         };
 
+        // @ts-ignore
         return this.system.addComponent(clone, data);
     }
 }
 
 // Box Collision System
 class CollisionBoxSystemImpl extends CollisionSystemImpl {
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btBoxShape}
+     */
     createPhysicalShape(entity, data) {
         if (typeof Ammo !== 'undefined') {
             const he = data.halfExtents;
@@ -222,6 +274,11 @@ class CollisionBoxSystemImpl extends CollisionSystemImpl {
 
 // Sphere Collision System
 class CollisionSphereSystemImpl extends CollisionSystemImpl {
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btSphereShape}
+     */
     createPhysicalShape(entity, data) {
         if (typeof Ammo !== 'undefined') {
             return new Ammo.btSphereShape(data.radius);
@@ -232,6 +289,11 @@ class CollisionSphereSystemImpl extends CollisionSystemImpl {
 
 // Capsule Collision System
 class CollisionCapsuleSystemImpl extends CollisionSystemImpl {
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btCapsuleShape}
+     */
     createPhysicalShape(entity, data) {
         const axis = (data.axis !== undefined) ? data.axis : 1;
         const radius = data.radius || 0.5;
@@ -259,6 +321,11 @@ class CollisionCapsuleSystemImpl extends CollisionSystemImpl {
 
 // Cylinder Collision System
 class CollisionCylinderSystemImpl extends CollisionSystemImpl {
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btCylinderShape}
+     */
     createPhysicalShape(entity, data) {
         const axis = (data.axis !== undefined) ? data.axis : 1;
         const radius = (data.radius !== undefined) ? data.radius : 0.5;
@@ -293,6 +360,11 @@ class CollisionCylinderSystemImpl extends CollisionSystemImpl {
 
 // Cone Collision System
 class CollisionConeSystemImpl extends CollisionSystemImpl {
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btConeShape}
+     */
     createPhysicalShape(entity, data) {
         const axis = (data.axis !== undefined) ? data.axis : 1;
         const radius = (data.radius !== undefined) ? data.radius : 0.5;
@@ -324,6 +396,11 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
     // special handling
     beforeInitialize(component, data) {}
 
+    /**
+     * @param {import('../../../scene/mesh').Mesh} mesh
+     * @param {import('../../../scene/graph-node').GraphNode} node
+     * @param {import('ammojs3').default.btCompoundShape} shape
+     */
     createAmmoMesh(mesh, node, shape) {
         let triMesh;
 
@@ -384,6 +461,11 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         Ammo.destroy(transform);
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btCompoundShape}
+     */
     createPhysicalShape(entity, data) {
         if (typeof Ammo === 'undefined') return undefined;
 
@@ -415,6 +497,9 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         return undefined;
     }
 
+    /**
+     * @param {CollisionComponent} component
+     */
     recreatePhysicalShapes(component) {
         const data = component.data;
 
@@ -432,6 +517,11 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         this.doRecreatePhysicalShape(component);
     }
 
+    /**
+     * @param {CollisionComponent} component
+     * @param {*} id
+     * @param {*} property
+     */
     loadAsset(component, id, property) {
         const data = component.data;
         const assets = this.system.app.assets;
@@ -454,6 +544,9 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         }
     }
 
+    /**
+     * @param {CollisionComponent} component
+     */
     doRecreatePhysicalShape(component) {
         const entity = component.entity;
         const data = component.data;
@@ -463,12 +556,12 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
 
             data.shape = this.createPhysicalShape(entity, data);
 
-            if (entity.rigidbody) {
-                entity.rigidbody.disableSimulation();
-                entity.rigidbody.createBody();
+            if (entity.physics) {
+                entity.physics.disableSimulation();
+                entity.physics.createBody();
 
-                if (entity.enabled && entity.rigidbody.enabled) {
-                    entity.rigidbody.enableSimulation();
+                if (entity.enabled && entity.physics.enabled) {
+                    entity.physics.enableSimulation();
                 }
             } else {
                 if (!entity.trigger) {
@@ -483,6 +576,12 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         }
     }
 
+    /**
+     * @param {CollisionComponent} component
+     * @param {Vec3} position
+     * @param {Quat} rotation
+     * @param {Vec3} scale
+     */
     updateTransform(component, position, rotation, scale) {
         if (component.shape) {
             const entityTransform = component.entity.getWorldTransform();
@@ -500,6 +599,9 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         super.updateTransform(component, position, rotation, scale);
     }
 
+    /**
+     * @param {CollisionComponentData} data
+     */
     destroyShape(data) {
         if (!data.shape)
             return;
@@ -514,6 +616,10 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
         data.shape = null;
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     */
     remove(entity, data) {
         this.destroyShape(data);
         super.remove(entity, data);
@@ -522,6 +628,11 @@ class CollisionMeshSystemImpl extends CollisionSystemImpl {
 
 // Compound Collision System
 class CollisionCompoundSystemImpl extends CollisionSystemImpl {
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     * @returns {import('ammojs3').default.btCompoundShape}
+     */
     createPhysicalShape(entity, data) {
         if (typeof Ammo !== 'undefined') {
             return new Ammo.btCompoundShape();
@@ -529,8 +640,11 @@ class CollisionCompoundSystemImpl extends CollisionSystemImpl {
         return undefined;
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     */
     _addEachDescendant(entity) {
-        if (!entity.collision || entity.rigidbody)
+        if (!entity.collision || entity.physics)
             return;
 
         entity.collision._compoundParent = this;
@@ -540,6 +654,9 @@ class CollisionCompoundSystemImpl extends CollisionSystemImpl {
         }
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     */
     _updateEachDescendant(entity) {
         if (!entity.collision)
             return;
@@ -549,11 +666,14 @@ class CollisionCompoundSystemImpl extends CollisionSystemImpl {
 
         entity.collision._compoundParent = null;
 
-        if (entity !== this.entity && !entity.rigidbody) {
+        if (entity !== this.entity && !entity.physics) {
             entity.collision.system.recreatePhysicalShapes(entity.collision);
         }
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     */
     _updateEachDescendantTransform(entity) {
         if (!entity.collision || entity.collision._compoundParent !== this.collision._compoundParent)
             return;
@@ -592,6 +712,12 @@ class CollisionComponentSystem extends ComponentSystem {
         this.on('remove', this.onRemove, this);
     }
 
+    /**
+     * @param {CollisionComponent} component
+     * @param {CollisionComponentData} _data
+     * @param {string[]} properties
+     */
+    // @ts-ignore
     initializeComponentData(component, _data, properties) {
         properties = [
             'type',
@@ -667,8 +793,12 @@ class CollisionComponentSystem extends ComponentSystem {
         impl.afterInitialize(component, data);
     }
 
-    // Creates an implementation based on the collision type and caches it
-    // in an internal implementations structure, before returning it.
+    /**
+     * Creates an implementation based on the collision type and caches it
+     * in an internal implementations structure, before returning it.
+     * @param {CollisionComponentData["type"]} type
+     * @returns {CollisionSystemImpl}
+     */
     _createImplementation(type) {
         if (this.implementations[type] === undefined) {
             let impl;
@@ -703,24 +833,44 @@ class CollisionComponentSystem extends ComponentSystem {
         return this.implementations[type];
     }
 
-    // Gets an existing implementation for the specified entity
+    /**
+     * Gets an existing implementation for the specified entity
+     * @param {import('../../entity').Entity} entity
+     * @returns {CollisionSystemImpl}
+     */
     _getImplementation(entity) {
         return this.implementations[entity.collision.data.type];
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {import('../../entity').Entity} clone
+     * @returns {Component}
+     */
     cloneComponent(entity, clone) {
         return this._getImplementation(entity).clone(entity, clone);
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponent} component
+     */
     onBeforeRemove(entity, component) {
         this.implementations[component.data.type].beforeRemove(entity, component);
         component.onBeforeRemove();
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     * @param {CollisionComponentData} data
+     */
     onRemove(entity, data) {
         this.implementations[data.type].remove(entity, data);
     }
 
+    /**
+     * @param {import('../../entity').Entity} entity
+     */
     updateCompoundChildTransform(entity) {
         // TODO
         // use updateChildTransform once it is exposed in ammo.js
@@ -734,33 +884,58 @@ class CollisionComponentSystem extends ComponentSystem {
         }
     }
 
+    /**
+     * @param {CollisionComponent} collision
+     * @param {import('ammojs3').default.btCollisionShape} shape
+     */
     _removeCompoundChild(collision, shape) {
-        if (collision.shape.removeChildShape) {
-            collision.shape.removeChildShape(shape);
+        /** @type {import('ammojs3').default.btCompoundShape} */
+        // @ts-ignore
+        const compoundShape = collision.shape;
+        if (compoundShape.removeChildShape) {
+            compoundShape.removeChildShape(shape);
         } else {
             const ind = collision._getCompoundChildShapeIndex(shape);
             if (ind !== null) {
-                collision.shape.removeChildShapeByIndex(ind);
+                compoundShape.removeChildShapeByIndex(ind);
             }
         }
     }
 
+    /**
+     * @param {CollisionComponent} component
+     * @param {Vec3} position
+     * @param {Quat} rotation
+     * @param {Vec3} scale
+     */
     onTransformChanged(component, position, rotation, scale) {
         this.implementations[component.data.type].updateTransform(component, position, rotation, scale);
     }
 
-    // Destroys the previous collision type and creates a new one based on the new type provided
+    /**
+     * Destroys the previous collision type and creates a new one based on the new type provided
+     * @param {CollisionComponent} component
+     * @param {*} previousType
+     * @param {*} newType
+     */
     changeType(component, previousType, newType) {
         this.implementations[previousType].beforeRemove(component.entity, component);
         this.implementations[previousType].remove(component.entity, component.data);
         this._createImplementation(newType).reset(component, component.data);
     }
 
-    // Recreates rigid bodies or triggers for the specified component
+    /**
+     * Recreates physics bodies or triggers for the specified component
+     * @param {CollisionComponent} component
+     */
     recreatePhysicalShapes(component) {
         this.implementations[component.data.type].recreatePhysicalShapes(component);
     }
 
+    /**
+     * @param {GraphNode} node
+     * @param {GraphNode} relative
+     */
     _calculateNodeRelativeTransform(node, relative) {
         if (node === relative) {
             const scale = node.getWorldTransform().getScale();
@@ -771,12 +946,21 @@ class CollisionComponentSystem extends ComponentSystem {
         }
     }
 
+    /**
+     * @param {GraphNode} node
+     * @returns {import('ammojs3').default.btVector3}
+     */
     _getNodeScaling(node) {
         const wtm = node.getWorldTransform();
         const scl = wtm.getScale();
         return new Ammo.btVector3(scl.x, scl.y, scl.z);
     }
 
+    /**
+     * @param {GraphNode} node
+     * @param {GraphNode} relative
+     * @returns {import('ammojs3').default.btTransform}
+     */
     _getNodeTransform(node, relative) {
         let pos, rot;
 
@@ -797,7 +981,10 @@ class CollisionComponentSystem extends ComponentSystem {
 
         transform.setIdentity();
         const origin = transform.getOrigin();
-        const component = node.collision;
+        /** @type {import('../../entity').Entity} */
+        // @ts-ignore
+        const entity = node;
+        const component = entity.collision;
 
         if (component && component._hasOffset) {
             const lo = component.data.linearOffset;

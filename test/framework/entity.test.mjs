@@ -18,7 +18,7 @@ import { LightComponent } from '../../src/framework/components/light/component.j
 import { ModelComponent } from '../../src/framework/components/model/component.js';
 import { ParticleSystemComponent } from '../../src/framework/components/particle-system/component.js';
 import { RenderComponent } from '../../src/framework/components/render/component.js';
-import { RigidBodyComponent } from '../../src/framework/components/rigid-body/component.js';
+import { PhysicsComponent } from '../../src/framework/components/rigid-body/component.js';
 import { ScreenComponent } from '../../src/framework/components/screen/component.js';
 import { ScriptComponent } from '../../src/framework/components/script/component.js';
 import { ScrollbarComponent } from '../../src/framework/components/scrollbar/component.js';
@@ -64,7 +64,7 @@ describe('Entity', function () {
         model: ModelComponent,
         particlesystem: ParticleSystemComponent,
         render: RenderComponent,
-        rigidbody: RigidBodyComponent,
+        rigidbody: PhysicsComponent,
         screen: ScreenComponent,
         scrollview: ScrollViewComponent,
         scrollbar: ScrollbarComponent,

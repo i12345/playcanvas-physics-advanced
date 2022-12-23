@@ -109,9 +109,9 @@ import {
     BODYFLAG_KINEMATIC_OBJECT, BODYFLAG_NORESPONSE_OBJECT, BODYFLAG_STATIC_OBJECT,
     BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_DEACTIVATION, BODYSTATE_DISABLE_SIMULATION, BODYSTATE_ISLAND_SLEEPING, BODYSTATE_WANTS_DEACTIVATION,
     BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC, BODYTYPE_STATIC
-} from '../framework/components/rigid-body/constants.js';
-import { RigidBodyComponent } from '../framework/components/rigid-body/component.js';
-import { RigidBodyComponentSystem } from '../framework/components/rigid-body/system.js';
+} from '../framework/components/physics/constants.js';
+import { PhysicsComponent } from '../framework/components/physics/component.js';
+import { PhysicsComponentSystem } from '../framework/components/physics/system.js';
 import { basisInitialize } from '../framework/handlers/basis.js';
 
 // CORE
@@ -1229,24 +1229,24 @@ Object.defineProperty(RenderComponent.prototype, 'aabb', {
     }
 });
 
-Object.defineProperty(RigidBodyComponent.prototype, 'bodyType', {
+Object.defineProperty(PhysicsComponent.prototype, 'bodyType', {
     get: function () {
-        Debug.deprecated('pc.RigidBodyComponent#bodyType is deprecated. Use pc.RigidBodyComponent#type instead.');
+        Debug.deprecated('pc.PhysicsComponent#bodyType is deprecated. Use pc.PhysicsComponent#type instead.');
         return this.type;
     },
     set: function (type) {
-        Debug.deprecated('pc.RigidBodyComponent#bodyType is deprecated. Use pc.RigidBodyComponent#type instead.');
+        Debug.deprecated('pc.PhysicsComponent#bodyType is deprecated. Use pc.PhysicsComponent#type instead.');
         this.type = type;
     }
 });
 
-RigidBodyComponent.prototype.syncBodyToEntity = function () {
-    Debug.deprecated('pc.RigidBodyComponent#syncBodyToEntity is not public API and should not be used.');
+PhysicsComponent.prototype.syncBodyToEntity = function () {
+    Debug.deprecated('pc.PhysicsComponent#syncBodyToEntity is not public API and should not be used.');
     this._updateDynamic();
 };
 
-RigidBodyComponentSystem.prototype.setGravity = function () {
-    Debug.deprecated('pc.RigidBodyComponentSystem#setGravity is deprecated. Use pc.RigidBodyComponentSystem#gravity instead.');
+PhysicsComponentSystem.prototype.setGravity = function () {
+    Debug.deprecated('pc.PhysicsComponentSystem#setGravity is deprecated. Use pc.PhysicsComponentSystem#gravity instead.');
 
     if (arguments.length === 1) {
         this.gravity.copy(arguments[0]);

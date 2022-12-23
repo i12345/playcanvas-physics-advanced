@@ -200,9 +200,9 @@ export { ParticleSystemComponentSystem } from './framework/components/particle-s
 export { PostEffectQueue } from './framework/components/camera/post-effect-queue.js';
 export { RenderComponent } from './framework/components/render/component.js';
 export { RenderComponentSystem } from './framework/components/render/system.js';
-export * from './framework/components/rigid-body/constants.js';
-export { RigidBodyComponent } from './framework/components/rigid-body/component.js';
-export { RigidBodyComponentSystem, ContactPoint, ContactResult, RaycastResult, SingleContactResult } from './framework/components/rigid-body/system.js';
+export * from './framework/components/physics/constants.js';
+export { PhysicsComponent } from './framework/components/physics/component.js';
+export { PhysicsComponentSystem, ContactPoint, ContactResult, RaycastResult, SingleContactResult } from './framework/components/physics/system.js';
 export { SceneRegistry } from './framework/scene-registry.js';
 export { SceneRegistryItem } from './framework/scene-registry-item.js';
 export * from './framework/components/screen/constants.js';

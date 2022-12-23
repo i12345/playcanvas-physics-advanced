@@ -250,7 +250,7 @@ class LocomotionExample {
                     type: 'box',
                     halfExtents: new pc.Vec3(7.5, 0, 7.5)
                 });
-                planeEntity.addComponent("rigidbody", {
+                planeEntity.addComponent("physics", {
                     type: 'static'
                 });
                 planeEntity.setLocalScale(15, 1, 15);
@@ -288,7 +288,7 @@ class LocomotionExample {
                     const cameraEntity = app.root.findByName('Camera') as pc.Entity;
                     const near = cameraEntity.camera.screenToWorld(event.x, event.y, cameraEntity.camera.nearClip);
                     const far = cameraEntity.camera.screenToWorld(event.x, event.y, cameraEntity.camera.farClip);
-                    const result = app.systems.rigidbody.raycastFirst(far, near);
+                    const result = app.systems.physics.raycastFirst(far, near);
                     if (result) {
                         targetPosition = new pc.Vec3(result.point.x, 0, result.point.z);
                         characterEntity.anim.setInteger('speed', data.get('jogToggle') ? 2 : 1);

@@ -32,7 +32,7 @@ class FallingShapesExample {
                 app.scene.ambientLight = new pc.Color(0.2, 0.2, 0.2);
 
                 // Set the gravity for our rigid bodies
-                app.systems.rigidbody.gravity.set(0, -9.81, 0);
+                app.systems.physics.gravity.set(0, -9.81, 0);
 
                 function createMaterial(color: pc.Color) {
                     const material = new pc.StandardMaterial();
@@ -57,8 +57,8 @@ class FallingShapesExample {
                 // scale it
                 floor.setLocalScale(10, 1, 10);
 
-                // add a rigidbody component so that other objects collide with it
-                floor.addComponent("rigidbody", {
+                // add a physics component so that other objects collide with it
+                floor.addComponent("physics", {
                     type: "static",
                     restitution: 0.5
                 });
@@ -119,8 +119,8 @@ class FallingShapesExample {
                         });
                     }
 
-                    // ...a rigidbody component of type 'dynamic' so that it is simulated by the physics engine...
-                    template.addComponent("rigidbody", {
+                    // ...a physics component of type 'dynamic' so that it is simulated by the physics engine...
+                    template.addComponent("physics", {
                         type: "dynamic",
                         mass: 50,
                         restitution: 0.5
@@ -202,13 +202,13 @@ class FallingShapesExample {
 
                             app.root.addChild(clone);
 
-                            clone.rigidbody.teleport(pc.math.random(-1, 1), 10, pc.math.random(-1, 1));
-                            clone.rigidbody.angularVelocity = new pc.Vec3(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5);
+                            clone.physics.teleport(pc.math.random(-1, 1), 10, pc.math.random(-1, 1));
+                            clone.physics.angularVelocity = new pc.Vec3(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5);
                         }
                     }
 
                     // Show active bodies in red and frozen bodies in gray
-                    app.root.findComponents('rigidbody').forEach(function (body: pc.RigidBodyComponent) {
+                    app.root.findComponents('physics').forEach(function (body: pc.PhysicsComponent) {
                         body.entity.render.meshInstances[0].material = body.isActive() ? red : gray;
                     });
                 });

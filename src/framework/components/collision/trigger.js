@@ -1,20 +1,28 @@
-import { BODYFLAG_NORESPONSE_OBJECT, BODYMASK_NOT_STATIC, BODYGROUP_TRIGGER, BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_SIMULATION } from '../rigid-body/constants.js';
+import { BODYFLAG_NORESPONSE_OBJECT, BODYMASK_NOT_STATIC, BODYGROUP_TRIGGER, BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_SIMULATION } from '../physics/constants.js';
 
-let _ammoVec1, _ammoQuat, _ammoTransform;
+/** @type {import('ammojs3').default.btVector3} */
+let _ammoVec1;
+/** @type {import('ammojs3').default.btQuaternion} */
+let _ammoQuat;
+/** @type {import('ammojs3').default.btTransform} */
+let _ammoTransform;
 
 /**
- * Creates a trigger object used to create internal physics objects that interact with rigid bodies
+ * Creates a trigger object used to create internal physics objects that interact with physics bodies
  * and trigger collision events with no collision response.
  *
  * @ignore
  */
 class Trigger {
+    /** @type {import('./component').CollisionComponent} */
+    component;
+
     /**
      * Create a new Trigger instance.
      *
-     * @param {AppBase} app - The running {@link AppBase}.
-     * @param {Component} component - The component for which the trigger will be created.
-     * @param {ComponentData} data - The data for the component.
+     * @param {import('../../app-base.js').AppBase} app - The running {@link AppBase}.
+     * @param {import('./component').CollisionComponent} component - The component for which the trigger will be created.
+     * @param {import('./data').CollisionComponentData} data - The data for the component.
      */
     constructor(app, component, data) {
         this.entity = component.entity;
@@ -30,6 +38,9 @@ class Trigger {
         this.initialize(data);
     }
 
+    /**
+     * @param {import('./data').CollisionComponentData} data
+     */
     initialize(data) {
         const entity = this.entity;
         const shape = data.shape;
@@ -57,7 +68,7 @@ class Trigger {
             _ammoTransform.setOrigin(_ammoVec1);
             _ammoTransform.setRotation(_ammoQuat);
 
-            const body = this.app.systems.rigidbody.createBody(mass, shape, _ammoTransform);
+            const body = this.app.systems.physics.createRigidBody(mass, shape, _ammoTransform);
 
             body.setRestitution(0);
             body.setFriction(0);
@@ -83,7 +94,7 @@ class Trigger {
 
         this.disable();
 
-        this.app.systems.rigidbody.destroyBody(body);
+        this.app.systems.physics.destroyRigidBody(body);
     }
 
     _getEntityTransform(transform) {
@@ -117,8 +128,8 @@ class Trigger {
         if (!body) return;
 
         const systems = this.app.systems;
-        systems.rigidbody.addBody(body, BODYGROUP_TRIGGER, BODYMASK_NOT_STATIC ^ BODYGROUP_TRIGGER);
-        systems.rigidbody._triggers.push(this);
+        systems.physics.addRigidBody(body, BODYGROUP_TRIGGER, BODYMASK_NOT_STATIC ^ BODYGROUP_TRIGGER);
+        systems.physics._triggers.push(this);
 
         // set the body's activation state to active so that it is
         // simulated properly again
@@ -132,11 +143,11 @@ class Trigger {
         if (!body) return;
 
         const systems = this.app.systems;
-        const idx = systems.rigidbody._triggers.indexOf(this);
+        const idx = systems.physics._triggers.indexOf(this);
         if (idx > -1) {
-            systems.rigidbody._triggers.splice(idx, 1);
+            systems.physics._triggers.splice(idx, 1);
         }
-        systems.rigidbody.removeBody(body);
+        systems.physics.removeRigidBody(body);
 
         // set the body's activation state to disable simulation so
         // that it properly deactivates after we remove it from the physics world

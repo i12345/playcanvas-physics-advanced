@@ -378,12 +378,12 @@ class JointComponent extends Component {
     }
 
     _createConstraint() {
-        if (this._entityA && this._entityA.rigidbody) {
+        if (this._entityA && this._entityA.physics) {
             this._destroyConstraint();
 
             const mat = new Mat4();
 
-            const bodyA = this._entityA.rigidbody.body;
+            const bodyA = this._entityA.physics.body;
             bodyA.activate();
 
             const jointWtm = this.entity.getWorldTransform();
@@ -395,8 +395,8 @@ class JointComponent extends Component {
             const frameA = new Ammo.btTransform();
             this._convertTransform(mat, frameA);
 
-            if (this._entityB && this._entityB.rigidbody) {
-                const bodyB = this._entityB.rigidbody.body;
+            if (this._entityB && this._entityB.physics) {
+                const bodyB = this._entityB.physics.body;
                 bodyB.activate();
 
                 const entityBWtm = this._entityB.getWorldTransform();
@@ -431,7 +431,7 @@ class JointComponent extends Component {
             this._updateAngularLimits();
 
             const app = this.system.app;
-            const dynamicsWorld = app.systems.rigidbody.dynamicsWorld;
+            const dynamicsWorld = app.systems.physics.dynamicsWorld;
             dynamicsWorld.addConstraint(this._constraint, !this._enableCollision);
         }
     }
@@ -439,7 +439,7 @@ class JointComponent extends Component {
     _destroyConstraint() {
         if (this._constraint) {
             const app = this.system.app;
-            const dynamicsWorld = app.systems.rigidbody.dynamicsWorld;
+            const dynamicsWorld = app.systems.physics.dynamicsWorld;
             dynamicsWorld.removeConstraint(this._constraint);
 
             Ammo.destroy(this._constraint);

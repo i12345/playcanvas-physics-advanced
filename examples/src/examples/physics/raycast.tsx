@@ -64,7 +64,7 @@ class RaycastExample {
                 function createPhysicalShape(type: string, material: pc.Material, x: number, y: number, z: number) {
                     const e = new pc.Entity();
 
-                    // Have to set the position of the entity before adding the static rigidbody
+                    // Have to set the position of the entity before adding the static physics
                     // component because static bodies cannot be moved after creation
                     app.root.addChild(e);
                     e.setPosition(x, y, z);
@@ -73,7 +73,7 @@ class RaycastExample {
                         type: type,
                         material: material
                     });
-                    e.addComponent("rigidbody", {
+                    e.addComponent("physics", {
                         type: "static"
                     });
                     e.addComponent("collision", {
@@ -120,7 +120,7 @@ class RaycastExample {
                     // Render the ray used in the raycast
                     app.drawLine(start, end, white);
 
-                    const result = app.systems.rigidbody.raycastFirst(start, end);
+                    const result = app.systems.physics.raycastFirst(start, end);
                     if (result) {
                         result.entity.render.material = red;
 
@@ -136,7 +136,7 @@ class RaycastExample {
                     // Render the ray used in the raycast
                     app.drawLine(start, end, white);
 
-                    const results = app.systems.rigidbody.raycastAll(start, end);
+                    const results = app.systems.physics.raycastAll(start, end);
                     results.forEach(function (result: pc.RaycastResult) {
                         result.entity.render.material = red;
 

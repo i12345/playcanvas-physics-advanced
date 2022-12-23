@@ -436,8 +436,8 @@ class SceneRegistry {
                     app.root.addChild(scene.root);
 
                     // Initialize pack settings
-                    if (app.systems.rigidbody && typeof Ammo !== 'undefined') {
-                        app.systems.rigidbody.gravity.set(scene._gravity.x, scene._gravity.y, scene._gravity.z);
+                    if (app.systems.physics && typeof Ammo !== 'undefined') {
+                        app.systems.physics.gravity.set(scene._gravity.x, scene._gravity.y, scene._gravity.z);
                     }
 
                     if (callback) {

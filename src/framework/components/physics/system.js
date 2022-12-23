@@ -8,10 +8,13 @@ import { Component } from '../component.js';
 import { ComponentSystem } from '../system.js';
 
 import { BODYFLAG_NORESPONSE_OBJECT } from './constants.js';
-import { RigidBodyComponent } from './component.js';
-import { RigidBodyComponentData } from './data.js';
+import { PhysicsComponent } from './component.js';
+import { PhysicsComponentData } from './data.js';
 
-let ammoRayStart, ammoRayEnd;
+/** @type {import('ammojs3').default.btVector3} */
+let ammoRayStart;
+/** @type {import('ammojs3').default.btVector3} */
+let ammoRayEnd;
 
 /**
  * Object holding the result of a successful raycast hit.
@@ -230,14 +233,14 @@ class ContactResult {
 const _schema = ['enabled'];
 
 /**
- * The RigidBodyComponentSystem maintains the dynamics world for simulating rigid bodies, it also
- * controls global values for the world such as gravity. Note: The RigidBodyComponentSystem is only
+ * The PhysicsComponentSystem maintains the dynamics world for simulating physics, it also
+ * controls global values for the world such as gravity. Note: The PhysicsComponentSystem is only
  * valid if 3D Physics is enabled in your application. You can enable this in the application
  * settings for your project.
  *
  * @augments ComponentSystem
  */
-class RigidBodyComponentSystem extends ComponentSystem {
+class PhysicsComponentSystem extends ComponentSystem {
     /**
      * @type {number}
      * @ignore
@@ -259,31 +262,46 @@ class RigidBodyComponentSystem extends ComponentSystem {
     gravity = new Vec3(0, -9.81, 0);
 
     /**
-     * @type {RigidBodyComponent[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _dynamic = [];
 
     /**
-     * @type {RigidBodyComponent[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _kinematic = [];
 
     /**
-     * @type {RigidBodyComponent[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _triggers = [];
 
     /**
-     * @type {RigidBodyComponent[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _compounds = [];
 
+    /** @type {import('ammojs3').default.btDefaultCollisionConfiguration} */
+    collisionConfiguration;
+
+    /** @type {import('ammojs3').default.btCollisionDispatcher} */
+    dispatcher;
+
+    /** @type {import('ammojs3').default.btDbvtBroadphase} */
+    overlappingPairCache;
+
+    /** @type {import('ammojs3').default.btMultiBodyConstraintSolver} */
+    solver;
+
+    /** @type {import('ammojs3').default.btMultiBodyDynamicsWorld} */
+    dynamicsWorld;
+
     /**
-     * Create a new RigidBodyComponentSystem.
+     * Create a new PhysicsComponentSystem.
      *
      * @param {import('../../app-base.js').AppBase} app - The Application.
      * @hideconstructor
@@ -291,11 +309,11 @@ class RigidBodyComponentSystem extends ComponentSystem {
     constructor(app) {
         super(app);
 
-        this.id = 'rigidbody';
+        this.id = 'physics';
         this._stats = app.stats.frame;
 
-        this.ComponentType = RigidBodyComponent;
-        this.DataType = RigidBodyComponentData;
+        this.ComponentType = PhysicsComponent;
+        this.DataType = PhysicsComponentData;
 
         this.contactPointPool = null;
         this.contactResultPool = null;
@@ -311,9 +329,9 @@ class RigidBodyComponentSystem extends ComponentSystem {
     }
 
     /**
-     * Fired when a contact occurs between two rigid bodies.
+     * Fired when a contact occurs between two bodies.
      *
-     * @event RigidBodyComponentSystem#contact
+     * @event PhysicsComponentSystem#contact
      * @param {SingleContactResult} result - Details of the contact between the two bodies.
      */
 
@@ -328,12 +346,12 @@ class RigidBodyComponentSystem extends ComponentSystem {
             this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
             this.dispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
             this.overlappingPairCache = new Ammo.btDbvtBroadphase();
-            this.solver = new Ammo.btSequentialImpulseConstraintSolver();
-            this.dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(this.dispatcher, this.overlappingPairCache, this.solver, this.collisionConfiguration);
+            this.solver = new Ammo.btMultiBodyMLCPConstraintSolver(new Ammo.btDantzigSolver());
+            this.dynamicsWorld = new Ammo.btMultiBodyDynamicsWorld(this.dispatcher, this.overlappingPairCache, this.solver, this.collisionConfiguration);
 
-            if (this.dynamicsWorld.setInternalTickCallback) {
+            if (Ammo.AdapterFunctions.prototype.setInternalTickCallback) {
                 const checkForCollisionsPointer = Ammo.addFunction(this._checkForCollisions.bind(this), 'vif');
-                this.dynamicsWorld.setInternalTickCallback(checkForCollisionsPointer);
+                Ammo.AdapterFunctions.prototype.setInternalTickCallback(this.dynamicsWorld, checkForCollisionsPointer);
             } else {
                 Debug.warn('WARNING: This version of ammo.js can potentially fail to report contacts. Please update it to the latest version.');
             }
@@ -341,7 +359,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
             // Lazily create temp vars
             ammoRayStart = new Ammo.btVector3();
             ammoRayEnd = new Ammo.btVector3();
-            RigidBodyComponent.onLibraryLoaded();
+            PhysicsComponent.onLibraryLoaded();
 
             this.contactPointPool = new ObjectPool(ContactPoint, 1);
             this.contactResultPool = new ObjectPool(ContactResult, 1);
@@ -385,20 +403,20 @@ class RigidBodyComponentSystem extends ComponentSystem {
 
     cloneComponent(entity, clone) {
         // create new data block for clone
-        const rigidbody = entity.rigidbody;
+        const physics = entity.physics;
         const data = {
-            enabled: rigidbody.enabled,
-            mass: rigidbody.mass,
-            linearDamping: rigidbody.linearDamping,
-            angularDamping: rigidbody.angularDamping,
-            linearFactor: [rigidbody.linearFactor.x, rigidbody.linearFactor.y, rigidbody.linearFactor.z],
-            angularFactor: [rigidbody.angularFactor.x, rigidbody.angularFactor.y, rigidbody.angularFactor.z],
-            friction: rigidbody.friction,
-            rollingFriction: rigidbody.rollingFriction,
-            restitution: rigidbody.restitution,
-            type: rigidbody.type,
-            group: rigidbody.group,
-            mask: rigidbody.mask
+            enabled: physics.enabled,
+            mass: physics.mass,
+            linearDamping: physics.linearDamping,
+            angularDamping: physics.angularDamping,
+            linearFactor: [physics.linearFactor.x, physics.linearFactor.y, physics.linearFactor.z],
+            angularFactor: [physics.angularFactor.x, physics.angularFactor.y, physics.angularFactor.z],
+            friction: physics.friction,
+            rollingFriction: physics.rollingFriction,
+            restitution: physics.restitution,
+            type: physics.type,
+            group: physics.group,
+            mask: physics.mask
         };
 
         return this.addComponent(clone, data);
@@ -411,16 +429,21 @@ class RigidBodyComponentSystem extends ComponentSystem {
     }
 
     onRemove(entity, component) {
-        const body = component.body;
-        if (body) {
-            this.removeBody(body);
-            this.destroyBody(body);
+        const rigidBody = component.rigidBody;
+        if (rigidBody) {
+            this.removeRigidBody(rigidBody);
+            this.destroyRigidBody(rigidBody);
 
-            component.body = null;
+            component.rigidBody = null;
         }
     }
 
-    addBody(body, group, mask) {
+    /**
+     * @param {import('ammojs3').default.btRigidBody} body
+     * @param {number} group
+     * @param {number} mask
+     */
+    addRigidBody(body, group, mask) {
         if (group !== undefined && mask !== undefined) {
             this.dynamicsWorld.addRigidBody(body, group, mask);
         } else {
@@ -428,11 +451,20 @@ class RigidBodyComponentSystem extends ComponentSystem {
         }
     }
 
-    removeBody(body) {
+    /**
+     * @param {import('ammojs3').default.btRigidBody} body
+     */
+    removeRigidBody(body) {
         this.dynamicsWorld.removeRigidBody(body);
     }
 
-    createBody(mass, shape, transform) {
+    /**
+     * @param {number} mass
+     * @param {import('ammojs3').default.btCollisionShape} shape
+     * @param {import('ammojs3').default.btTransform} transform
+     * @returns {import('ammojs3').default.btRigidBody}
+     */
+    createRigidBody(mass, shape, transform) {
         const localInertia = new Ammo.btVector3(0, 0, 0);
         if (mass !== 0) {
             shape.calculateLocalInertia(mass, localInertia);
@@ -447,7 +479,10 @@ class RigidBodyComponentSystem extends ComponentSystem {
         return body;
     }
 
-    destroyBody(body) {
+    /**
+     * @param {import('ammojs3').default.btRigidBody} body
+     */
+    destroyRigidBody(body) {
         // The motion state needs to be destroyed explicitly (if present)
         const motionState = body.getMotionState();
         if (motionState) {
@@ -488,7 +523,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
 
                 // keeping for backwards compatibility
                 if (arguments.length > 2) {
-                    Debug.deprecated('pc.RigidBodyComponentSystem#rayCastFirst no longer requires a callback. The result of the raycast is returned by the function instead.');
+                    Debug.deprecated('pc.PhysicsComponentSystem#rayCastFirst no longer requires a callback. The result of the raycast is returned by the function instead.');
 
                     const callback = arguments[2];
                     callback(result);
@@ -511,7 +546,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
      * @returns {RaycastResult[]} An array of raycast hit results (0 length if there were no hits).
      */
     raycastAll(start, end) {
-        Debug.assert(Ammo.AllHitsRayResultCallback, 'pc.RigidBodyComponentSystem#raycastAll: Your version of ammo.js does not expose Ammo.AllHitsRayResultCallback. Update it to latest.');
+        Debug.assert(Ammo.AllHitsRayResultCallback, 'pc.PhysicsComponentSystem#raycastAll: Your version of ammo.js does not expose Ammo.AllHitsRayResultCallback. Update it to latest.');
 
         const results = [];
 
@@ -642,7 +677,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
                 const collision = this.collisions[guid];
                 const entity = collision.entity;
                 const entityCollision = entity.collision;
-                const entityRigidbody = entity.rigidbody;
+                const entityPhysics = entity.physics;
                 const others = collision.others;
                 const length = others.length;
                 let i = length;
@@ -658,13 +693,13 @@ class RigidBodyComponentSystem extends ComponentSystem {
                             if (entityCollision) {
                                 entityCollision.fire('triggerleave', other);
                             }
-                            if (other.rigidbody) {
-                                other.rigidbody.fire('triggerleave', entity);
+                            if (other.physics) {
+                                other.physics.fire('triggerleave', entity);
                             }
                         } else if (!other.trigger) {
                             // suppress events if the other entity is a trigger
-                            if (entityRigidbody) {
-                                entityRigidbody.fire('collisionend', other);
+                            if (entityPhysics) {
+                                entityPhysics.fire('collisionend', other);
                             }
                             if (entityCollision) {
                                 entityCollision.fire('collisionend', other);
@@ -693,8 +728,8 @@ class RigidBodyComponentSystem extends ComponentSystem {
             return true;
         }
 
-        const r = entity.rigidbody;
-        return r && (r.hasEvent('collisionstart') || r.hasEvent('collisionend') || r.hasEvent('contact'));
+        const p = entity.physics;
+        return p && (p.hasEvent('collisionstart') || p.hasEvent('collisionend') || p.hasEvent('contact'));
     }
 
     /**
@@ -705,6 +740,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
      * @private
      */
     _checkForCollisions(world, timeStep) {
+        /** @type {import('ammojs3').default.btDynamicsWorld} */
         const dynamicsWorld = Ammo.wrapPointer(world, Ammo.btDynamicsWorld);
 
         // Check for collisions and fire callbacks
@@ -720,7 +756,9 @@ class RigidBodyComponentSystem extends ComponentSystem {
             const body0 = manifold.getBody0();
             const body1 = manifold.getBody1();
 
+            /** @type {import('ammojs3').default.btRigidBody} */
             const wb0 = Ammo.castObject(body0, Ammo.btRigidBody);
+            /** @type {import('ammojs3').default.btRigidBody} */
             const wb1 = Ammo.castObject(body1, Ammo.btRigidBody);
 
             const e0 = wb0.entity;
@@ -746,8 +784,8 @@ class RigidBodyComponentSystem extends ComponentSystem {
 
                     const e0Events = e0.collision && (e0.collision.hasEvent('triggerenter') || e0.collision.hasEvent('triggerleave'));
                     const e1Events = e1.collision && (e1.collision.hasEvent('triggerenter') || e1.collision.hasEvent('triggerleave'));
-                    const e0BodyEvents = e0.rigidbody && (e0.rigidbody.hasEvent('triggerenter') || e0.rigidbody.hasEvent('triggerleave'));
-                    const e1BodyEvents = e1.rigidbody && (e1.rigidbody.hasEvent('triggerenter') || e1.rigidbody.hasEvent('triggerleave'));
+                    const e0BodyEvents = e0.physics && (e0.physics.hasEvent('triggerenter') || e0.physics.hasEvent('triggerleave'));
+                    const e1BodyEvents = e1.physics && (e1.physics.hasEvent('triggerenter') || e1.physics.hasEvent('triggerleave'));
 
                     // fire triggerenter events for triggers
                     if (e0Events) {
@@ -771,7 +809,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
                         }
 
                         if (newCollision) {
-                            e0.rigidbody.fire('triggerenter', e1);
+                            e0.physics.fire('triggerenter', e1);
                         }
                     }
 
@@ -781,7 +819,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
                         }
 
                         if (newCollision) {
-                            e1.rigidbody.fire('triggerenter', e0);
+                            e1.physics.fire('triggerenter', e0);
                         }
                     }
                 } else {
@@ -818,10 +856,10 @@ class RigidBodyComponentSystem extends ComponentSystem {
                                 }
                             }
 
-                            if (e0.rigidbody) {
-                                e0.rigidbody.fire('contact', forwardResult);
+                            if (e0.physics) {
+                                e0.physics.fire('contact', forwardResult);
                                 if (newCollision) {
-                                    e0.rigidbody.fire('collisionstart', forwardResult);
+                                    e0.physics.fire('collisionstart', forwardResult);
                                 }
                             }
                         }
@@ -837,10 +875,10 @@ class RigidBodyComponentSystem extends ComponentSystem {
                                 }
                             }
 
-                            if (e1.rigidbody) {
-                                e1.rigidbody.fire('contact', reverseResult);
+                            if (e1.physics) {
+                                e1.physics.fire('contact', reverseResult);
                                 if (newCollision) {
-                                    e1.rigidbody.fire('collisionstart', reverseResult);
+                                    e1.physics.fire('collisionstart', reverseResult);
                                 }
                             }
                         }
@@ -897,7 +935,7 @@ class RigidBodyComponentSystem extends ComponentSystem {
             dynamic[i]._updateDynamic();
         }
 
-        if (!this.dynamicsWorld.setInternalTickCallback)
+        if (!Ammo.AdapterFunctions.prototype.setInternalTickCallback)
             this._checkForCollisions(Ammo.getPointer(this.dynamicsWorld), dt);
 
         // #if _PROFILER
@@ -925,6 +963,6 @@ class RigidBodyComponentSystem extends ComponentSystem {
     }
 }
 
-Component._buildAccessors(RigidBodyComponent.prototype, _schema);
+Component._buildAccessors(PhysicsComponent.prototype, _schema);
 
-export { ContactPoint, ContactResult, RaycastResult, RigidBodyComponentSystem, SingleContactResult };
+export { ContactPoint, ContactResult, RaycastResult, PhysicsComponentSystem, SingleContactResult };

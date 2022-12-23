@@ -508,7 +508,7 @@ class CameraComponent extends Component {
      * var end = entity.camera.screenToWorld(clickX, clickY, entity.camera.farClip);
      *
      * // Use the ray coordinates to perform a raycast
-     * app.systems.rigidbody.raycastFirst(start, end, function (result) {
+     * app.systems.physics.raycastFirst(start, end, function (result) {
      *     console.log("Entity " + result.entity.name + " was selected");
      * });
      * @returns {import('../../../core/math/vec3.js').Vec3} The world space coordinate.

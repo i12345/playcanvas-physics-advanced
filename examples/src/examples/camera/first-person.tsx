@@ -44,7 +44,7 @@ class FirstPersonExample {
                     type: "box",
                     halfExtents: new pc.Vec3(100, 0.5, 100)
                 });
-                floor.addComponent("rigidbody", {
+                floor.addComponent("physics", {
                     type: "static",
                     restitution: 0.5
                 });
@@ -67,7 +67,7 @@ class FirstPersonExample {
                     type: "mesh",
                     asset: assets.statue.resource.model
                 });
-                model.addComponent("rigidbody", {
+                model.addComponent("physics", {
                     type: "static",
                     restitution: 0.5
                 });
@@ -91,7 +91,7 @@ class FirstPersonExample {
                     radius: 0.5,
                     type: "capsule"
                 });
-                characterController.addComponent("rigidbody", {
+                characterController.addComponent("physics", {
                     angularDamping: 0,
                     angularFactor: pc.Vec3.ZERO,
                     friction: 0.3,

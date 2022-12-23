@@ -23,7 +23,7 @@ import { LayoutGroupComponentSystem } from './components/layout-group/system.js'
 import { ModelComponentSystem } from './components/model/system.js';
 import { ParticleSystemComponentSystem } from './components/particle-system/system.js';
 import { RenderComponentSystem } from './components/render/system.js';
-import { RigidBodyComponentSystem } from './components/rigid-body/system.js';
+import { PhysicsComponentSystem } from './components/physics/system.js';
 import { ScreenComponentSystem } from './components/screen/system.js';
 import { ScriptLegacyComponentSystem } from './components/script-legacy/system.js';
 import { ScrollViewComponentSystem } from './components/scroll-view/system.js';
@@ -158,7 +158,7 @@ class Application extends AppBase {
 
     addComponentSystems(appOptions) {
         appOptions.componentSystems = [
-            RigidBodyComponentSystem,
+            PhysicsComponentSystem,
             CollisionComponentSystem,
             JointComponentSystem,
             AnimationComponentSystem,

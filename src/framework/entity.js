@@ -132,12 +132,12 @@ class Entity extends GraphNode {
     render;
 
     /**
-     * Gets the {@link RigidBodyComponent} attached to this entity.
+     * Gets the {@link PhysicsComponent} attached to this entity.
      *
-     * @type {import('./components/rigid-body/component.js').RigidBodyComponent|undefined}
+     * @type {import('./components/physics/component.js').PhysicsComponent|undefined}
      * @readonly
      */
-    rigidbody;
+    physics;
 
     /**
      * Gets the {@link ScreenComponent} attached to this entity.
@@ -283,7 +283,7 @@ class Entity extends GraphNode {
      * - "model" - see {@link ModelComponent}
      * - "particlesystem" - see {@link ParticleSystemComponent}
      * - "render" - see {@link RenderComponent}
-     * - "rigidbody" - see {@link RigidBodyComponent}
+     * - "physics" - see {@link PhysicsComponent}
      * - "screen" - see {@link ScreenComponent}
      * - "script" - see {@link ScriptComponent}
      * - "scrollbar" - see {@link ScrollbarComponent}

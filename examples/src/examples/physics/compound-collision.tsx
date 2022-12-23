@@ -38,7 +38,7 @@ class CompoundCollisionExample {
             const scene = [
                 {
                     // The Chair entity has a collision component of type 'compound' and a
-                    // rigidbody component. This means that any descendent entity with a
+                    // physics component. This means that any descendent entity with a
                     // collision component is added to a compound collision shape on the
                     // Chair entity. You can use compound collision shapes to define
                     // complex, rigid shapes.
@@ -51,7 +51,7 @@ class CompoundCollisionExample {
                                 type: 'compound'
                             }
                         }, {
-                            type: 'rigidbody',
+                            type: 'physics',
                             options: {
                                 type: 'dynamic',
                                 friction: 0.5,
@@ -239,7 +239,7 @@ class CompoundCollisionExample {
                                 halfExtents: [5, 0.5, 5]
                             }
                         }, {
-                            type: 'rigidbody',
+                            type: 'physics',
                             options: {
                                 type: 'static',
                                 restitution: 0.5
@@ -352,7 +352,7 @@ class CompoundCollisionExample {
                 }
 
                 // Show active bodies in red and frozen bodies in gray
-                app.root.findComponents('rigidbody').forEach(function (body: pc.RigidBodyComponent) {
+                app.root.findComponents('physics').forEach(function (body: pc.PhysicsComponent) {
                     body.entity.findComponents('render').forEach(function (render: pc.RenderComponent) {
                         render.material = body.isActive() ? red : gray;
                     });
