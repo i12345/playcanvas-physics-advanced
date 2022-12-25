@@ -84,6 +84,14 @@ class Entity extends GraphNode {
     element;
 
     /**
+     * Gets the {@link JointComponent} attached to this entity.
+     *
+     * @type {import('./components/joint/component.js').JointComponent|undefined}
+     * @readonly
+     */
+    joint;
+
+    /**
      * Gets the {@link LayoutChildComponent} attached to this entity.
      *
      * @type {import('./components/layout-child/component.js').LayoutChildComponent|undefined}

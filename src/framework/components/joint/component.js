@@ -383,7 +383,7 @@ class JointComponent extends Component {
 
             const mat = new Mat4();
 
-            const bodyA = this._entityA.physics.body;
+            const bodyA = this._entityA.physics.rigidBody;
             bodyA.activate();
 
             const jointWtm = this.entity.getWorldTransform();
@@ -396,7 +396,7 @@ class JointComponent extends Component {
             this._convertTransform(mat, frameA);
 
             if (this._entityB && this._entityB.physics) {
-                const bodyB = this._entityB.physics.body;
+                const bodyB = this._entityB.physics.rigidBody;
                 bodyB.activate();
 
                 const entityBWtm = this._entityB.getWorldTransform();
