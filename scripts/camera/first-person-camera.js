@@ -26,13 +26,13 @@ CharacterController.prototype.move = function (direction) {
             tmp.cross(this.groundNormal, direction).cross(tmp, this.groundNormal);
             tmp.normalize().scale(length * this.speed);
         }
-        this.entity.rigidbody.linearVelocity = tmp;
+        this.entity.physics.linearVelocity = tmp;
     }
 };
 
 CharacterController.prototype.jump = function () {
     if (this.onGround && !this.jumping) {
-        this.entity.rigidbody.applyImpulse(0, this.jumpImpulse, 0);
+        this.entity.physics.applyImpulse(0, this.jumpImpulse, 0);
         this.onGround = false;
         this.jumping = true;
         setTimeout(function () {
@@ -48,7 +48,7 @@ CharacterController.prototype.update = function (dt) {
 
     // Fire a ray straight down to just below the bottom of the rigid body,
     // if it hits something then the character is standing on something.
-    var result = this.app.systems.rigidbody.raycastFirst(pos, this.rayEnd);
+    var result = this.app.systems.physics.raycastFirst(pos, this.rayEnd);
     this.onGround = !!result;
     if (result) {
         this.groundNormal.copy(result.normal);

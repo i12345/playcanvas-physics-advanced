@@ -15,12 +15,12 @@ ActionPhysicsReset.prototype.postInitialize = function () {
     var rot = entity.getRotation().clone();
 
     var reset = function () {
-        var rigidbody = entity.rigidbody;
-        if (rigidbody && rigidbody.type === 'dynamic') {
+        var physics = entity.physics;
+        if (physics && physics.type === 'dynamic') {
             // Reset the body to its initial state (with zero linear and angular velocity)
-            rigidbody.teleport(pos, rot);
-            rigidbody.linearVelocity = pc.Vec3.ZERO;
-            rigidbody.angularVelocity = pc.Vec3.ZERO;
+            physics.teleport(pos, rot);
+            physics.linearVelocity = pc.Vec3.ZERO;
+            physics.angularVelocity = pc.Vec3.ZERO;
         }
     };
 

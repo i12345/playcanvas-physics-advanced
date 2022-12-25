@@ -184,8 +184,8 @@ RenderPhysics.prototype.postUpdate = function (dt) {
                 }
 
                 // Use the rigid body position if we have it
-                if (collision.entity.rigidbody) {
-                    var body = collision.entity.rigidbody.body;
+                if (collision.entity.physics) {
+                    var body = collision.entity.physics.body;
                     if (body) {
                         var t = body.getWorldTransform();
 

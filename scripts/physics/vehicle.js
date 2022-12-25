@@ -29,8 +29,8 @@ Object.defineProperty(Vehicle.prototype, 'speed', {
 
 // initialize code called once per entity
 Vehicle.prototype.initialize = function () {
-    var body = this.entity.rigidbody.body;
-    var dynamicsWorld = this.app.systems.rigidbody.dynamicsWorld;
+    var body = this.entity.physics.body;
+    var dynamicsWorld = this.app.systems.physics.dynamicsWorld;
 
     // Create vehicle
     var tuning = new Ammo.btVehicleTuning();
@@ -120,7 +120,7 @@ Vehicle.prototype.update = function (dt) {
     var vehicle = this.vehicle;
     var i;
 
-    var body = this.entity.rigidbody.body;
+    var body = this.entity.physics.body;
     var DISABLE_DEACTIVATION = 4;
     body.setActivationState(DISABLE_DEACTIVATION);
 

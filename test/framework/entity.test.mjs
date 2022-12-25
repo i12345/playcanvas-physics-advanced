@@ -64,7 +64,7 @@ describe('Entity', function () {
         model: ModelComponent,
         particlesystem: ParticleSystemComponent,
         render: RenderComponent,
-        rigidbody: PhysicsComponent,
+        physics: PhysicsComponent,
         screen: ScreenComponent,
         scrollview: ScrollViewComponent,
         scrollbar: ScrollbarComponent,
@@ -141,7 +141,7 @@ describe('Entity', function () {
         // Add some components for testing clone behaviour
         a.addComponent('animation', { speed: 0.9, loop: true });
         a.addComponent('camera', { nearClip: 2, farClip: 3 });
-        a_a.addComponent('rigidbody', { type: 'static' });
+        a_a.addComponent('physics', { type: 'static' });
         a_a.addComponent('collision', { type: 'sphere', radius: 4 });
         a_a_b.addComponent('light', { type: 'point', color: Color.YELLOW, intensity: 0.5 });
         a_a_b.addComponent('sound', { volume: 0.5, pitch: 0.75 });
@@ -229,7 +229,7 @@ describe('Entity', function () {
             expect(subtree2.a_a.name).to.equal('a_a');
             expect(subtree2.a_a.collision.radius).to.equal(4);
             expect(subtree2.a_a.collision.type).to.equal('sphere');
-            expect(subtree2.a_a.rigidbody.type).to.equal('static');
+            expect(subtree2.a_a.physics.type).to.equal('static');
 
             expect(subtree2.a_a_b.name).to.equal('a_a_b');
             expect(subtree2.a_a_b.light.intensity).to.equal(0.5);
@@ -255,7 +255,7 @@ describe('Entity', function () {
             expect(subtree1.a.camera).to.not.equal(subtree2.a.camera);
             expect(subtree1.a_a).to.not.equal(subtree2.a_a);
             expect(subtree1.a_a.collision).to.not.equal(subtree2.a_a.collision);
-            expect(subtree1.a_a.rigidbody).to.not.equal(subtree2.a_a.rigidbody);
+            expect(subtree1.a_a.physics).to.not.equal(subtree2.a_a.physics);
             expect(subtree1.a_b).to.not.equal(subtree2.a_b);
             expect(subtree1.a_a_a).to.not.equal(subtree2.a_a_a);
             expect(subtree1.a_a_b).to.not.equal(subtree2.a_a_b);
