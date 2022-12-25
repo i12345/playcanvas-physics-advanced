@@ -72,7 +72,7 @@ class PhysicsComponent extends Component {
 
     /** @private */
     /** @type {import('ammojs3').default.btRigidBody} */
-    _rigid_rigidBody = null;
+    _rigidBody = null;
 
     /** @private */
     _friction = 0.5;
@@ -108,7 +108,7 @@ class PhysicsComponent extends Component {
     _type = BODYTYPE_STATIC;
 
     /** @type {import('./system').PhysicsComponentSystem} */
-    system;
+    // system;
 
     /**
      * Create a new PhysicsComponent instance.
@@ -543,7 +543,7 @@ class PhysicsComponent extends Component {
 
             body.entity = entity;
 
-            this.body = body;
+            this._rigidBody = body;
 
             if (this.enabled && entity.enabled) {
                 this.enableSimulation();

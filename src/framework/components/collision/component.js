@@ -1,4 +1,3 @@
-import { type } from 'src/core/core.js';
 import { Quat } from '../../../core/math/quat.js';
 import { Vec3 } from '../../../core/math/vec3.js';
 
@@ -60,18 +59,18 @@ const _quat = new Quat();
  */
 class CollisionComponent extends Component {
     /** @type {import('./system').CollisionComponentSystem} */
-    system;
+    // system;
 
     /** @returns {import('./data').CollisionComponentData} */
-    get data() {
-        return super.data;
-    }
+    // get data() {
+    //     return super.data;
+    // }
 
     /** @type {import('ammojs3').default.btCollisionShape} */
-    shape;
+    // shape;
 
     /** @type {import('./data').CollisionComponentData['type']} */
-    type;
+    // type;
 
     /**
      * Create a new CollisionComponent.
