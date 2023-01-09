@@ -124,6 +124,14 @@ class Entity extends GraphNode {
     model;
 
     /**
+     * Gets the {@link MultiBodyComponent} attached to this entity.
+     *
+     * @type {import('./components/multibody/component.js').MultiBodyComponent|undefined}
+     * @readonly
+     */
+    multibody;
+
+    /**
      * Gets the {@link ParticleSystemComponent} attached to this entity.
      *
      * @type {import('./components/particle-system/component.js').ParticleSystemComponent|undefined}

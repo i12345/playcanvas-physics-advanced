@@ -111,6 +111,14 @@ class ComponentSystemRegistry extends EventHandler {
     model;
 
     /**
+     * Gets the {@link MultiBodyComponentSystem} from the registry.
+     *
+     * @type {import('./multibody/system.js').MultiBodyComponentSystem|undefined}
+     * @readonly
+     */
+    multibody;
+
+    /**
      * Gets the {@link ParticleSystemComponentSystem} from the registry.
      *
      * @type {import('./particle-system/system.js').ParticleSystemComponentSystem|undefined}

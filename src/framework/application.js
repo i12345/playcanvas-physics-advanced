@@ -21,6 +21,7 @@ import { JointComponentSystem } from './components/joint/system.js';
 import { LayoutChildComponentSystem } from './components/layout-child/system.js';
 import { LayoutGroupComponentSystem } from './components/layout-group/system.js';
 import { ModelComponentSystem } from './components/model/system.js';
+import { MultiBodyComponentSystem } from './components/multibody/system.js';
 import { ParticleSystemComponentSystem } from './components/particle-system/system.js';
 import { RenderComponentSystem } from './components/render/system.js';
 import { PhysicsComponentSystem } from './components/physics/system.js';
@@ -159,6 +160,7 @@ class Application extends AppBase {
     addComponentSystems(appOptions) {
         appOptions.componentSystems = [
             PhysicsComponentSystem,
+            MultiBodyComponentSystem,
             CollisionComponentSystem,
             JointComponentSystem,
             AnimationComponentSystem,

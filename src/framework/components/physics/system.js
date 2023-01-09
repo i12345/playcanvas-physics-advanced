@@ -428,6 +428,12 @@ class PhysicsComponentSystem extends ComponentSystem {
         }
     }
 
+    /**
+     * Removes a {@link PhysicsComponent} from an entity.
+     *
+     * @param {import('../../entity').Entity} entity - The entity to remove
+     * @param {PhysicsComponent} component - The {@link PhysicsComponent} to remove from the entity
+     */
     onRemove(entity, component) {
         const rigidBody = component.rigidBody;
         if (rigidBody) {
@@ -436,26 +442,14 @@ class PhysicsComponentSystem extends ComponentSystem {
 
             component.rigidBody = null;
         }
-    }
 
-    /**
-     * @param {import('ammojs3').default.btRigidBody} body
-     * @param {number} group
-     * @param {number} mask
-     */
-    addRigidBody(body, group, mask) {
-        if (group !== undefined && mask !== undefined) {
-            this.dynamicsWorld.addRigidBody(body, group, mask);
-        } else {
-            this.dynamicsWorld.addRigidBody(body);
+        const multibodyLinkCollider = component.multibodyLinkCollider;
+        if (multibodyLinkCollider) {
+            this.removeMultiBodyLinkCollider(multibodyLinkCollider);
+            this.destroyMultiBodyLinkCollider(multibodyLinkCollider);
+
+            component.multibodyLinkCollider = null;
         }
-    }
-
-    /**
-     * @param {import('ammojs3').default.btRigidBody} body
-     */
-    removeRigidBody(body) {
-        this.dynamicsWorld.removeRigidBody(body);
     }
 
     /**
@@ -480,6 +474,100 @@ class PhysicsComponentSystem extends ComponentSystem {
     }
 
     /**
+     * @param {number} mass
+     * @param {import('ammojs3').default.btCollisionShape} shape
+     * @param {import('ammojs3').default.btTransform} transform
+     * @param {import('../multibody/component').MultiBodyComponent} multibodyComponent
+     * @returns {import('ammojs3').default.btMultiBodyLinkCollider}
+     */
+    createMultiBodyLinkCollider(mass, shape, transform, multibodyComponent) {
+        const localInertia = new Ammo.btVector3(0, 0, 0);
+        if (mass !== 0) {
+            shape.calculateLocalInertia(mass, localInertia);
+        }
+
+        // adapted from ammo.js/bullet/examples/MultiBody/MultiBodyConstraintFeedback.cpp > initPhysics()
+        const collider = new Ammo.btMultiBodyLinkCollider(multibodyComponent.base.multibody, multibodyComponent.linkIndex);
+        collider.setCollisionShape(shape);
+        collider.setWorldTransform(transform);
+
+        if (multibodyComponent.linkIndex === -1) {
+            multibodyComponent.multibody.setBaseMass(mass);
+            multibodyComponent.multibody.setBaseInertia(localInertia);
+        } else {
+            multibodyComponent.link.set_m_mass(mass);
+            multibodyComponent.link.set_m_inertiaLocal(localInertia);
+        }
+
+        Ammo.destroy(localInertia);
+
+        return collider;
+    }
+
+    /**
+     * @param {import('ammojs3').default.btRigidBody} body
+     * @param {number} group
+     * @param {number} mask
+     */
+    addRigidBody(body, group, mask) {
+        if (group !== undefined && mask !== undefined) {
+            this.dynamicsWorld.addRigidBody(body, group, mask);
+        } else {
+            this.dynamicsWorld.addRigidBody(body);
+        }
+    }
+
+    /**
+     * @param {import('ammojs3').default.btMultiBody} body
+     * @param {number} group
+     * @param {number} mask
+     */
+    addMultiBody(body, group, mask) {
+        body.finalizeMultiDof();
+        this.dynamicsWorld.addMultiBody(body, group, mask);
+    }
+
+    /**
+     * @param {import('ammojs3').default.btMultiBodyLinkCollider} collider - The collider to destroy
+     * @param {number} group
+     * @param {number} mask
+     */
+    addMultiBodyLinkCollider(collider, group, mask) {
+        this.dynamicsWorld.addCollisionObject(collider, group, mask);
+
+        if (collider.m_link === -1)
+            collider.m_multiBody.setBaseCollider(collider);
+        else
+            collider.m_multiBody.getLink(collider.m_link).set_m_collider(collider);
+    }
+
+    /**
+     * @param {import('ammojs3').default.btRigidBody} body
+     */
+    removeRigidBody(body) {
+        this.dynamicsWorld.removeRigidBody(body);
+    }
+
+    /**
+     * @param {import('ammojs3').default.btMultiBody} body
+     */
+    removeMultiBody(body) {
+        this.dynamicsWorld.removeMultiBody(body);
+    }
+
+    /**
+     * @param {import('ammojs3').default.btMultiBodyLinkCollider} collider - The collider to destroy
+     */
+    removeMultiBodyLinkCollider(collider) {
+        this.dynamicsWorld.removeCollisionObject(collider);
+
+        if (collider.m_link === -1)
+            collider.m_multiBody.setBaseCollider(null);
+        else
+            collider.m_multiBody.getLink(collider.m_link).set_m_collider(null);
+    }
+
+    /**
      * @param {import('ammojs3').default.btRigidBody} body
      */
     destroyRigidBody(body) {
@@ -489,6 +577,20 @@ class PhysicsComponentSystem extends ComponentSystem {
             Ammo.destroy(motionState);
         }
         Ammo.destroy(body);
+    }
+
+    /**
+     * @param {import('ammojs3').default.btMultiBody} body
+     */
+    destroyMultiBody(body) {
+        Ammo.destroy(body);
+    }
+
+    /**
+     * @param {import('ammojs3').default.btMultiBodyLinkCollider} collider - The collider to destroy
+     */
+    destroyMultiBodyLinkCollider(collider) {
+        Ammo.destroy(collider);
     }
 
     /**
