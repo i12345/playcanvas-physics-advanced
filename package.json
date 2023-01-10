@@ -1,9 +1,14 @@
 {
-  "name": "playcanvas",
+  "name": "playcanvas-extended",
   "version": "1.60.0-dev",
   "author": "PlayCanvas <support@playcanvas.com>",
-  "homepage": "https://playcanvas.com",
-  "description": "PlayCanvas WebGL game engine",
+  "contributors": [
+    {
+      "name": "Isaac Valdez",
+      "email": "isaacv123456789@gmail.com"
+    }
+  ],
+  "description": "Extended version of PlayCanvas WebGL game engine",
   "keywords": [
     "3D",
     "2D",
@@ -22,11 +27,11 @@
   "types": "build/playcanvas.d.ts",
   "sideEffects": false,
   "bugs": {
-    "url": "https://github.com/playcanvas/engine/issues"
+    "url": "https://github.com/i12345/playcanvas-extended"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/playcanvas/engine.git"
+    "url": "https://github.com/i12345/playcanvas-extended.git"
   },
   "eslintConfig": {
     "extends": "@playcanvas/eslint-config",
