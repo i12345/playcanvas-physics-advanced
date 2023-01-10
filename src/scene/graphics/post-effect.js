@@ -73,7 +73,7 @@ class PostEffect {
 /**
  * Create a vertex buffer with 4 vertices representing a fullscreen quad.
  *
- * @param {import('../../platform//graphics/graphics-device.js').GraphicsDevice} device - The
+ * @param {import('../../platform/graphics/graphics-device.js').GraphicsDevice} device - The
  * graphics device.
  * @returns {VertexBuffer} - The fullscreen quad vertex buffer.
  * @ignore

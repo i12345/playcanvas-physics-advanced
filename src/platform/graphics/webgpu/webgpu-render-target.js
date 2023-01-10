@@ -66,7 +66,7 @@ class WebgpuRenderTarget {
     }
 
     /**
-     * @param {import('../webgpu/webgpu-graphics-device.js').WebgpuGraphicsDevice} device - The
+     * @param {import('./webgpu-graphics-device.js').WebgpuGraphicsDevice} device - The
      * graphics device.
      */
     destroy(device) {
@@ -126,7 +126,7 @@ class WebgpuRenderTarget {
     /**
      * Initialize render target for rendering one time.
      *
-     * @param {import('../webgpu/webgpu-graphics-device.js').WebgpuGraphicsDevice} device - The
+     * @param {import('./webgpu-graphics-device.js').WebgpuGraphicsDevice} device - The
      * graphics device.
      * @param {import('../render-target.js').RenderTarget} renderTarget - The render target.
      */

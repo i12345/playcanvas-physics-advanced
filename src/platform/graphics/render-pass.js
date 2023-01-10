@@ -1,5 +1,5 @@
 import { Color } from '../../core/math/color.js';
-import { DebugGraphics } from '../graphics/debug-graphics.js';
+import { DebugGraphics } from './debug-graphics.js';
 
 class ColorAttachmentOps {
     /**
@@ -90,7 +90,7 @@ class RenderPass {
     /** @type {string} */
     name;
 
-    /** @type {import('../graphics/render-target.js').RenderTarget} */
+    /** @type {import('./render-target.js').RenderTarget} */
     renderTarget;
 
     /**
@@ -126,7 +126,7 @@ class RenderPass {
     /**
      * Creates an instance of the RenderPass.
      *
-     * @param {import('../graphics/graphics-device.js').GraphicsDevice} graphicsDevice - The
+     * @param {import('./graphics-device.js').GraphicsDevice} graphicsDevice - The
      * graphics device.
      * @param {Function} execute - Custom function that is called when the pass needs to be
      * rendered.
@@ -143,7 +143,7 @@ class RenderPass {
     }
 
     /**
-     * @param {import('../graphics/render-target.js').RenderTarget} renderTarget - The render
+     * @param {import('./render-target.js').RenderTarget} renderTarget - The render
      * target to render into (output). This function should be called only for render passes which
      * use render target, or passes which render directly into the default framebuffer, in which
      * case a null or undefined render target is expected.
