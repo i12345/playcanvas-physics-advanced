@@ -30,6 +30,7 @@ export { Tags } from './core/tags.js';
 export { Timer, now } from './core/time.js';
 export { URI, createURI } from './core/uri.js';
 export { Tracing } from './core/tracing.js';
+export { ObservableSet } from './core/observable-set.js';
 
 // CORE / MATH
 export * from './core/math/constants.js';
@@ -181,6 +182,9 @@ export { ElementDragHelper } from './framework/components/element/element-drag-h
 export { Entity } from './framework/entity.js';
 export { EntityReference } from './framework/utils/entity-reference.js';
 export { ImageElement } from './framework/components/element/image-element.js';
+export * from './framework/components/input/events.js';
+export { InputComponent } from './framework/components/input/component.js';
+export { InputComponentSystem } from './framework/components/input/system.js';
 export * from './framework/components/joint/constants.js';
 export { JointComponent } from './framework/components/joint/component.js';
 export { JointComponentSystem } from './framework/components/joint/system.js';

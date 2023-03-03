@@ -17,6 +17,7 @@ import { AudioSourceComponentSystem } from './components/audio-source/system.js'
 import { ButtonComponentSystem } from './components/button/system.js';
 import { CollisionComponentSystem } from './components/collision/system.js';
 import { ElementComponentSystem } from './components/element/system.js';
+import { InputComponentSystem } from './components/input/system.js';
 import { JointComponentSystem } from './components/joint/system.js';
 import { LayoutChildComponentSystem } from './components/layout-child/system.js';
 import { LayoutGroupComponentSystem } from './components/layout-group/system.js';
@@ -162,6 +163,7 @@ class Application extends AppBase {
             PhysicsComponentSystem,
             MultiBodyComponentSystem,
             CollisionComponentSystem,
+            InputComponentSystem,
             JointComponentSystem,
             AnimationComponentSystem,
             AnimComponentSystem,

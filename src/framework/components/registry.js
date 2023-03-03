@@ -70,11 +70,18 @@ class ComponentSystemRegistry extends EventHandler {
     element;
 
     /**
+     * Gets the {@link InputComponentSystem} from the registry.
+     *
+     * @type {import('./input/system.js').InputComponentSystem|undefined}
+     * @readonly
+     */
+    input;
+
+    /**
      * Gets the {@link JointComponentSystem} from the registry.
      *
      * @type {import('./joint/system.js').JointComponentSystem|undefined}
      * @readonly
-     * @ignore
      */
     joint;
 

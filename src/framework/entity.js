@@ -84,6 +84,14 @@ class Entity extends GraphNode {
     element;
 
     /**
+     * Gets the {@link InputComponent} attached to this entity.
+     *
+     * @type {import('./components/input/component.js').InputComponent|undefined}
+     * @readonly
+     */
+    input;
+
+    /**
      * Gets the {@link JointComponent} attached to this entity.
      *
      * @type {import('./components/joint/component.js').JointComponent|undefined}
