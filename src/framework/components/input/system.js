@@ -364,7 +364,6 @@ export class InputComponentSystem extends ComponentSystem {
      * @param {MouseEvent} e - The DOM mouse event
      */
     _onclick(e) {
-        console.log('onclick()');
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
         const event = new MouseButtonInputEvent("click", node, p, button, buttons, modifiers);
         this._bubbleEvent(event);
