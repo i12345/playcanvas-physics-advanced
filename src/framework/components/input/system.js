@@ -5,7 +5,7 @@ import { Component } from '../component.js';
 import { ComponentSystem } from '../system.js';
 import { InputComponent } from './component.js';
 import { InputComponentData } from './data.js';
-import { KeyInputEvent, MouseButtonInputEvent, MouseMoveInputEvent, MouseWheelInputEvent } from './events.js';
+import { KeyInputEvent, MouseButtonInputEvent, MouseInputEvent, MouseMoveInputEvent, MouseWheelInputEvent } from './events.js';
 
 const _schema = [
     { name: 'enabled', type: 'boolean' },
@@ -17,6 +17,7 @@ const DOM_events = [
     'click', 'contextmenu', 'dblclick',
     'mousedown', 'mouseup',
     'mousemove', 'wheel',
+    'mouseenter', 'mouseleave', // should mouseout be used instead?
     'dragstart', 'dragend',
     'drag',
     'keydown', 'keyup'
@@ -71,11 +72,14 @@ export class InputComponentSystem extends ComponentSystem {
      * @private
      */
     _position_last = {
-        /** @type {Vec2} */
-        mousemove: undefined,
+        /** @type {Vec2|null} */
+        mousemove: null,
 
-        /** @type {Vec2} */
-        drag: undefined
+        /** @type {import('../../../scene/graph-node').GraphNode|null} */
+        over: null,
+
+        /** @type {Vec2|null} */
+        drag: null
     };
 
     /**
@@ -430,9 +434,22 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onmousemove(e) {
         const { node, p, buttons, modifiers } = this._onMouseEvent(e);
+
+        if (this._position_last.over !== node) {
+            if (this._position_last.over) {
+                const event_enter = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
+                this._bubbleEvent(event_enter);
+                this._position_last.over = null;
+            }
+
+            const event_enter = new MouseInputEvent("mouseenter", node, p, buttons, modifiers);
+            this._bubbleEvent(event_enter);
+            this._position_last.over = node;
+        }
+
         const delta = this._position_last.mousemove ? new Vec2().sub2(p, this._position_last.mousemove) : Vec2.ZERO;
-        const event = new MouseMoveInputEvent("mousemove", node, p, delta, buttons, modifiers);
-        this._bubbleEvent(event);
+        const event_move = new MouseMoveInputEvent("mousemove", node, p, delta, buttons, modifiers);
+        this._bubbleEvent(event_move);
         this._position_last.mousemove = p;
     }
 
@@ -450,6 +467,44 @@ export class InputComponentSystem extends ComponentSystem {
         const direction = Math.sign(e.deltaY);
         const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
         this._bubbleEvent(event);
+    }
+
+    /**
+     * Fires mouseenter event
+     *
+     * @private
+     * @param {MouseEvent} e - The DOM mouse event
+     */
+    _onmouseenter(e) {
+        const { node, p, buttons, modifiers } = this._onMouseEvent(e);
+
+        if (this._position_last.over !== node) {
+            if (this._position_last.over) {
+                const event_enter = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
+                this._bubbleEvent(event_enter);
+                this._position_last.over = null;
+            }
+
+            const event_enter = new MouseInputEvent("mouseenter", node, p, buttons, modifiers);
+            this._bubbleEvent(event_enter);
+            this._position_last.over = node;
+        }
+    }
+
+    /**
+     * Fires mouseleave event
+     *
+     * @private
+     * @param {MouseEvent} e - The DOM mouse event
+     */
+    _onmouseleave(e) {
+        const { p, buttons, modifiers } = this._onMouseEvent(e);
+
+        if (this._position_last.over) {
+            const event_enter = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
+            this._bubbleEvent(event_enter);
+            this._position_last.over = null;
+        }
     }
 
     /**
