@@ -18,8 +18,8 @@ const DOM_events = [
     'mousedown', 'mouseup',
     'mousemove', 'wheel',
     'mouseenter', 'mouseleave', // should mouseout be used instead?
-    'dragstart', 'dragend',
-    'drag',
+    // 'dragstart', 'dragend',
+    // 'drag',
     'keydown', 'keyup'
 ];
 
@@ -76,10 +76,7 @@ export class InputComponentSystem extends ComponentSystem {
         mousemove: null,
 
         /** @type {import('../../../scene/graph-node').GraphNode|null} */
-        over: null,
-
-        /** @type {Vec2|null} */
-        drag: null
+        over: null
     };
 
     /**
@@ -274,6 +271,10 @@ export class InputComponentSystem extends ComponentSystem {
         this._picker = new Picker(this.app, this.app.graphicsDevice.width, this.app.graphicsDevice.height);
         this._picker_prepare();
 
+        // this.app.graphicsDevice.canvas.draggable = true;
+        // https://stackoverflow.com/a/16492878
+        this.app.graphicsDevice.canvas.tabIndex = 10000;
+        this.app.graphicsDevice.canvas.style.outline = 'none';
         for (const event of DOM_events) {
             this.app.graphicsDevice.canvas.addEventListener(event, this[`_on${event}`]);
         }
@@ -408,9 +409,12 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onmousedown(e) {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent("mousedown", node, p, button, buttons, modifiers);
-        this._bubbleEvent(event);
+        const event_mousedown = new MouseButtonInputEvent("mousedown", node, p, button, buttons, modifiers);
+        this._bubbleEvent(event_mousedown);
         this._position_last.mousemove = p;
+
+        const event_dragstart = new MouseButtonInputEvent("dragstart", node, p, button, buttons, modifiers);
+        this._drag_target = this._bubbleEvent(event_dragstart);
     }
 
     /**
@@ -421,9 +425,22 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onmouseup(e) {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent("mouseup", node, p, button, buttons, modifiers);
-        this._bubbleEvent(event);
+        const event_mouseup = new MouseButtonInputEvent("mouseup", node, p, button, buttons, modifiers);
+        this._bubbleEvent(event_mouseup);
         // this._position_last.mousemove = p;
+        if (this._drag_target) {
+            const event_dragend = new MouseButtonInputEvent(
+                "dragend",
+                // @ts-ignore
+                this._drag_target,
+                p,
+                button,
+                buttons,
+                modifiers
+            );
+            this._bubbleEvent(event_dragend);
+            this._drag_target = null;
+        }
     }
 
     /**
@@ -448,9 +465,23 @@ export class InputComponentSystem extends ComponentSystem {
         }
 
         const delta = this._position_last.mousemove ? new Vec2().sub2(p, this._position_last.mousemove) : Vec2.ZERO;
+        this._position_last.mousemove = p;
+
         const event_move = new MouseMoveInputEvent("mousemove", node, p, delta, buttons, modifiers);
         this._bubbleEvent(event_move);
-        this._position_last.mousemove = p;
+
+        if (this._drag_target) {
+            const event_drag = new MouseMoveInputEvent(
+                "drag",
+                // @ts-ignore
+                this._drag_target,
+                p,
+                delta,
+                buttons,
+                modifiers
+            );
+            this._bubbleEvent(event_drag);
+        }
     }
 
     /**
@@ -507,45 +538,51 @@ export class InputComponentSystem extends ComponentSystem {
         }
     }
 
-    /**
-     * Fires dragstart event
-     *
-     * @private
-     * @param {DragEvent} e - The DOM drag event
-     */
-    _ondragstart(e) {
-        const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent("dragstart", node, p, button, buttons, modifiers);
-        this._drag_target = this._bubbleEvent(event);
-        this._position_last.drag = p;
-    }
+    // /**
+    //  * Fires dragstart event
+    //  *
+    //  * @private
+    //  * @param {DragEvent} e - The DOM drag event
+    //  */
+    // _ondragstart(e) {
+    //     const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
+    //     const event = new MouseButtonInputEvent("dragstart", node, p, button, buttons, modifiers);
 
-    /**
-     * Fires dragend event
-     *
-     * @private
-     * @param {DragEvent} e - The DOM drag event
-     */
-    _ondragend(e) {
-        const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent("dragend", node, p, button, buttons, modifiers);
-        this._drag_target?.fire(event.type, event);
-        // this._position_last.drag = p;
-    }
+    //     this._drag_target = this._bubbleEvent(event);
+    //     this._position_last.drag = p;
 
-    /**
-     * Fires drag event
-     *
-     * @private
-     * @param {DragEvent} e - The DOM drag event
-     */
-    _ondrag(e) {
-        const { node, p, buttons, modifiers } = this._onMouseEvent(e);
-        const delta = this._position_last.drag ? new Vec2().sub2(p, this._position_last.drag) : Vec2.ZERO;
-        const event = new MouseMoveInputEvent("drag", node, p, delta, buttons, modifiers);
-        this._drag_target?.fire(event.type, event);
-        this._position_last.drag = p;
-    }
+    //     e.stopPropagation();
+    //     e.dataTransfer.effectAllowed = 'none';
+    // }
+
+    // /**
+    //  * Fires dragend event
+    //  *
+    //  * @private
+    //  * @param {DragEvent} e - The DOM drag event
+    //  */
+    // _ondragend(e) {
+    //     const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
+    //     const event = new MouseButtonInputEvent("dragend", node, p, button, buttons, modifiers);
+    //     this._drag_target?.fire(event.type, event);
+    //     // this._position_last.drag = p;
+    //     e.stopPropagation();
+    // }
+
+    // /**
+    //  * Fires drag event
+    //  *
+    //  * @private
+    //  * @param {DragEvent} e - The DOM drag event
+    //  */
+    // _ondrag(e) {
+    //     const { node, p, buttons, modifiers } = this._onMouseEvent(e);
+    //     const delta = this._position_last.drag ? new Vec2().sub2(p, this._position_last.drag) : Vec2.ZERO;
+    //     const event = new MouseMoveInputEvent("drag", node, p, delta, buttons, modifiers);
+    //     this._drag_target?.fire(event.type, event);
+    //     this._position_last.drag = p;
+    //     e.stopPropagation();
+    // }
 
     /**
      * Fires keydown event
@@ -557,13 +594,17 @@ export class InputComponentSystem extends ComponentSystem {
         const modifiers = this._modifiers(e);
         /** @type {Set<import('../../entity').Entity>} */
         const skipSet = new Set();
-        this.focusedEntities.forEach((entity) => {
+        let handled = false;
+        for (const entity of this.focusedEntities) {
             /** @type {import('../../../scene/graph-node').GraphNode} */
             // @ts-ignore
             const node = entity;
             const event = new KeyInputEvent("keydown", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
-            this._bubbleEvent(event, node, skipSet);
-        });
+            if (this._bubbleEvent(event, node, skipSet) !== undefined)
+                handled = true;
+        }
+        if (handled)
+            e.stopPropagation();
     }
 
     /**
@@ -576,24 +617,31 @@ export class InputComponentSystem extends ComponentSystem {
         const modifiers = this._modifiers(e);
         /** @type {Set<import('../../entity').Entity>} */
         const skipSet = new Set();
-        this.focusedEntities.forEach((entity) => {
+        let handled = false;
+        for (const entity of this.focusedEntities) {
             /** @type {import('../../../scene/graph-node').GraphNode} */
             // @ts-ignore
             const node = entity;
             const event = new KeyInputEvent("keyup", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
-            this._bubbleEvent(event, node, skipSet);
-        });
+            if (this._bubbleEvent(event, node, skipSet) !== undefined)
+                handled = true;
+        }
+        if (handled)
+            e.stopPropagation();
     }
 
     /**
      * Bubbles an event upward starting at the target node until handled.
      *
      * @param {import('./events').InputEvent} event - The event to fire until handled
-     * @param {import('../../../scene/graph-node').GraphNode} target - The node to fire the event at
-     * @param {Set<import('../../entity').Entity>} skip - The entities to skip firing at. If an entity handles this event, it will be added to the skip set
+     * @param {import('../../../scene/graph-node').GraphNode} [target=event.target] - The node to fire the event at
+     * @param {Set<import('../../entity').Entity>} [skip=new Set()] - The entities to skip firing at. If an entity handles this event, it will be added to the skip set
+     * @param {number} [depth=0] - The depth of current bubbling attempts
      * @returns {import('../../entity').Entity|undefined} - The node that handled the event (undefined if none handled it)
      */
-    _bubbleEvent(event, target = event.target, skip = new Set()) {
+    _bubbleEvent(event, target = event.target, skip = new Set(), depth = 0) {
+        if (depth > 32) return undefined;
+
         if (target === undefined || target === target.root) {
             if (!skip.has(this.app.root)) {
                 this.fire(event.type, event);
@@ -620,7 +668,7 @@ export class InputComponentSystem extends ComponentSystem {
             }
         }
 
-        return this._bubbleEvent(event, target.parent);
+        return this._bubbleEvent(event, target.parent, skip, depth + 1);
     }
 }
 

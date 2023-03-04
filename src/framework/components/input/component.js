@@ -1,5 +1,13 @@
 import { Component } from '../component';
 
+/**
+ * @class InputComponent
+ *
+ * @property {boolean} focused - Whether this entity is focused.
+ * If it is focused, it will receive all key events.
+ *
+ * @augments Component
+ */
 export class InputComponent extends Component {
     /**
      * Fired whenever the mouse is clicked while over this entity
@@ -134,13 +142,13 @@ export class InputComponent extends Component {
      * @event InputComponent#blur
      */
 
-    /**
-     * Whether this entity is focused.
-     * If it is focused, it will receive all key events.
-     *
-     * @type {boolean}
-     */
-    focused;
+    // /**
+    //  * Whether this entity is focused.
+    //  * If it is focused, it will receive all key events.
+    //  *
+    //  * @type {boolean}
+    //  */
+    // focused;
 
     /**
      * Create a new InputComponent.
