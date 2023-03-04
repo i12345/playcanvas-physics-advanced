@@ -97,6 +97,46 @@ class ObservableSet extends EventHandler {
     get size() {
         return this._internal.size;
     }
+
+    /**
+     * Iterates over values in the set.
+     *
+     * @returns {IterableIterator<T>} values
+     */
+    [Symbol.iterator]() {
+        return this._internal[Symbol.iterator]();
+    }
+
+    /**
+     * Returns an iterable of [v,v] pairs for every value `v` in the set.
+     *
+     * @returns {IterableIterator<[T, T]>} entries
+     */
+    entries() {
+        return this._internal.entries();
+    }
+
+    /**
+     * Despite its name, returns an iterable of the values in the set.
+     *
+     * @returns {IterableIterator<T>} values
+     */
+    keys() {
+        return this._internal.keys();
+    }
+
+    /**
+     * Returns an iterable of values in the set.
+     *
+     * @returns {IterableIterator<T>} values
+     */
+    values() {
+        return this._internal.values();
+    }
+
+    get [Symbol.toStringTag]() {
+        return Set[Symbol.toStringTag];
+    }
 }
 
 export { ObservableSet };
