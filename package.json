@@ -158,6 +158,6 @@
     "test:types": "tsc --pretty false build/playcanvas.d.ts"
   },
   "dependencies": {
-    "ammojs3": "^0.0.5"
+    "ammojs3": "^0.0.6"
   }
 }
