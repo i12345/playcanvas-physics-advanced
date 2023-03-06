@@ -88,7 +88,14 @@ class ObservableSet extends EventHandler {
      * @returns {void}
      */
     clear() {
+        const values = [];
+        for (const value of this._internal.values())
+            values.push(value);
+
         this._internal.clear();
+
+        for (const value of values)
+            this.fire('delete', value);
     }
 
     /**
