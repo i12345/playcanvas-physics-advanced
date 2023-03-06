@@ -231,7 +231,8 @@ export class InputComponentSystem extends ComponentSystem {
      * @param {import('../../entity').Entity} entity - The entity added to this.focusedEntities
      */
     _onFocusedEntities_add(entity) {
-        entity.input.focused = true;
+        if (entity.input)
+            entity.input.focused = true;
     }
 
     /**
@@ -239,7 +240,8 @@ export class InputComponentSystem extends ComponentSystem {
      * @param {import('../../entity').Entity} entity - The entity added to this.focusedEntities
      */
     _onFocusedEntities_delete(entity) {
-        entity.input.focused = false;
+        if (entity.input)
+            entity.input.focused = false;
     }
 
     /**
