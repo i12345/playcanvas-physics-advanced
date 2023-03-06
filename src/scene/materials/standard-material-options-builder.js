@@ -118,13 +118,13 @@ class StandardMaterialOptionsBuilder {
 
         // All texture related lit options
         options.litOptions.lightMapEnabled = options.lightMap;
-        options.litOptions.useLightMapVertexColors = options.lightVertexColors;
+        options.litOptions.useLightMapVertexColors = options.lightVertexColor;
         options.litOptions.dirLightMapEnabled = options.dirLightMap;
         options.litOptions.heightMapEnabled = options.heightMap;
         options.litOptions.normalMapEnabled = options.normalMap;
         options.litOptions.clearCoatNormalMapEnabled = options.clearCoatNormalMap;
         options.litOptions.aoMapEnabled = options.aoMap;
-        options.litOptions.useAoVertexColors = options.aoVertexColors;
+        options.litOptions.useAoVertexColors = options.aoVertexColor;
         options.litOptions.diffuseMapEnabled = options.diffuseMap;
     }
 
@@ -275,7 +275,7 @@ class StandardMaterialOptionsBuilder {
         options.litOptions.cubeMapProjection = stdMat.cubeMapProjection;
 
         options.litOptions.occludeDirect = stdMat.occludeDirect;
-        options.litOptions.conserveEnergy = stdMat.conserveEnergy;
+        options.litOptions.conserveEnergy = stdMat.conserveEnergy && stdMat.shadingModel !== SPECULAR_PHONG;
         options.litOptions.useSpecular = useSpecular;
         options.litOptions.useSpecularityFactor = (specularityFactorTint || !!stdMat.specularityFactorMap) && stdMat.useMetalnessSpecularColor;
         options.litOptions.useSpecularColor = useSpecularColor;

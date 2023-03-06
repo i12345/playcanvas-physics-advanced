@@ -1,3 +1,5 @@
+import { Debug } from '../../../core/debug.js';
+
 import { Quat } from '../../../core/math/quat.js';
 import { Vec3 } from '../../../core/math/vec3.js';
 
@@ -1087,10 +1089,16 @@ class PhysicsComponent extends Component {
      */
     _updateDynamic() {
         const body = this.collisionObject;
+        const entity = this.entity;
 
         // If a dynamic body is frozen, we can assume its motion state transform is
         // the same is the entity world transform
-        if (body.isActive()) {
+        if (body.isActive() || entity._wasDirty) {
+            if (entity._wasDirty) {
+                // Warn the user about setting transform instead of using teleport function
+                Debug.warn('Cannot set rigid body transform from entity. Use entity.rigidbody#teleport instead.');
+            }
+
             let objTransform = _ammoTransform;
             if (this._rigidBody) {
                 this._rigidBody.getMotionState().getWorldTransform(objTransform);
@@ -1098,8 +1106,6 @@ class PhysicsComponent extends Component {
                 objTransform = this._multibodyLinkCollider.getWorldTransform();
                 // this comes by ref so there is no need to destroy it
             }
-
-            const entity = this.entity;
 
             const p = objTransform.getOrigin();
             const q = objTransform.getRotation();
@@ -1118,11 +1124,12 @@ class PhysicsComponent extends Component {
                 entityRot.transformVector(lo, _vec3);
                 entity.setPosition(p.x() - _vec3.x, p.y() - _vec3.y, p.z() - _vec3.z);
                 entity.setRotation(entityRot);
-
             } else {
                 entity.setPosition(p.x(), p.y(), p.z());
                 entity.setRotation(q.x(), q.y(), q.z(), q.w());
             }
+
+            entity._wasDirty = false;
         }
     }
 

@@ -15,7 +15,6 @@ import { LightTextureAtlas } from '../lighting/light-texture-atlas.js';
 import { Material } from '../materials/material.js';
 
 import {
-    DEVICETYPE_WEBGPU,
     CLEARFLAG_COLOR, CLEARFLAG_DEPTH, CLEARFLAG_STENCIL,
     BINDGROUP_MESH, BINDGROUP_VIEW, UNIFORM_BUFFER_DEFAULT_SLOT_NAME,
     UNIFORMTYPE_MAT4,
@@ -326,7 +325,7 @@ class Renderer {
             }
 
             // update depth range of projection matrices (-1..1 to 0..1)
-            if (this.device.deviceType === DEVICETYPE_WEBGPU) {
+            if (this.device.isWebGPU) {
                 projMat = _tempProjMat2.mul2(_fixProjRangeMat, projMat);
                 projMatSkybox = _tempProjMat3.mul2(_fixProjRangeMat, projMatSkybox);
             }
@@ -506,6 +505,8 @@ class Renderer {
         // Alpha test
         if (material.opacityMap) {
             this.opacityMapId.setValue(material.opacityMap);
+        }
+        if (material.opacityMap || material.alphaTest > 0) {
             this.alphaTestId.setValue(material.alphaTest);
         }
     }
@@ -665,7 +666,8 @@ class Renderer {
             this.viewBindGroupFormat = new BindGroupFormat(this.device, [
                 new BindBufferFormat(UNIFORM_BUFFER_DEFAULT_SLOT_NAME, SHADERSTAGE_VERTEX | SHADERSTAGE_FRAGMENT)
             ], [
-                new BindTextureFormat('lightsTextureFloat', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT)
+                new BindTextureFormat('lightsTextureFloat', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT),
+                new BindTextureFormat('lightsTexture8', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT)
             ]);
         }
     }
@@ -971,7 +973,9 @@ class Renderer {
 
         // update shadow / cookie atlas allocation for the visible lights. Update it after the ligthts were culled,
         // but before shadow maps were culling, as it might force some 'update once' shadows to cull.
-        this.updateLightTextureAtlas(comp);
+        if (this.scene.clusteredLightingEnabled) {
+            this.updateLightTextureAtlas(comp);
+        }
 
         // cull shadow casters for all lights
         this.cullShadowmaps(comp);

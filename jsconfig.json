@@ -5,8 +5,8 @@
         "module": "es6",
         "target": "es6",
         "allowSyntheticDefaultImports": true,
-        "esModuleInterop": true,
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"]
     },
-    "include": ["src/**/*"]
+    "include": ["src/**/*", "rollup.config.mjs"]
 }

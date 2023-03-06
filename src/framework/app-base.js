@@ -4,7 +4,7 @@ import { version, revision } from '../core/core.js';
 import { platform } from '../core/platform.js';
 import { now } from '../core/time.js';
 import { path } from '../core/path.js';
-import { TRACEID_RENDER_FRAME } from '../core/constants.js';
+import { TRACEID_RENDER_FRAME, TRACEID_RENDER_FRAME_TIME } from '../core/constants.js';
 import { Debug } from '../core/debug.js';
 import { EventHandler } from '../core/event-handler.js';
 import { Color } from '../core/math/color.js';
@@ -17,6 +17,7 @@ import {
     PRIMITIVE_TRIANGLES, PRIMITIVE_TRIFAN, PRIMITIVE_TRISTRIP
 } from '../platform/graphics/constants.js';
 import { GraphicsDeviceAccess } from '../platform/graphics/graphics-device-access.js';
+import { DebugGraphics } from '../platform/graphics/debug-graphics.js';
 import { http } from '../platform/net/http.js';
 
 import {
@@ -122,7 +123,7 @@ class AppBase extends EventHandler {
     /**
      * Create a new AppBase instance.
      *
-     * @param {Element} canvas - The canvas element.
+     * @param {HTMLCanvasElement} canvas - The canvas element.
      * @example
      * // Engine-only example: create the application manually
      * var options = new AppOptions();
@@ -1103,6 +1104,12 @@ class AppBase extends EventHandler {
      * app.start();
      */
     start() {
+
+        Debug.call(() => {
+            Debug.assert(!this._alreadyStarted, "The application can be started only one time.");
+            this._alreadyStarted = true;
+        });
+
         this.frame = 0;
 
         this.fire("start", {
@@ -1214,6 +1221,7 @@ class AppBase extends EventHandler {
 
     // render a layer composition
     renderComposition(layerComposition) {
+        DebugGraphics.clearGpuMarkers();
         this.renderer.buildFrameGraph(this.frameGraph, layerComposition);
         this.frameGraph.render(this.graphicsDevice);
     }
@@ -1437,10 +1445,9 @@ class AppBase extends EventHandler {
     }
 
     /**
-     * Updates the {@link import('../platform/graphics/graphics-device.js').GraphicsDevice} canvas
-     * size to match the canvas size on the document page. It is recommended to call this function
-     * when the canvas size changes (e.g on window resize and orientation change events) so that
-     * the canvas resolution is immediately updated.
+     * Updates the {@link GraphicsDevice} canvas size to match the canvas size on the document
+     * page. It is recommended to call this function when the canvas size changes (e.g on window
+     * resize and orientation change events) so that the canvas resolution is immediately updated.
      */
     updateCanvasSize() {
         // Don't update if we are in VR or XR
@@ -1885,9 +1892,17 @@ class AppBase extends EventHandler {
      * @param {import('../platform/graphics/texture.js').Texture} texture - The texture to render.
      * @param {Material} material - The material used when rendering the texture.
      * @param {Layer} [layer] - The layer to render the texture into. Defaults to {@link LAYERID_IMMEDIATE}.
+     * @param {boolean} [filterable] - Indicate if the texture can be sampled using filtering.
+     * Passing false uses unfiltered sampling, allowing a depth texture to be sampled on WebGPU.
+     * Defaults to true.
      * @ignore
      */
-    drawTexture(x, y, width, height, texture, material, layer = this.scene.defaultDrawLayer) {
+    drawTexture(x, y, width, height, texture, material, layer = this.scene.defaultDrawLayer, filterable = true) {
+
+        // only WebGPU supports filterable parameter to be false, allowing a depth texture / shadow
+        // map to be fetched (without filtering) and rendered
+        if (filterable === false && !this.graphicsDevice.isWebGPU)
+            return;
 
         // TODO: if this is used for anything other than debug texture display, we should optimize this to avoid allocations
         const matrix = new Mat4();
@@ -1896,7 +1911,7 @@ class AppBase extends EventHandler {
         if (!material) {
             material = new Material();
             material.setParameter("colorMap", texture);
-            material.shader = this.scene.immediate.getTextureShader();
+            material.shader = filterable ? this.scene.immediate.getTextureShader() : this.scene.immediate.getUnfilterableTextureShader();
             material.update();
         }
 
@@ -1976,6 +1991,11 @@ class AppBase extends EventHandler {
         if (this.elementInput) {
             this.elementInput.detach();
             this.elementInput = null;
+        }
+
+        if (this.gamepads) {
+            this.gamepads.destroy();
+            this.gamepads = null;
         }
 
         if (this.controller) {
@@ -2170,16 +2190,24 @@ const makeTick = function (_app) {
         }
 
         if (shouldRenderFrame) {
+
+            Debug.trace(TRACEID_RENDER_FRAME, `---- Frame ${application.frame}`);
+            Debug.trace(TRACEID_RENDER_FRAME_TIME, `-- UpdateStart ${now().toFixed(2)}ms`);
+
             application.update(dt);
 
             application.fire("framerender");
 
-            Debug.trace(TRACEID_RENDER_FRAME, `--- Frame ${application.frame}`);
 
             if (application.autoRender || application.renderNextFrame) {
+
+                Debug.trace(TRACEID_RENDER_FRAME_TIME, `-- RenderStart ${now().toFixed(2)}ms`);
+
                 application.updateCanvasSize();
                 application.render();
                 application.renderNextFrame = false;
+
+                Debug.trace(TRACEID_RENDER_FRAME_TIME, `-- RenderEnd ${now().toFixed(2)}ms`);
             }
 
             // set event data

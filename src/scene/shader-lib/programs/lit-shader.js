@@ -3,8 +3,7 @@ import {
     SEMANTIC_BLENDINDICES, SEMANTIC_BLENDWEIGHT, SEMANTIC_COLOR, SEMANTIC_NORMAL, SEMANTIC_POSITION, SEMANTIC_TANGENT,
     SEMANTIC_TEXCOORD0, SEMANTIC_TEXCOORD1,
     SHADERTAG_MATERIAL,
-    PIXELFORMAT_RGBA8,
-    DEVICETYPE_WEBGPU
+    PIXELFORMAT_RGBA8
 } from '../../../platform/graphics/constants.js';
 import { shaderChunks } from '../chunks/chunks.js';
 import { ChunkUtils } from '../chunk-utils.js';
@@ -51,6 +50,13 @@ const builtinVaryings = {
 };
 
 class LitShader {
+    /**
+     * @param {import('../../../platform/graphics/graphics-device.js').GraphicsDevice} device - The
+     * graphics device.
+     * @param {import('../../../scene/materials/lit-options.js').LitOptions} options - The
+     * lit options.
+     * @ignore
+     */
     constructor(device, options) {
         this.device = device;
         this.options = options;
@@ -91,6 +97,7 @@ class LitShader {
         this.shadowPass = ShaderPass.isShadow(options.pass);
         this.needsNormal = this.lighting || this.reflections || options.useSpecular || options.ambientSH || options.heightMapEnabled || options.enableGGXSpecular ||
                             (options.clusteredLightingEnabled && !this.shadowPass) || options.clearCoatNormalMapEnabled;
+        this.needsNormal = this.needsNormal && !this.shadowPass;
         this.needsSceneColor = options.useDynamicRefraction;
         this.needsScreenSize = options.useDynamicRefraction;
         this.needsTransforms = options.useDynamicRefraction;
@@ -178,10 +185,9 @@ class LitShader {
         // shadow coordinate generation
         code += coordsFunctionName + shadowCoordArgs;
 
-        if (this.device.deviceType !== DEVICETYPE_WEBGPU) {
-            // stop shadow at the far distance
-            code += `fadeShadow(light${lightIndex}_shadowCascadeDistances);\n`;
-        }
+        // stop shadow at the far distance
+        code += `fadeShadow(light${lightIndex}_shadowCascadeDistances);\n`;
+
         return code;
     }
 
@@ -189,7 +195,7 @@ class LitShader {
         const shadowCoordArgs = `(${shadowMatArg}, ${shadowParamArg});\n`;
         if (!light._normalOffsetBias || light._isVsm) {
             if (light._type === LIGHTTYPE_SPOT) {
-                if (light._isPcf && (device.webgl2 || device.extStandardDerivatives || device.deviceType === DEVICETYPE_WEBGPU)) {
+                if (light._isPcf && (device.webgl2 || device.extStandardDerivatives || device.isWebGPU)) {
                     return "       getShadowCoordPerspZbuffer" + shadowCoordArgs;
                 }
                 return "       getShadowCoordPersp" + shadowCoordArgs;
@@ -197,7 +203,7 @@ class LitShader {
             return this._directionalShadowMapProjection(light, shadowCoordArgs, shadowParamArg, lightIndex, "getShadowCoordOrtho");
         }
         if (light._type === LIGHTTYPE_SPOT) {
-            if (light._isPcf && (device.webgl2 || device.extStandardDerivatives || device.deviceType === DEVICETYPE_WEBGPU)) {
+            if (light._isPcf && (device.webgl2 || device.extStandardDerivatives || device.isWebGPU)) {
                 return "       getShadowCoordPerspZbufferNormalOffset" + shadowCoordArgs;
             }
             return "       getShadowCoordPerspNormalOffset" + shadowCoordArgs;
@@ -477,7 +483,7 @@ class LitShader {
 
         let code = this._fsGetBeginCode();
 
-        if (device.extStandardDerivatives && !device.webgl2 && device.deviceType !== DEVICETYPE_WEBGPU) {
+        if (device.extStandardDerivatives && !device.webgl2 && !device.isWebGPU) {
             code += 'uniform vec2 polygonOffset;\n';
         }
 
@@ -500,7 +506,7 @@ class LitShader {
         code += this.frontendDecl;
         code += this.frontendCode;
 
-        if (shadowType === SHADOW_PCF3 && (!device.webgl2 || device.deviceType !== DEVICETYPE_WEBGPU || lightType === LIGHTTYPE_OMNI)) {
+        if (shadowType === SHADOW_PCF3 && (!device.webgl2 || !device.isWebGPU || lightType === LIGHTTYPE_OMNI)) {
             code += chunks.packDepthPS;
         } else if (shadowType === SHADOW_VSM8) {
             code += "vec2 encodeFloatRG( float v ) {\n";
@@ -516,7 +522,7 @@ class LitShader {
         code += this.frontendFunc;
 
         const isVsm = shadowType === SHADOW_VSM8 || shadowType === SHADOW_VSM16 || shadowType === SHADOW_VSM32;
-        const applySlopeScaleBias = !device.webgl2 && device.extStandardDerivatives && device.deviceType !== DEVICETYPE_WEBGPU;
+        const applySlopeScaleBias = !device.webgl2 && device.extStandardDerivatives && !device.isWebGPU;
 
         if (lightType === LIGHTTYPE_OMNI || (isVsm && lightType !== LIGHTTYPE_DIRECTIONAL)) {
             code += "    float depth = min(distance(view_position, vPositionW) / light_radius, 0.99999);\n";
@@ -655,13 +661,8 @@ class LitShader {
 
                 // directional (cascaded) shadows
                 if (lightType === LIGHTTYPE_DIRECTIONAL) {
-
-                    // TODO: add support for shadow cascades to WebGPU
-                    if (device.deviceType !== DEVICETYPE_WEBGPU) {
-                        code += "uniform mat4 light" + i + "_shadowMatrixPalette[4];\n";
-                        code += "uniform float light" + i + "_shadowCascadeDistances[4];\n";
-                    }
-
+                    code += "uniform mat4 light" + i + "_shadowMatrixPalette[4];\n";
+                    code += "uniform float light" + i + "_shadowCascadeDistances[4];\n";
                     code += "uniform float light" + i + "_shadowCascadeCount;\n";
                 }
 
@@ -833,7 +834,7 @@ class LitShader {
             if (shadowTypeUsed[SHADOW_PCF3]) {
                 code += chunks.shadowStandardPS;
             }
-            if (shadowTypeUsed[SHADOW_PCF5] && (device.webgl2 || device.deviceType === DEVICETYPE_WEBGPU)) {
+            if (shadowTypeUsed[SHADOW_PCF5] && (device.webgl2 || device.isWebGPU)) {
                 code += chunks.shadowStandardGL2PS;
             }
             if (useVsm) {
@@ -849,7 +850,7 @@ class LitShader {
                 }
             }
 
-            if (!(device.webgl2 || device.extStandardDerivatives || device.deviceType === DEVICETYPE_WEBGPU)) {
+            if (!(device.webgl2 || device.extStandardDerivatives || device.isWebGPU)) {
                 code += chunks.biasConstPS;
             }
 
@@ -862,7 +863,7 @@ class LitShader {
 
         if (this.lighting) {
             code += chunks.lightDiffuseLambertPS;
-            if (hasAreaLights || options.clusteredLightingEnabled) code += chunks.ltc;
+            if (hasAreaLights || options.clusteredLightingAreaLightsEnabled) code += chunks.ltcPS;
         }
 
         code += '\n';

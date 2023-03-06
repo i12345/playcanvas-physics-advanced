@@ -1,7 +1,6 @@
 import { Debug } from '../../core/debug.js';
 
 import {
-    DEVICETYPE_WEBGPU,
     ADDRESS_CLAMP_TO_EDGE,
     FILTER_NEAREST, FILTER_LINEAR, FILTER_LINEAR_MIPMAP_LINEAR,
     PIXELFORMAT_DEPTHSTENCIL, PIXELFORMAT_RGBA8
@@ -9,6 +8,7 @@ import {
 
 import { RenderTarget } from '../../platform/graphics/render-target.js';
 import { Texture } from '../../platform/graphics/texture.js';
+import { BlendState } from '../../platform/graphics/blend-state.js';
 import { DebugGraphics } from '../../platform/graphics/debug-graphics.js';
 
 import {
@@ -56,7 +56,7 @@ class SceneGrab {
 
         // create a depth layer, which is a default depth layer, but also a template used
         // to patch application created depth layers to behave as one
-        if (this.device.webgl2 || this.device.deviceType === DEVICETYPE_WEBGPU) {
+        if (this.device.webgl2 || this.device.isWebGPU) {
             this.initMainPath();
         } else {
             this.initFallbackPath();
@@ -74,7 +74,7 @@ class SceneGrab {
     static requiresRenderPass(device, camera) {
 
         // just copy out the textures, no render pass needed
-        if (device.webgl2 || device.deviceType === DEVICETYPE_WEBGPU) {
+        if (device.webgl2 || device.isWebGPU) {
             return false;
         }
 
@@ -209,7 +209,7 @@ class SceneGrab {
 
                     const colorBuffer = this.colorRenderTarget.colorBuffer;
 
-                    if (device.deviceType === DEVICETYPE_WEBGPU) {
+                    if (device.isWebGPU) {
 
                         device.copyRenderTarget(camera.renderTarget, this.colorRenderTarget, true, false);
 
@@ -387,7 +387,8 @@ class SceneGrab {
             },
 
             onDrawCall: function () {
-                device.setColorWrite(true, true, true, true);
+                // writing depth to color render target, force no blending and writing to all channels
+                device.setBlendState(BlendState.DEFAULT);
             },
 
             onPostRenderOpaque: function (cameraPass) {

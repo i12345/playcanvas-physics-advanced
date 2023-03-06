@@ -1,8 +1,7 @@
 import React from 'react';
 import * as pc from '../../../../';
 
-import { BindingTwoWay } from '@playcanvas/pcui';
-import { BooleanInput, LabelGroup, Panel, SliderInput } from '@playcanvas/pcui/react';
+import { BindingTwoWay, BooleanInput, LabelGroup, Panel, SliderInput } from '@playcanvas/pcui/react';
 import { Observer } from '@playcanvas/observer';
 
 class LightsExample {
@@ -92,7 +91,9 @@ class LightsExample {
                 // @ts-ignore
                 pc.TextureHandler,
                 // @ts-ignore
-                pc.ContainerHandler
+                pc.ContainerHandler,
+                // @ts-ignore
+                pc.CubemapHandler
             ];
 
             const app = new pc.AppBase(canvas);
