@@ -98,6 +98,19 @@ export class InputComponentSystem extends ComponentSystem {
     _enabled = false;
 
     /**
+     * The {@link Picker} for identifying {@link GraphNode}s from screen coordinates
+     *
+     * @type {Picker}
+     */
+    set picker(value) {
+        this._picker = value;
+    }
+
+    get picker() {
+        return this._picker;
+    }
+
+    /**
      * The entity with the camera to use for targeting mouse input events.
      * If null, the first active camera in the app will be used.
      *
@@ -270,7 +283,7 @@ export class InputComponentSystem extends ComponentSystem {
     _onEnable() {
         this.app.systems.on('update', this._onUpdate, this);
 
-        this._picker = new Picker(this.app, this.app.graphicsDevice.width, this.app.graphicsDevice.height);
+        this._picker ??= new Picker(this.app, this.app.graphicsDevice.width, this.app.graphicsDevice.height);
         this._picker_prepare();
 
         // this.app.graphicsDevice.canvas.draggable = true;

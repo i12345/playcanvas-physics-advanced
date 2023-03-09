@@ -155,6 +155,69 @@ class Picker {
         return selection;
     }
 
+    /**
+     * Return a pixel array of mesh instances selected by the specified
+     * rectangle in the previously prepared pick buffer.The rectangle using
+     * top-left coordinate system.
+     *
+     * @param {number} x - The left edge of the rectangle.
+     * @param {number} y - The top edge of the rectangle.
+     * @param {number} [width] - The width of the rectangle.
+     * @param {number} [height] - The height of the rectangle.
+     * @param {import('../../scene/mesh-instance.js').MeshInstance[]} meshInstances -
+     * The array to fill
+     * @returns {import('../../scene/mesh-instance.js').MeshInstance[]} A pixel
+     * array of mesh instances that are in the selection.
+     * @example
+     * // Get all models in rectangle with corners at (10,20) and (20,40)
+     * // Then finds the mesh instance at pixel (0, 3)
+     * var selection = picker.readSelection(10, 20, 10, 20);
+     * var meshInstance = selection[0][3]
+     */
+    readSelection(x, y, width, height, meshInstances = new Array(width * height)) {
+        const device = this.device;
+
+        y = this.renderTarget.height - (y + height);
+
+        // make sure we have nice numbers to work with
+        x = Math.floor(x);
+        y = Math.floor(y);
+        width = Math.floor(Math.max(width, 1));
+        height = Math.floor(Math.max(height, 1));
+
+        // backup active render target
+        const origRenderTarget = device.renderTarget;
+
+        DebugGraphics.pushGpuMarker(device, 'PICKER');
+
+        // Ready the device for rendering to the pick buffer
+        device.setRenderTarget(this.renderTarget);
+        device.updateBegin();
+
+        const pixels = new Uint8Array(4 * width * height);
+        device.readPixels(x, y, width, height, pixels);
+
+        device.updateEnd();
+
+        // Restore render target
+        device.setRenderTarget(origRenderTarget);
+
+        DebugGraphics.popGpuMarker(device);
+
+        const mapping = this.mapping;
+        for (let i = 0; i < width * height; i++) {
+            const r = pixels[4 * i + 0];
+            const g = pixels[4 * i + 1];
+            const b = pixels[4 * i + 2];
+            const index = r << 16 | g << 8 | b;
+
+            // White is 'no selection'
+            meshInstances[i] = (index !== 0xffffff) ? mapping[index] : undefined;
+        }
+
+        return meshInstances;
+    }
+
     allocateRenderTarget() {
 
         const colorBuffer = new Texture(this.device, {
