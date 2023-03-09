@@ -165,7 +165,7 @@ class Picker {
      * @param {number} [width] - The width of the rectangle.
      * @param {number} [height] - The height of the rectangle.
      * @param {import('../../scene/mesh-instance.js').MeshInstance[]} meshInstances -
-     * The array to fill
+     * The array to fill. This array will be resized to have length = (width * height)
      * @returns {import('../../scene/mesh-instance.js').MeshInstance[]} A pixel
      * array of mesh instances that are in the selection.
      * @example
@@ -184,6 +184,9 @@ class Picker {
         y = Math.floor(y);
         width = Math.floor(Math.max(width, 1));
         height = Math.floor(Math.max(height, 1));
+
+        if (meshInstances.length !== width * height)
+            meshInstances.length = width * height;
 
         // backup active render target
         const origRenderTarget = device.renderTarget;
