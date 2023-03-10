@@ -87,9 +87,9 @@ export class InputComponentSystem extends ComponentSystem {
 
     /**
      * @private
-     * @type {ObservableSet<import('../../entity').Entity>}
+     * @type {ObservableSet<import('../../../scene/graph-node').GraphNode>}
      */
-    _focused_entities = new ObservableSet();
+    _focused = new ObservableSet();
 
     /**
      * @private
@@ -170,12 +170,12 @@ export class InputComponentSystem extends ComponentSystem {
     }
 
     /**
-     * The entities that currently have focus
+     * The graph nodes that currently have focus
      *
-     * @type {ObservableSet<import('../../entity').Entity>}
+     * @type {ObservableSet<import('../../../scene/graph-node').GraphNode>}
      */
-    get focusedEntities() {
-        return this._focused_entities;
+    get focused() {
+        return this._focused;
     }
 
     /**
@@ -199,13 +199,13 @@ export class InputComponentSystem extends ComponentSystem {
     }
 
     /**
-     * @event InputComponentSystem#focusedEntities:add
-     * @param {import('../../entity').Entity|null} value - The entity that gained focus.
+     * @event InputComponentSystem#focus
+     * @param {import('../../../scene/graph-node').GraphNode} value - The graph node that gained focus.
      */
 
     /**
-     * @event InputComponentSystem#focusedEntities:remove
-     * @param {import('../../entity').Entity|null} value - The entity that lost focus.
+     * @event InputComponentSystem#blur
+     * @param {import('../../../scene/graph-node').GraphNode} value - The graph node that lost focus.
      */
 
     /**
@@ -226,8 +226,8 @@ export class InputComponentSystem extends ComponentSystem {
 
         this.on('beforeremove', this._onRemoveComponent, this);
 
-        this._focused_entities.on('add', this._onFocusedEntities_add, this);
-        this._focused_entities.on('delete', this._onFocusedEntities_delete, this);
+        this._focused.on('add', this._onFocused_add, this);
+        this._focused.on('delete', this._onFocused_delete, this);
 
         this.on('enable', this._onEnable, this);
         this.on('disable', this._onDisable, this);
@@ -240,21 +240,343 @@ export class InputComponentSystem extends ComponentSystem {
     }
 
     /**
-     * @private
-     * @param {import('../../entity').Entity} entity - The entity added to this.focusedEntities
+     * Fired whenever the mouse is clicked while over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:click
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
      */
-    _onFocusedEntities_add(entity) {
+
+    /**
+     * Fired whenever the mouse is double clicked while over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:dblclick
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse is context menu clicked while over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:contextmenu
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever a button is pressed on the mouse while over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:mousedown
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever a button is released on the mouse while over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:mouseup
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse moves while over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:mousemove
+     * @param {import('./events').MouseMoveInputEvent} event - The mouse move event
+     */
+
+    /**
+     * Fired whenever the mouse enters being over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:mouseenter
+     * @param {import('./events').MouseInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse leaves being over a graph node.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:mouseleave
+     * @param {import('./events').MouseInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse wheels while over a graph node
+     * or the graph node is focused.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:mousewheel
+     * @param {import('./events').MouseWheelInputEvent} event - The mouse scroll event
+     */
+
+    /**
+     * Fired whenever the mouse starts dragging an entity.
+     *
+     * Call {@link event.preventDefault()} to claim this drag operation so
+     * subsequent drag and dragend events will be directed only to the target
+     * entity.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:dragstart
+     * @param {import('./events').MouseButtonInputEvent} event - The dragstart event
+     */
+
+    /**
+     * Fired whenever the mouse ends dragging an entity.
+     *
+     * The {@link event.preventDefault()} method must have been called when the
+     * {@link dragstart} event was raised for an entity in order for it to
+     * receive drag and dragend events for that drag operation.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:dragend
+     * @param {import('./events').MouseButtonInputEvent} event - The dragend event
+     */
+
+    /**
+     * Fired whenever the mouse drags an entity.
+     *
+     * The {@link event.preventDefault()} method must have been called when the
+     * {@link dragstart} event was raised for an entity in order for it to
+     * receive drag and dragend events for that drag operation.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:drag
+     * @param {import('./events').MouseMoveInputEvent} event - The drag event
+     */
+
+    /**
+     * Fired whenever a key is pressed while the mouse is over a graph node
+     * or the graph node is focused.
+     *
+     * This event may be fired repeatedly with {@link KeyInputEvent.repeat}
+     * set to true.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:keydown
+     * @param {import('./events').KeyInputEvent} event - The keydown event
+     */
+
+    /**
+     * Fired whenever a key is released while the mouse is over a graph node
+     * or the graph node is focused.
+     *
+     * This event is fired before firing the regular event though it's viewed
+     * as if the target graph node handled it.
+     *
+     * @event InputComponent#capture:keyup
+     * @param {import('./events').KeyInputEvent} event - The keyup event
+     */
+
+    /**
+     * Fired whenever the mouse is clicked while over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:click
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse is double clicked while over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:dblclick
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse is context menu clicked while over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:contextmenu
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever a button is pressed on the mouse while over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:mousedown
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever a button is released on the mouse while over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:mouseup
+     * @param {import('./events').MouseButtonInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse moves while over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:mousemove
+     * @param {import('./events').MouseMoveInputEvent} event - The mouse move event
+     */
+
+    /**
+     * Fired whenever the mouse enters being over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:mouseenter
+     * @param {import('./events').MouseInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse leaves being over a graph node.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:mouseleave
+     * @param {import('./events').MouseInputEvent} event - The mouse event
+     */
+
+    /**
+     * Fired whenever the mouse wheels while over a graph node
+     * or the graph node is focused.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:mousewheel
+     * @param {import('./events').MouseWheelInputEvent} event - The mouse scroll event
+     */
+
+    /**
+     * Fired whenever the mouse starts dragging an entity.
+     *
+     * Call {@link event.preventDefault()} to claim this drag operation so
+     * subsequent drag and dragend events will be directed only to the target
+     * entity.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:dragstart
+     * @param {import('./events').MouseButtonInputEvent} event - The dragstart event
+     */
+
+    /**
+     * Fired whenever the mouse ends dragging an entity.
+     *
+     * The {@link event.preventDefault()} method must have been called when the
+     * {@link dragstart} event was raised for an entity in order for it to
+     * receive drag and dragend events for that drag operation.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:dragend
+     * @param {import('./events').MouseButtonInputEvent} event - The dragend event
+     */
+
+    /**
+     * Fired whenever the mouse drags an entity.
+     *
+     * The {@link event.preventDefault()} method must have been called when the
+     * {@link dragstart} event was raised for an entity in order for it to
+     * receive drag and dragend events for that drag operation.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:drag
+     * @param {import('./events').MouseMoveInputEvent} event - The drag event
+     */
+
+    /**
+     * Fired whenever a key is pressed while the mouse is over a graph node
+     * or the graph node is focused.
+     *
+     * This event may be fired repeatedly with {@link KeyInputEvent.repeat}
+     * set to true.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:keydown
+     * @param {import('./events').KeyInputEvent} event - The keydown event
+     */
+
+    /**
+     * Fired whenever a key is released while the mouse is over a graph node
+     * or the graph node is focused.
+     *
+     * This event is fired if it was not handled by any entity in the hierarchy
+     * from the target node up.
+     *
+     * @event InputComponent#unhandled:keyup
+     * @param {import('./events').KeyInputEvent} event - The keyup event
+     */
+
+    /**
+     * @private
+     * @param {import('../../../scene/graph-node').GraphNode} node - The graph node added to this.focused
+     */
+    _onFocused_add(node) {
+        /** @type {import('../../entity').Entity} */
+        const entity = node;
         if (entity.input)
             entity.input.focused = true;
+        this.fire('focus', node);
     }
 
     /**
      * @private
-     * @param {import('../../entity').Entity} entity - The entity added to this.focusedEntities
+     * @param {import('../../../scene/graph-node').GraphNode} node - The graph node removed from this.focused
      */
-    _onFocusedEntities_delete(entity) {
+    _onFocused_delete(node) {
+        /** @type {import('../../entity').Entity} */
+        const entity = node;
         if (entity.input)
             entity.input.focused = false;
+        this.fire('blur', node);
     }
 
     /**
@@ -469,8 +791,8 @@ export class InputComponentSystem extends ComponentSystem {
 
         if (this._position_last.over !== node) {
             if (this._position_last.over) {
-                const event_enter = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
-                this._bubbleEvent(event_enter);
+                const event_leave = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
+                this._bubbleEvent(event_leave);
                 this._position_last.over = null;
             }
 
@@ -486,10 +808,12 @@ export class InputComponentSystem extends ComponentSystem {
         this._bubbleEvent(event_move);
 
         if (this._drag_target) {
+            /** @type {import('../../../scene/graph-node').GraphNode} */
+            const dragTarget = this._drag_target;
+
             const event_drag = new MouseMoveInputEvent(
                 "drag",
-                // @ts-ignore
-                this._drag_target,
+                dragTarget,
                 p,
                 delta,
                 buttons,
@@ -500,7 +824,7 @@ export class InputComponentSystem extends ComponentSystem {
     }
 
     /**
-     * Fires scroll event
+     * Fires mousewheel event
      *
      * @private
      * @param {WheelEvent} e - The DOM mouse event
@@ -511,8 +835,16 @@ export class InputComponentSystem extends ComponentSystem {
         /** @type {-1|1} */
         // @ts-ignore
         const direction = Math.sign(e.deltaY);
+        /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
+        const skipSet = new Set();
+
         const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
-        this._bubbleEvent(event);
+        this._bubbleEvent(event, node, skipSet);
+
+        for (const node of this.focused) {
+            const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
+            this._bubbleEvent(event, node, skipSet);
+        }
     }
 
     /**
@@ -526,8 +858,8 @@ export class InputComponentSystem extends ComponentSystem {
 
         if (this._position_last.over !== node) {
             if (this._position_last.over) {
-                const event_enter = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
-                this._bubbleEvent(event_enter);
+                const event_leave = new MouseInputEvent("mouseleave", this._position_last.over, p, buttons, modifiers);
+                this._bubbleEvent(event_leave);
                 this._position_last.over = null;
             }
 
@@ -607,13 +939,10 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onkeydown(e) {
         const modifiers = this._modifiers(e);
-        /** @type {Set<import('../../entity').Entity>} */
+        /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
         let handled = false;
-        for (const entity of this.focusedEntities) {
-            /** @type {import('../../../scene/graph-node').GraphNode} */
-            // @ts-ignore
-            const node = entity;
+        for (const node of this.focused) {
             const event = new KeyInputEvent("keydown", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
             if (this._bubbleEvent(event, node, skipSet) !== undefined)
                 handled = true;
@@ -630,13 +959,10 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onkeyup(e) {
         const modifiers = this._modifiers(e);
-        /** @type {Set<import('../../entity').Entity>} */
+        /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
         let handled = false;
-        for (const entity of this.focusedEntities) {
-            /** @type {import('../../../scene/graph-node').GraphNode} */
-            // @ts-ignore
-            const node = entity;
+        for (const node of this.focused) {
             const event = new KeyInputEvent("keyup", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
             if (this._bubbleEvent(event, node, skipSet) !== undefined)
                 handled = true;
@@ -650,19 +976,26 @@ export class InputComponentSystem extends ComponentSystem {
      *
      * @param {import('./events').InputEvent} event - The event to fire until handled
      * @param {import('../../../scene/graph-node').GraphNode} [target=event.target] - The node to fire the event at
-     * @param {Set<import('../../entity').Entity>} [skip=new Set()] - The entities to skip firing at. If an entity handles this event, it will be added to the skip set
+     * @param {Set<import('../../entity').Entity>} [skip] - The entities to skip firing at. If an entity handles this event, it will be added to the skip set
      * @param {number} [depth=0] - The depth of current bubbling attempts
      * @returns {import('../../entity').Entity|undefined} - The node that handled the event (undefined if none handled it)
      */
-    _bubbleEvent(event, target = event.target, skip = new Set(), depth = 0) {
+    _bubbleEvent(event, target = event.target, skip = undefined, depth = 0) {
         if (depth > 32) return undefined;
+        if (depth === 0) {
+            this.fire(`capture:${event.type}`, event);
+            if (event.handled) {
+                skip?.add(target);
+                return target;
+            }
+        }
 
         if (target === undefined || target === target.root) {
-            if (!skip.has(this.app.root)) {
-                this.fire(event.type, event);
+            if (skip === undefined || !skip.has(this.app.root)) {
+                this.fire(`unhandled:${event.type}`, event);
 
                 if (event.handled) {
-                    skip.add(this.app.root);
+                    skip?.add(this.app.root);
                     return this.app.root;
                 }
             }
@@ -674,11 +1007,10 @@ export class InputComponentSystem extends ComponentSystem {
         // @ts-ignore
         const entity = target;
         const component = entity.input;
-        // @ts-ignore
         if (component && component.enabled && !skip.has(entity)) {
             component.fire(event.type, event);
             if (event.handled) {
-                skip.add(entity);
+                skip?.add(entity);
                 return entity;
             }
         }

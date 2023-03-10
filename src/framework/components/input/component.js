@@ -66,39 +66,41 @@ export class InputComponent extends Component {
      */
 
     /**
-     * Fired whenever the mouse wheels while over this entity
+     * Fired whenever the mouse wheels while over this entity or
+     * {@link focused} is true.
      *
      * @event InputComponent#mousewheel
      * @param {import('./events').MouseWheelInputEvent} event - The mouse scroll event
      */
 
     /**
-     * Fired whenever the mouse starts dragging while over this entity.
+     * Fired whenever the mouse starts dragging this entity.
      *
      * Call {@link event.preventDefault()} to claim this drag operation so
-     * subsequent drag and dragend events will be directed only to this component.
+     * subsequent drag and dragend events will be directed only to this
+     * component.
      *
      * @event InputComponent#dragstart
      * @param {import('./events').MouseButtonInputEvent} event - The dragstart event
      */
 
     /**
-     * Fired whenever the mouse ends dragging while over this entity.
+     * Fired whenever the mouse ends dragging this entity.
      *
-     * The {@link event.preventDefault()} method must have been called when the {@link dragstart}
-     * event was raised for this entity in order for it to receive drag and dragend events for
-     * that drag operation.
+     * The {@link event.preventDefault()} method must have been called when the
+     * {@link dragstart} event was raised for this entity in order for it to
+     * receive drag and dragend events for that drag operation.
      *
-     * @event InputComponent#dragstart
+     * @event InputComponent#dragend
      * @param {import('./events').MouseButtonInputEvent} event - The dragend event
      */
 
     /**
      * Fired whenever the mouse drags this entity.
      *
-     * The {@link event.preventDefault()} method must have been called when the {@link dragstart}
-     * event was raised for this entity in order for it to receive drag and dragend events for
-     * that drag operation.
+     * The {@link event.preventDefault()} method must have been called when the
+     * {@link dragstart} event was raised for this entity in order for it to
+     * receive drag and dragend events for that drag operation.
      *
      * @event InputComponent#drag
      * @param {import('./events').MouseMoveInputEvent} event - The drag event
@@ -106,7 +108,7 @@ export class InputComponent extends Component {
 
     /**
      * Fired whenever a key is pressed while the mouse is over this entity or
-     * {@link capture} is true.
+     * {@link focused} is true.
      *
      * This event may be fired repeatedly with {@link KeyInputEvent.repeat}
      * set to true.
@@ -117,9 +119,9 @@ export class InputComponent extends Component {
 
     /**
      * Fired whenever a key is released while the mouse is over this entity or
-     * {@link capture} is true.
+     * {@link focused} is true.
      *
-     * @event InputComponent#keydown
+     * @event InputComponent#keyup
      * @param {import('./events').KeyInputEvent} event - The keyup event
      */
 
