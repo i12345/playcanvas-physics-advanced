@@ -841,9 +841,11 @@ export class InputComponentSystem extends ComponentSystem {
         const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
         this._bubbleEvent(event, node, skipSet);
 
-        for (const node of this.focused) {
-            const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
-            this._bubbleEvent(event, node, skipSet);
+        for (const node of [...this.focused, this._position_last.over]) {
+            if (node) {
+                const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
+                this._bubbleEvent(event, node, skipSet);
+            }
         }
     }
 
@@ -942,10 +944,12 @@ export class InputComponentSystem extends ComponentSystem {
         /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
         let handled = false;
-        for (const node of this.focused) {
-            const event = new KeyInputEvent("keydown", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
-            if (this._bubbleEvent(event, node, skipSet) !== undefined)
-                handled = true;
+        for (const node of [...this.focused, this._position_last.over]) {
+            if (node) {
+                const event = new KeyInputEvent("keydown", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
+                if (this._bubbleEvent(event, node, skipSet) !== undefined)
+                    handled = true;
+            }
         }
         if (handled)
             e.stopPropagation();
@@ -962,10 +966,12 @@ export class InputComponentSystem extends ComponentSystem {
         /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
         let handled = false;
-        for (const node of this.focused) {
-            const event = new KeyInputEvent("keyup", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
-            if (this._bubbleEvent(event, node, skipSet) !== undefined)
-                handled = true;
+        for (const node of [...this.focused, this._position_last.over]) {
+            if (node) {
+                const event = new KeyInputEvent("keyup", node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
+                if (this._bubbleEvent(event, node, skipSet) !== undefined)
+                    handled = true;
+            }
         }
         if (handled)
             e.stopPropagation();
