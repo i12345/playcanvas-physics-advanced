@@ -992,7 +992,7 @@ export class InputComponentSystem extends ComponentSystem {
             this.fire(`capture:${event.type}`, event);
             if (event.handled) {
                 skip?.add(target);
-                return target;
+                return this.app.root;
             }
         }
 
