@@ -1026,7 +1026,7 @@ export class InputComponentSystem extends ComponentSystem {
         // @ts-ignore
         const entity = target;
         const component = entity.input;
-        if (component && component.enabled && !skip.has(entity)) {
+        if (component && component.enabled && (!skip || !skip.has(entity))) {
             component.fire(event.type, event);
             if (event.handled) {
                 skip?.add(entity);
