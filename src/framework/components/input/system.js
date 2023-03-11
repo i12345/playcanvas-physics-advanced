@@ -751,7 +751,9 @@ export class InputComponentSystem extends ComponentSystem {
         this._position_last.mousemove = p;
 
         const event_dragstart = new MouseButtonInputEvent("dragstart", node, p, button, buttons, modifiers);
-        this._drag_target = this._bubbleEvent(event_dragstart);
+        const drag_target = this._bubbleEvent(event_dragstart);
+        if (event_dragstart.handled)
+            this._drag_target = drag_target;
     }
 
     /**
@@ -768,7 +770,6 @@ export class InputComponentSystem extends ComponentSystem {
         if (this._drag_target) {
             const event_dragend = new MouseButtonInputEvent(
                 "dragend",
-                // @ts-ignore
                 this._drag_target,
                 p,
                 button,
@@ -808,12 +809,9 @@ export class InputComponentSystem extends ComponentSystem {
         this._bubbleEvent(event_move);
 
         if (this._drag_target) {
-            /** @type {import('../../../scene/graph-node').GraphNode} */
-            const dragTarget = this._drag_target;
-
             const event_drag = new MouseMoveInputEvent(
                 "drag",
-                dragTarget,
+                this._dragTarget,
                 p,
                 delta,
                 buttons,
