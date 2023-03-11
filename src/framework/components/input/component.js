@@ -180,10 +180,10 @@ export class InputComponent extends Component {
 
             this.fire('set:focus', this.focused);
             if (newValue) {
-                system.focusedEntities.add(this.entity);
+                system.focused.add(this.entity);
                 this.fire('focus');
             } else {
-                system.focusedEntities.delete(this.entity);
+                system.focused.delete(this.entity);
                 this.fire('blur');
             }
         }
