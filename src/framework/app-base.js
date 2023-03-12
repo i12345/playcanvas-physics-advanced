@@ -560,6 +560,8 @@ class AppBase extends EventHandler {
          * - camera ({@link CameraComponentSystem})
          * - collision ({@link CollisionComponentSystem})
          * - element ({@link ElementComponentSystem})
+         * - input ({@link InputComponentSystem})
+         * - joint ({@link JointComponentSystem})
          * - layoutchild ({@link LayoutChildComponentSystem})
          * - layoutgroup ({@link LayoutGroupComponentSystem})
          * - light ({@link LightComponentSystem})
