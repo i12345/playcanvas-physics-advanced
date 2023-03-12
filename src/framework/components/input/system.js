@@ -29,7 +29,8 @@ const _schema = [
 
 /** @type {(keyof HTMLElementEventMap)[]} */
 const DOM_events = [
-    'click', 'contextmenu', 'dblclick',
+    // 'click',
+    'contextmenu', 'dblclick',
     'mousedown', 'mouseup',
     'mousemove', 'wheel',
     'mouseenter', 'mouseleave', // should mouseout be used instead?
@@ -96,9 +97,14 @@ export class InputComponentSystem extends ComponentSystem {
 
     /**
      * @private
-     * @type {import('../../entity').Entity|undefined}
      */
-    _drag_target = undefined;
+    _target = {
+        /** @type {import('../../../scene/graph-node').GraphNode|null} */
+        drag: null,
+
+        /** @type {import('../../../scene/graph-node').GraphNode|null} */
+        click: null
+    };
 
     /**
      * @private
@@ -257,8 +263,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever the mouse is clicked while over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:click
      * @param {import('./events').MouseButtonInputEvent} event - The mouse event
@@ -267,8 +273,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever the mouse is double clicked while over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:dblclick
      * @param {import('./events').MouseButtonInputEvent} event - The mouse event
@@ -277,8 +283,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever the mouse is context menu clicked while over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:contextmenu
      * @param {import('./events').MouseButtonInputEvent} event - The mouse event
@@ -287,8 +293,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever a button is pressed on the mouse while over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:mousedown
      * @param {import('./events').MouseButtonInputEvent} event - The mouse event
@@ -297,8 +303,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever a button is released on the mouse while over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:mouseup
      * @param {import('./events').MouseButtonInputEvent} event - The mouse event
@@ -307,8 +313,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever the mouse moves while over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:mousemove
      * @param {import('./events').MouseMoveInputEvent} event - The mouse move event
@@ -317,8 +323,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever the mouse enters being over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:mouseenter
      * @param {import('./events').MouseInputEvent} event - The mouse event
@@ -327,8 +333,8 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * Fired whenever the mouse leaves being over a graph node.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:mouseleave
      * @param {import('./events').MouseInputEvent} event - The mouse event
@@ -338,8 +344,8 @@ export class InputComponentSystem extends ComponentSystem {
      * Fired whenever the mouse wheels while over a graph node
      * or the graph node is focused.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:mousewheel
      * @param {import('./events').MouseWheelInputEvent} event - The mouse scroll event
@@ -352,8 +358,8 @@ export class InputComponentSystem extends ComponentSystem {
      * subsequent drag and dragend events will be directed only to the target
      * entity.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:dragstart
      * @param {import('./events').MouseButtonInputEvent} event - The dragstart event
@@ -366,8 +372,11 @@ export class InputComponentSystem extends ComponentSystem {
      * {@link dragstart} event was raised for an entity in order for it to
      * receive drag and dragend events for that drag operation.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * If {@link event.preventDefault()} is not called during the dragend event
+     * handler, then a click event will be fired.
+     *
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:dragend
      * @param {import('./events').MouseButtonInputEvent} event - The dragend event
@@ -380,8 +389,8 @@ export class InputComponentSystem extends ComponentSystem {
      * {@link dragstart} event was raised for an entity in order for it to
      * receive drag and dragend events for that drag operation.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:drag
      * @param {import('./events').MouseMoveInputEvent} event - The drag event
@@ -394,8 +403,8 @@ export class InputComponentSystem extends ComponentSystem {
      * This event may be fired repeatedly with {@link KeyInputEvent.repeat}
      * set to true.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:keydown
      * @param {import('./events').KeyInputEvent} event - The keydown event
@@ -405,8 +414,8 @@ export class InputComponentSystem extends ComponentSystem {
      * Fired whenever a key is released while the mouse is over a graph node
      * or the graph node is focused.
      *
-     * This event is fired before firing the regular event though it's viewed
-     * as if the target graph node handled it.
+     * This event is fired before firing the regular event and is viewed as if
+     * the root graph node handled it.
      *
      * @event InputComponent#capture:keyup
      * @param {import('./events').KeyInputEvent} event - The keyup event
@@ -523,6 +532,9 @@ export class InputComponentSystem extends ComponentSystem {
      * The {@link event.preventDefault()} method must have been called when the
      * {@link dragstart} event was raised for an entity in order for it to
      * receive drag and dragend events for that drag operation.
+     *
+     * If {@link event.preventDefault()} is not called during the dragend event
+     * handler, then a click event will be fired.
      *
      * This event is fired if it was not handled by any entity in the hierarchy
      * from the target node up.
@@ -706,7 +718,7 @@ export class InputComponentSystem extends ComponentSystem {
         const p = new Vec2(e.clientX, e.clientY);
 
         return {
-            node: (meshes.length > 0) ? meshes[0].node : undefined,
+            node: (meshes.length > 0) ? meshes[0].node : this.app.root,
             p,
             button: e.button,
             buttons: e.buttons,
@@ -714,18 +726,18 @@ export class InputComponentSystem extends ComponentSystem {
         };
     }
 
-    /**
-     * Fires click event
-     *
-     * @private
-     * @param {MouseEvent} e - The DOM mouse event
-     */
-    _onclick(e) {
-        const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent(EVENT_INPUT_CLICK, node, p, button, buttons, modifiers);
-        this._bubbleEvent(event);
-        this._position_last.mousemove = p;
-    }
+    // /**
+    //  * Fires click event
+    //  *
+    //  * @private
+    //  * @param {MouseEvent} e - The DOM mouse event
+    //  */
+    // _onclick(e) {
+    //     const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
+    //     const event = new MouseButtonInputEvent(EVENT_INPUT_CLICK, node, p, button, buttons, modifiers);
+    //     this._bubbleEvent(event);
+    //     this._position_last.mousemove = p;
+    // }
 
     /**
      * Fires dblclick event
@@ -751,10 +763,11 @@ export class InputComponentSystem extends ComponentSystem {
         const event = new MouseButtonInputEvent(EVENT_INPUT_CONTEXTMENU, node, p, button, buttons, modifiers);
         this._bubbleEvent(event);
         this._position_last.mousemove = p;
+        if (event.handled) e.preventDefault();
     }
 
     /**
-     * Fires mousedown event
+     * Fires mousedown and dragstart events
      *
      * @private
      * @param {MouseEvent} e - The DOM mouse event
@@ -764,15 +777,18 @@ export class InputComponentSystem extends ComponentSystem {
         const event_mousedown = new MouseButtonInputEvent(EVENT_INPUT_MOUSE_DOWN, node, p, button, buttons, modifiers);
         this._bubbleEvent(event_mousedown);
         this._position_last.mousemove = p;
+        this._position_last.over = node;
+        this._target.click = node;
 
         const event_dragstart = new MouseButtonInputEvent(EVENT_INPUT_DRAG_START, node, p, button, buttons, modifiers);
         const drag_target = this._bubbleEvent(event_dragstart);
         if (event_dragstart.handled)
-            this._drag_target = drag_target;
+            this._target.drag = drag_target;
+        else this._target.drag = null;
     }
 
     /**
-     * Fires mouseup event
+     * Fires mouseup, dragend, and click events
      *
      * @private
      * @param {MouseEvent} e - The DOM mouse event
@@ -781,29 +797,42 @@ export class InputComponentSystem extends ComponentSystem {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
         const event_mouseup = new MouseButtonInputEvent(EVENT_INPUT_MOUSE_UP, node, p, button, buttons, modifiers);
         this._bubbleEvent(event_mouseup);
-        // this._position_last.mousemove = p;
-        if (this._drag_target) {
+
+        let wasDragging = false;
+        if (this._target.drag) {
             const event_dragend = new MouseButtonInputEvent(
                 EVENT_INPUT_DRAG_END,
-                this._drag_target,
+                this._target.drag,
                 p,
                 button,
                 buttons,
                 modifiers
             );
             this._bubbleEvent(event_dragend);
-            this._drag_target = null;
+            this._target.drag = null;
+            wasDragging = event_dragend.handled;
+        }
+
+        if (!wasDragging) {
+            if (this._target.click === node) {
+                const event = new MouseButtonInputEvent(EVENT_INPUT_CLICK, node, p, button, buttons, modifiers);
+                this._bubbleEvent(event);
+            }
+            this._target.click = null;
         }
     }
 
     /**
-     * Fires mousemove event
+     * Fires mousemove, mouseenter, mouseleave, and drag events
      *
      * @private
      * @param {MouseEvent} e - The DOM mouse event
      */
     _onmousemove(e) {
         const { node, p, buttons, modifiers } = this._onMouseEvent(e);
+
+        if (buttons === 0)
+            this._target.click = null;
 
         if (this._position_last.over !== node) {
             if (this._position_last.over) {
@@ -823,10 +852,10 @@ export class InputComponentSystem extends ComponentSystem {
         const event_move = new MouseMoveInputEvent(EVENT_INPUT_MOUSE_MOVE, node, p, delta, buttons, modifiers);
         this._bubbleEvent(event_move);
 
-        if (this._drag_target) {
+        if (this._target.drag) {
             const event_drag = new MouseMoveInputEvent(
                 EVENT_INPUT_DRAG,
-                this._dragTarget,
+                this._target.drag,
                 p,
                 delta,
                 buttons,
@@ -863,7 +892,7 @@ export class InputComponentSystem extends ComponentSystem {
     }
 
     /**
-     * Fires mouseenter event
+     * Fires mouseenter and mouseleave events
      *
      * @private
      * @param {MouseEvent} e - The DOM mouse event
@@ -1002,10 +1031,15 @@ export class InputComponentSystem extends ComponentSystem {
     _bubbleEvent(event, target = event.target, skip = undefined, depth = 0) {
         if (depth > 32) return undefined;
         if (depth === 0) {
-            this.fire(`capture:${event.type}`, event);
-            if (event.handled) {
-                skip?.add(target);
-                return this.app.root;
+            // null is used for the capture: event
+            if (!skip || !skip.has(null)) {
+                this.fire(`capture:${event.type}`, event);
+                if (event.handled) {
+                    skip?.add(target);
+                    return this.app.root;
+                }
+
+                skip?.add(null);
             }
         }
 
@@ -1025,6 +1059,9 @@ export class InputComponentSystem extends ComponentSystem {
         /** @type {import('../../entity').Entity} */
         // @ts-ignore
         const entity = target;
+        if (skip && skip.has(entity))
+            return undefined;
+
         const component = entity.input;
         if (component && component.enabled && (!skip || !skip.has(entity))) {
             component.fire(event.type, event);

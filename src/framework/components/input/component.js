@@ -91,6 +91,9 @@ export class InputComponent extends Component {
      * {@link dragstart} event was raised for this entity in order for it to
      * receive drag and dragend events for that drag operation.
      *
+     * If {@link event.preventDefault()} is not called during the dragend event
+     * handler, then a click event will be fired.
+     *
      * @event InputComponent#dragend
      * @param {import('./events').MouseButtonInputEvent} event - The dragend event
      */
