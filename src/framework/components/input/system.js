@@ -114,6 +114,12 @@ export class InputComponentSystem extends ComponentSystem {
 
     /**
      * @private
+     * @type {Map<import('../../../scene/graph-node').GraphNode, () => void>}
+     */
+    _focused_remove_handlers = new Map();
+
+    /**
+     * @private
      * @type {boolean}
      */
     _enabled = false;
@@ -589,6 +595,12 @@ export class InputComponentSystem extends ComponentSystem {
     _onFocused_add(node) {
         /** @type {import('../../entity').Entity} */
         const entity = node;
+        const focused = this.focused;
+
+        const remove_handler = () => focused.delete(node);
+        this._focused_remove_handlers.set(node, remove_handler);
+        node.on('remove', remove_handler);
+
         if (entity.input)
             entity.input.focused = true;
         this.fire('focus', node);
@@ -601,6 +613,11 @@ export class InputComponentSystem extends ComponentSystem {
     _onFocused_delete(node) {
         /** @type {import('../../entity').Entity} */
         const entity = node;
+
+        const remove_handler = this._focused_remove_handlers.get(node);
+        this._focused_remove_handlers.delete(node);
+        node.off('remove', remove_handler);
+
         if (entity.input)
             entity.input.focused = false;
         this.fire('blur', node);
