@@ -4,6 +4,8 @@ import { ComponentSystem } from "../system";
 import { MultiBodyComponent } from "./component";
 import { MultiBodyComponentData } from "./data";
 
+import { Vec3 } from "../../../core/math/vec3";
+
 const _schema = ['enabled'];
 
 class MultiBodySetup {
