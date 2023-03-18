@@ -1,4 +1,5 @@
 import { Debug, DebugHelper } from '../../../core/debug.js';
+import { WebgpuDebug } from './webgpu-debug.js';
 
 /**
  * A WebGPU implementation of the RenderTarget.
@@ -146,6 +147,9 @@ class WebgpuRenderTarget {
         Debug.assert(!this.initialized);
         const wgpu = device.wgpu;
 
+        WebgpuDebug.memory(device);
+        WebgpuDebug.validate(device);
+
         const { samples, width, height, depth, depthBuffer } = renderTarget;
 
         // depth buffer that we render to (single or multi-sampled). We don't create resolve
@@ -239,11 +243,15 @@ class WebgpuRenderTarget {
             colorAttachment.view = colorView;
         }
 
-        if (colorAttachment.view) {
+        // if we have color a buffer, or at least a format (main framebuffer that gets assigned later)
+        if (colorAttachment.view || this.colorFormat) {
             this.renderPassDescriptor.colorAttachments.push(colorAttachment);
         }
 
         this.initialized = true;
+
+        WebgpuDebug.end(device, { renderTarget });
+        WebgpuDebug.end(device, { renderTarget });
     }
 
     /**
