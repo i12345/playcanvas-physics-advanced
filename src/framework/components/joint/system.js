@@ -10,7 +10,13 @@ import { JointComponentData } from './data.js';
 const _schema = ['enabled'];
 
 /** @type {import('ammojs3').default.btVector3} */
-let _defaultInertiaVec;
+let __defaultInertiaVec;
+
+function _defaultInertiaVec() {
+    if (__defaultInertiaVec) return __defaultInertiaVec;
+    __defaultInertiaVec = new Ammo.btVector3();
+    return __defaultInertiaVec;
+}
 
 // TODO: implement JointImpl following the pattern of collision/system > CollisionSystemImpl
 // to support other joint types with custom properties
@@ -291,7 +297,7 @@ class SphericalJointImpl extends JointImpl {
             entityA.multibody.base.multibody.setupSpherical(
                 entityA.multibody.linkIndex,
                 0,
-                _defaultInertiaVec,
+                _defaultInertiaVec(),
                 entityB.multibody.linkIndex,
                 rot_a2b,
                 offset_j2b,
@@ -374,7 +380,6 @@ class SphericalJointImpl extends JointImpl {
      * Updates the linear parameters of the joint.
      *
      * @param {JointComponent} joint - The joint to update linear parameters for
-     * 
      */
     updateLinearParameters(joint) {
         // No linear limits to set
@@ -513,7 +518,7 @@ class HingeJointImpl extends JointImpl {
             entityA.multibody.base.multibody.setupRevolute(
                 entityA.multibody.linkIndex,
                 0,
-                _defaultInertiaVec,
+                _defaultInertiaVec(),
                 entityB.multibody.linkIndex,
                 rot_a2b,
                 v_axis,
@@ -738,7 +743,7 @@ class SliderJointImpl extends JointImpl {
             entityA.multibody.base.multibody.setupPrismatic(
                 entityA.multibody.linkIndex,
                 0,
-                _defaultInertiaVec,
+                _defaultInertiaVec(),
                 entityB.multibody.linkIndex,
                 rot_a2b,
                 v_axis,
@@ -893,7 +898,7 @@ class FixedJointImpl extends JointImpl {
             entityA.multibody.base.multibody.setupFixed(
                 entityA.multibody.linkIndex,
                 0,
-                _defaultInertiaVec,
+                _defaultInertiaVec(),
                 entityB.multibody.linkIndex,
                 rot_a2b,
                 offset_j2b,
@@ -989,10 +994,6 @@ class JointComponentSystem extends ComponentSystem {
 
         /** @type {{ [type: string]: JointImpl }} */
         this.implementations = {};
-
-        if (Ammo && !_defaultInertiaVec) {
-            _defaultInertiaVec = new Ammo.btVector3();
-        }
     }
 
     initializeComponentData(component, data, properties) {
