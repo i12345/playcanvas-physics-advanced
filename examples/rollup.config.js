@@ -3,7 +3,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import replace from '@rollup/plugin-replace';
 import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy';
-import { terser } from 'rollup-plugin-terser';
+import terser from '@rollup/plugin-terser';
 import { string } from 'rollup-plugin-string';
 import alias from '@rollup/plugin-alias';
 import path from 'path';

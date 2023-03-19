@@ -49,7 +49,7 @@ const MainLayout = () => {
         <div id='appInner'>
             <Router>
                 <Switch>
-                    <Route exact path='/'>
+                    <Route path='/'>
                         <Redirect to="/misc/hello-world" />
                     </Route>
                     <Route path='/:category/:example'>
