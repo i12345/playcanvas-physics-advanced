@@ -94,6 +94,8 @@ Object.assign(FxaaEffect.prototype, {
     }
 });
 
+export { FxaaEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Fxaa = pc.createScript('fxaa');
 

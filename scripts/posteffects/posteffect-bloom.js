@@ -245,6 +245,8 @@ Object.assign(BloomEffect.prototype, {
     }
 });
 
+export { BloomEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Bloom = pc.createScript('bloom');
 

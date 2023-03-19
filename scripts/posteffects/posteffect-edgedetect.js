@@ -80,6 +80,8 @@ Object.assign(EdgeDetectEffect.prototype, {
     }
 });
 
+export { EdgeDetectEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var EdgeDetect = pc.createScript('edgeDetect');
 

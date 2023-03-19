@@ -60,6 +60,8 @@ Object.assign(VerticalTiltShiftEffect.prototype, {
     }
 });
 
+export { VerticalTiltShiftEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var VerticalTiltShift = pc.createScript('verticalTiltShift');
 

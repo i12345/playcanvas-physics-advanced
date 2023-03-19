@@ -124,6 +124,8 @@ Object.assign(BokehEffect.prototype, {
     }
 });
 
+export { BokehEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Bokeh = pc.createScript('bokeh');
 

@@ -79,6 +79,8 @@ Object.assign(OutlineEffect.prototype, {
     }
 });
 
+export { OutlineEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Outline = pc.createScript('outline');
 

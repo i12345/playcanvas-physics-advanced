@@ -465,6 +465,8 @@ Object.assign(SSAOEffect.prototype, {
     }
 });
 
+export { SSAOEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var SSAO = pc.createScript('ssao');
 

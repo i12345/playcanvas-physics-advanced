@@ -60,6 +60,8 @@ Object.assign(HorizontalTiltShiftEffect.prototype, {
     }
 });
 
+export { HorizontalTiltShiftEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var HorizontalTiltShift = pc.createScript('horizontalTiltShift');
 

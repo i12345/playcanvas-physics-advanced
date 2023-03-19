@@ -51,6 +51,8 @@ Object.assign(SepiaEffect.prototype, {
     }
 });
 
+export { SepiaEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Sepia = pc.createScript('sepia');
 

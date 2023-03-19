@@ -41,6 +41,8 @@ Object.assign(LuminosityEffect.prototype, {
     }
 });
 
+export { LuminosityEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Luminosity = pc.createScript('luminosity');
 

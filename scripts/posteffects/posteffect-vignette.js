@@ -50,6 +50,8 @@ Object.assign(VignetteEffect.prototype, {
     }
 });
 
+export { VignetteEffect };
+
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Vignette = pc.createScript('vignette');
 
