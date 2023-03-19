@@ -68,8 +68,6 @@ Object.assign(HueSaturationEffect.prototype, {
     }
 });
 
-export { HueSaturationEffect };
-
 // ----------------- SCRIPT DEFINITION ------------------ //
 var HueSaturation = pc.createScript('hueSaturation');
 

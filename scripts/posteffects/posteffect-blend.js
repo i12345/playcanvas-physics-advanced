@@ -52,8 +52,6 @@ Object.assign(BlendEffect.prototype, {
     }
 });
 
-export { BlendEffect };
-
 // ----------------- SCRIPT DEFINITION ------------------ //
 var Blend = pc.createScript('blend');
 

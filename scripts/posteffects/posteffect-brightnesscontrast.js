@@ -56,8 +56,6 @@ Object.assign(BrightnessContrastEffect.prototype, {
     }
 });
 
-export { BrightnessContrastEffect };
-
 // ----------------- SCRIPT DEFINITION ------------------ //
 var BrightnessContrast = pc.createScript('brightnessContrast');
 
