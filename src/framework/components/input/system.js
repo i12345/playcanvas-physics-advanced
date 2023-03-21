@@ -51,27 +51,9 @@ export class InputComponentSystem extends ComponentSystem {
 
     /**
      * @private
-     * @type {Picker|null}
+     * @type {Picker[]}
      */
-    _picker = null;
-
-    /**
-     * @private
-     * @type {import('../../entity').Entity|null}
-     */
-    _mouseCamera = null;
-
-    /**
-     * @private
-     * @type {import('../../../scene/scene').Scene|null}
-     */
-    _mouseScene = null;
-
-    /**
-     * @private
-     * @type {import('../../../scene/layer').Layer[]|null}
-     */
-    _mouseLayers = null;
+    _pickers = [];
 
     /**
      * @private
@@ -125,61 +107,18 @@ export class InputComponentSystem extends ComponentSystem {
     _enabled = false;
 
     /**
-     * The {@link Picker} for identifying {@link GraphNode}s from screen coordinates
+     * The {@link Picker}s for identifying {@link GraphNode}s from screen coordinates
+     *
+     * By default, a default {@link Picker} is created.
      *
      * @type {Picker}
      */
-    set picker(value) {
-        this._picker = value;
+    set pickers(value) {
+        this._pickers = value;
     }
 
-    get picker() {
-        return this._picker;
-    }
-
-    /**
-     * The entity with the camera to use for targeting mouse input events.
-     * If null, the first active camera in the app will be used.
-     *
-     * @default null
-     * @type {import('../../entity').Entity|null}
-     */
-    set mouseCamera(entity) {
-        this._mouseCamera = entity;
-    }
-
-    get mouseCamera() {
-        return this._mouseCamera;
-    }
-
-    /**
-     * The scene to use for targeting mouse input events.
-     * If null, the active scene on the app will be used.
-     *
-     * @default null
-     * @type {import('../../../scene/scene').Scene|null}
-     */
-    set mouseScene(scene) {
-        this._mouseScene = scene;
-    }
-
-    get mouseScene() {
-        return this._mouseScene;
-    }
-
-    /**
-     * The layers to use for targeting mouse input events.
-     * If null, all layers will be used.
-     *
-     * @default null
-     * @type {import('../../../scene/layer').Layer[]|null}
-     */
-    set mouseLayers(layers) {
-        this._mouseLayers = layers;
-    }
-
-    get mouseLayers() {
-        return this._mouseLayers;
+    get pickers() {
+        return this._pickers;
     }
 
     /**
@@ -649,8 +588,9 @@ export class InputComponentSystem extends ComponentSystem {
     _onEnable() {
         this.app.systems.on('update', this._onUpdate, this);
 
-        this._picker ??= new Picker(this.app, this.app.graphicsDevice.width, this.app.graphicsDevice.height);
-        this._picker_prepare();
+        if (this._pickers.length === 0)
+            this._pickers.push(new Picker(this.app, this.app.graphicsDevice.width, this.app.graphicsDevice.height));
+        this._pickers_prepare();
 
         // this.app.graphicsDevice.canvas.draggable = true;
         // https://stackoverflow.com/a/16492878
@@ -680,12 +620,14 @@ export class InputComponentSystem extends ComponentSystem {
     /**
      * @private
      */
-    _picker_prepare() {
-        this._picker.prepare(
-            this._mouseCamera?.camera ?? this.app.systems.camera.cameras[0],
-            this._mouseScene ?? this.app.scene,
-            this._mouseLayers
-        );
+    _pickers_prepare() {
+        for (const picker of this._pickers) {
+            picker.prepare(
+                this._mouseCamera?.camera ?? this.app.systems.camera.cameras[0],
+                this._mouseScene ?? this.app.scene,
+                this._mouseLayers
+            );
+        }
 
         this._elapsed_dt_since_update = 0;
     }
@@ -699,7 +641,7 @@ export class InputComponentSystem extends ComponentSystem {
     _onUpdate(dt) {
         this._elapsed_dt_since_update += dt;
         if (this._elapsed_dt_since_update >= (1 / this._update_fps))
-            this._picker_prepare();
+            this._pickers_prepare();
     }
 
     /**
