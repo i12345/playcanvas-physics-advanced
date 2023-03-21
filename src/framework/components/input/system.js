@@ -607,10 +607,10 @@ export class InputComponentSystem extends ComponentSystem {
     _onDisable() {
         this.app.systems.off('update', this._onUpdate, this);
 
-        if (this._picker) {
-            this._picker.releaseRenderTarget();
-            this._picker = null;
-        }
+        for (const picker of this._pickers)
+            picker.releaseRenderTarget();
+
+        this._pickers.splice(0, this._pickers.length - 1);
 
         for (const event of DOM_events) {
             this.app.graphicsDevice.canvas.removeEventListener(event, this[`_on${event}`]);
@@ -673,11 +673,16 @@ export class InputComponentSystem extends ComponentSystem {
      * }} - The element mouse is over and vector for mouse position
      */
     _onMouseEvent(e) {
-        const meshes = this._picker.getSelection(e.clientX, e.clientY);
         const p = new Vec2(e.clientX, e.clientY);
 
+        /** @type {import('../../../scene/mesh-instance.js').MeshInstance|undefined} */
+        let mesh;
+        for (const picker of this._pickers)
+            if (undefined !== (mesh = picker.getSelection(e.clientX, e.clientY)[0]))
+                break;
+
         return {
-            node: (meshes.length > 0) ? meshes[0].node : this.app.root,
+            node: mesh?.node ?? this.app.root,
             p,
             button: e.button,
             buttons: e.buttons,
