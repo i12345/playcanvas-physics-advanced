@@ -1,6 +1,6 @@
 import { ObservableSet } from '../../../core/observable-set.js';
 import { Vec2 } from '../../../core/math/vec2.js';
-import { Picker } from '../../graphics/picker.js';
+import { PickerManaged } from '../../graphics/picker.js';
 import { Component } from '../component.js';
 import { ComponentSystem } from '../system.js';
 import { InputComponent } from './component.js';
@@ -51,7 +51,7 @@ export class InputComponentSystem extends ComponentSystem {
 
     /**
      * @private
-     * @type {Picker[]}
+     * @type {PickerManaged[]}
      */
     _pickers = [];
 
@@ -107,11 +107,11 @@ export class InputComponentSystem extends ComponentSystem {
     _enabled = false;
 
     /**
-     * The {@link Picker}s for identifying {@link GraphNode}s from screen coordinates
+     * The {@link PickerManaged}s for identifying {@link GraphNode}s from screen coordinates
      *
-     * By default, a default {@link Picker} is created.
+     * By default, a {@link PickerManaged} is created for the main scene and its camera.
      *
-     * @type {Picker}
+     * @type {PickerManaged[]}
      */
     set pickers(value) {
         this._pickers = value;
@@ -588,8 +588,15 @@ export class InputComponentSystem extends ComponentSystem {
     _onEnable() {
         this.app.systems.on('update', this._onUpdate, this);
 
-        if (this._pickers.length === 0)
-            this._pickers.push(new Picker(this.app, this.app.graphicsDevice.width, this.app.graphicsDevice.height));
+        if (this._pickers.length === 0) {
+            this._pickers.push(new PickerManaged(
+                this.app,
+                undefined,
+                this.app.root.findComponents('camera').find(camera => camera.enabled),
+                this.app.scene
+            ));
+        }
+
         this._pickers_prepare();
 
         // this.app.graphicsDevice.canvas.draggable = true;
@@ -608,7 +615,7 @@ export class InputComponentSystem extends ComponentSystem {
         this.app.systems.off('update', this._onUpdate, this);
 
         for (const picker of this._pickers)
-            picker.releaseRenderTarget();
+            picker.destroy();
 
         this._pickers.splice(0, this._pickers.length - 1);
 
@@ -621,13 +628,8 @@ export class InputComponentSystem extends ComponentSystem {
      * @private
      */
     _pickers_prepare() {
-        for (const picker of this._pickers) {
-            picker.prepare(
-                this._mouseCamera?.camera ?? this.app.systems.camera.cameras[0],
-                this._mouseScene ?? this.app.scene,
-                this._mouseLayers
-            );
-        }
+        for (const picker of this._pickers)
+            picker.prepare();
 
         this._elapsed_dt_since_update = 0;
     }
@@ -678,7 +680,7 @@ export class InputComponentSystem extends ComponentSystem {
         /** @type {import('../../../scene/mesh-instance.js').MeshInstance|undefined} */
         let mesh;
         for (const picker of this._pickers)
-            if (undefined !== (mesh = picker.getSelection(e.clientX, e.clientY)[0]))
+            if (undefined !== (mesh = picker.getSelection(p)[0]))
                 break;
 
         return {

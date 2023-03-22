@@ -1,4 +1,5 @@
 import { Color } from '../../core/math/color.js';
+import { Vec2 } from '../../core/math/vec2.js';
 
 import { ADDRESS_CLAMP_TO_EDGE, CLEARFLAG_DEPTH, FILTER_NEAREST, PIXELFORMAT_RGBA8 } from '../../platform/graphics/constants.js';
 import { GraphicsDevice } from '../../platform/graphics/graphics-device.js';
@@ -83,8 +84,8 @@ class Picker {
      *
      * @param {number} x - The left edge of the rectangle.
      * @param {number} y - The top edge of the rectangle.
-     * @param {number} [width] - The width of the rectangle.
-     * @param {number} [height] - The height of the rectangle.
+     * @param {number} [width=1] - The width of the rectangle.
+     * @param {number} [height=1] - The height of the rectangle.
      * @returns {import('../../scene/mesh-instance.js').MeshInstance[]} An array of mesh instances
      * that are in the selection.
      * @example
@@ -162,9 +163,9 @@ class Picker {
      *
      * @param {number} x - The left edge of the rectangle.
      * @param {number} y - The top edge of the rectangle.
-     * @param {number} [width] - The width of the rectangle.
-     * @param {number} [height] - The height of the rectangle.
-     * @param {import('../../scene/mesh-instance.js').MeshInstance[]} meshInstances -
+     * @param {number} [width=1] - The width of the rectangle.
+     * @param {number} [height=1] - The height of the rectangle.
+     * @param {import('../../scene/mesh-instance.js').MeshInstance[]} [meshInstances] -
      * The array to fill. This array will be resized to have length = (width * height)
      * @returns {import('../../scene/mesh-instance.js').MeshInstance[]} A pixel
      * array of mesh instances that are in the selection.
@@ -411,4 +412,128 @@ class Picker {
     }
 }
 
-export { Picker };
+class PickerManaged {
+    get app() {
+        return this.picker.app;
+    }
+
+    /**
+     * @param {import('../components/camera/component.js').CameraComponent} camera - The camera
+     * component used to render the scene.
+     */
+    camera;
+
+    /**
+     * @param {import('../../scene/scene.js').Scene} scene - The scene containing the pickable mesh
+     * instances.
+     */
+    scene;
+
+    /**
+     * @param {Layer[]|undefined} layers - Layers from which objects will be picked. If not supplied, all layers of the specified camera will be used.
+     */
+    layers;
+
+    /**
+     * @type {Vec2|undefined} The size of the pick buffer in pixels.
+     * If undefined, it will defaults to the size of {@link app.graphicsDevice}
+     */
+    size;
+
+    /**
+     * Create a new Picker instance.
+     *
+     * @param {import('../app-base.js').AppBase} app - The application managing this picker
+     * instance.
+     * @param {Vec2|undefined} size - The size of the pick buffer in pixels.
+     * If undefined, it will defaults to the size of {@link app.graphicsDevice}
+     * @param {import('../components/camera/component.js').CameraComponent} camera - The camera
+     * component used to render the scene.
+     * @param {import('../../scene/scene.js').Scene} scene - The scene containing the pickable mesh
+     * instances.
+     * @param {Layer[]|undefined} [layers] - Layers from which objects will be picked. If not supplied, all layers of the specified camera will be used.
+     */
+    constructor(app, size, camera, scene, layers) {
+        this.camera = camera;
+        this.scene = scene;
+        this.layers = layers;
+        this.size = size;
+
+        const realSize = this.realSize(app);
+        /** @private */
+        this.picker = new Picker(app, realSize.x, realSize.y);
+    }
+
+    /**
+     * Primes the pick buffer with a rendering of the specified models from the point of view of
+     * the supplied camera. Once the pick buffer has been prepared, {@link Picker#getSelection} can
+     * be called multiple times on the same picker object. Therefore, if the models or camera do
+     * not change in any way, {@link Picker#prepare} does not need to be called again.
+     */
+    prepare() {
+        const realSize = this.realSize(this.app);
+        if (realSize.x !== this.picker.width ||
+            realSize.y !== this.picker.height)
+            this.picker.resize(realSize.x, realSize.y);
+
+        this.picker.prepare(this.camera, this.scene, this.layers);
+    }
+
+    /**
+     * Return the list of mesh instances selected by the specified rectangle in the previously
+     * prepared pick buffer.The rectangle using top-left coordinate system.
+     *
+     * @param {Vec2} p - The top left point of the rectangle.
+     * @param {Vec2} [size=Vec2.ONE] - The size of the rectangle.
+     * @returns {import('../../scene/mesh-instance.js').MeshInstance[]} An array of mesh instances
+     * that are in the selection.
+     * @example
+     * // Get the selection at the point (10,20)
+     * var selection = picker.getSelection(10, 20);
+     * @example
+     * // Get all models in rectangle with corners at (10,20) and (20,40)
+     * var selection = picker.getSelection(10, 20, 10, 20);
+     */
+    getSelection(p, size) {
+        return this.picker.getSelection(p.x, p.y, size?.x, size?.y);
+    }
+
+    /**
+     * Return a pixel array of mesh instances selected by the specified
+     * rectangle in the previously prepared pick buffer.The rectangle using
+     * top-left coordinate system.
+     *
+     * @param {Vec2} p - The top left point of the rectangle.
+     * @param {Vec2} [size=Vec2.ONE] - The size of the rectangle.
+     * @param {import('../../scene/mesh-instance.js').MeshInstance[]} [meshInstances] -
+     * The array to fill. This array will be resized to have length = (width * height)
+     * @returns {import('../../scene/mesh-instance.js').MeshInstance[]} A pixel
+     * array of mesh instances that are in the selection.
+     * @example
+     * // Get all models in rectangle with corners at (10,20) and (20,40)
+     * // Then finds the mesh instance at pixel (0, 3)
+     * var selection = picker.readSelection(10, 20, 10, 20);
+     * var meshInstance = selection[0][3]
+     */
+    readSelection(p, size, meshInstances) {
+        return this.picker.readSelection(p.x, p.y, size?.x, size?.y, meshInstances);
+    }
+
+    destroy() {
+        this.picker.releaseRenderTarget();
+    }
+
+    /**
+     * Calculates the real size to use for the internal picker.
+     *
+     * @param {import('../app-base.js').AppBase} app - The application managing this picker
+     * instance.
+     * @returns {Vec2|undefined} the real size to use for the internal picker.
+     * @private
+     */
+    realSize(app) {
+        return this.size ?? new Vec2(app.graphicsDevice.width, app.graphicsDevice.height);
+    }
+}
+
+export { Picker, PickerManaged };
