@@ -267,7 +267,7 @@ export { Bundle } from './framework/bundle/bundle.js';
 export { BundleRegistry } from './framework/bundle/bundle-registry.js';
 
 // FRAMEWORK / GRAPHICS
-export { Picker } from './framework/graphics/picker.js';
+export { Picker, PickerManaged } from './framework/graphics/picker.js';
 
 // FRAMEWORK / HANDLERS
 export { basisInitialize, basisTranscode } from './framework/handlers/basis.js';
