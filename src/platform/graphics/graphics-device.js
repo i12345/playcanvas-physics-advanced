@@ -5,8 +5,8 @@ import { now } from '../../core/time.js';
 
 import {
     BUFFER_STATIC,
-    CLEARFLAG_COLOR,
-    CLEARFLAG_DEPTH,
+    CULLFACE_BACK,
+    CLEARFLAG_COLOR, CLEARFLAG_DEPTH,
     PRIMITIVE_POINTS, PRIMITIVE_TRIFAN, SEMANTIC_POSITION, TYPE_FLOAT32
 } from './constants.js';
 import { BlendState } from './blend-state.js';
@@ -28,6 +28,7 @@ class GraphicsDevice extends EventHandler {
      * The canvas DOM element that provides the underlying WebGL context used by the graphics device.
      *
      * @type {HTMLCanvasElement}
+     * @readonly
      */
     canvas;
 
@@ -35,6 +36,7 @@ class GraphicsDevice extends EventHandler {
      * True if the deviceType is WebGPU
      *
      * @type {boolean}
+     * @readonly
      */
     isWebGPU = false;
 
@@ -42,6 +44,7 @@ class GraphicsDevice extends EventHandler {
      * The scope namespace for shader attributes and variables.
      *
      * @type {ScopeSpace}
+     * @readonly
      */
     scope;
 
@@ -49,6 +52,7 @@ class GraphicsDevice extends EventHandler {
      * The maximum number of supported bones using uniform buffers.
      *
      * @type {number}
+     * @readonly
      */
     boneLimit;
 
@@ -56,6 +60,7 @@ class GraphicsDevice extends EventHandler {
      * The maximum supported texture anisotropy setting.
      *
      * @type {number}
+     * @readonly
      */
     maxAnisotropy;
 
@@ -63,6 +68,7 @@ class GraphicsDevice extends EventHandler {
      * The maximum supported dimension of a cube map.
      *
      * @type {number}
+     * @readonly
      */
     maxCubeMapSize;
 
@@ -70,6 +76,7 @@ class GraphicsDevice extends EventHandler {
      * The maximum supported dimension of a texture.
      *
      * @type {number}
+     * @readonly
      */
     maxTextureSize;
 
@@ -77,6 +84,7 @@ class GraphicsDevice extends EventHandler {
      * The maximum supported dimension of a 3D texture (any axis).
      *
      * @type {number}
+     * @readonly
      */
     maxVolumeSize;
 
@@ -85,8 +93,17 @@ class GraphicsDevice extends EventHandler {
      * 'lowp'.
      *
      * @type {string}
+     * @readonly
      */
     precision;
+
+    /**
+     * The number of hardware anti-aliasing samples used by the frame buffer.
+     *
+     * @readonly
+     * @type {number}
+     */
+    samples;
 
     /**
      * Currently active render target.
@@ -96,6 +113,14 @@ class GraphicsDevice extends EventHandler {
      */
     renderTarget = null;
 
+    /**
+     * Index of the currently active render pass.
+     *
+     * @type {number}
+     * @ignore
+     */
+    renderPassIndex;
+
     /** @type {boolean} */
     insideRenderPass = false;
 
@@ -103,6 +128,7 @@ class GraphicsDevice extends EventHandler {
      * True if hardware instancing is supported.
      *
      * @type {boolean}
+     * @readonly
      */
     supportsInstancing;
 
@@ -118,6 +144,7 @@ class GraphicsDevice extends EventHandler {
      * True if 32-bit floating-point textures can be used as a frame buffer.
      *
      * @type {boolean}
+     * @readonly
      */
     textureFloatRenderable;
 
@@ -125,6 +152,7 @@ class GraphicsDevice extends EventHandler {
       * True if 16-bit floating-point textures can be used as a frame buffer.
       *
       * @type {boolean}
+      * @readonly
       */
     textureHalfFloatRenderable;
 
@@ -287,6 +315,7 @@ class GraphicsDevice extends EventHandler {
 
         this.blendState = new BlendState();
         this.depthState = new DepthState();
+        this.cullMode = CULLFACE_BACK;
 
         // Cached viewport and scissor dimensions
         this.vx = this.vy = this.vw = this.vh = 0;
@@ -308,6 +337,20 @@ class GraphicsDevice extends EventHandler {
      * @param {DepthState} depthState - New depth state.
      */
     setDepthState(depthState) {
+        Debug.assert(false);
+    }
+
+    /**
+     * Controls how triangles are culled based on their face direction. The default cull mode is
+     * {@link CULLFACE_BACK}.
+     *
+     * @param {number} cullMode - The cull mode to set. Can be:
+     *
+     * - {@link CULLFACE_NONE}
+     * - {@link CULLFACE_BACK}
+     * - {@link CULLFACE_FRONT}
+     */
+    setCullMode(cullMode) {
         Debug.assert(false);
     }
 
@@ -362,7 +405,7 @@ class GraphicsDevice extends EventHandler {
      * @returns {import('./render-target.js').RenderTarget} The current render target.
      * @example
      * // Get the current render target
-     * var renderTarget = device.getRenderTarget();
+     * const renderTarget = device.getRenderTarget();
      */
     getRenderTarget() {
         return this.renderTarget;
@@ -539,6 +582,7 @@ class GraphicsDevice extends EventHandler {
      * @ignore
      */
     frameStart() {
+        this.renderPassIndex = 0;
     }
 }
 

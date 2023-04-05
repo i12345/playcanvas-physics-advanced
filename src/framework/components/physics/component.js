@@ -808,18 +808,18 @@ class PhysicsComponent extends Component {
      * @example
      * // Apply a force at the body's center
      * // Calculate a force vector pointing in the world space direction of the entity
-     * var force = this.entity.forward.clone().mulScalar(100);
+     * const force = this.entity.forward.clone().mulScalar(100);
      *
      * // Apply the force
      * this.entity.physics.applyForce(force);
      * @example
      * // Apply a force at some relative offset from the body's center
      * // Calculate a force vector pointing in the world space direction of the entity
-     * var force = this.entity.forward.clone().mulScalar(100);
+     * const force = this.entity.forward.clone().mulScalar(100);
      *
      * // Calculate the world space relative offset
-     * var relativePos = new pc.Vec3();
-     * var childEntity = this.entity.findByName('Engine');
+     * const relativePos = new pc.Vec3();
+     * const childEntity = this.entity.findByName('Engine');
      * relativePos.sub2(childEntity.getPosition(), this.entity.getPosition());
      *
      * // Apply the force
@@ -868,8 +868,8 @@ class PhysicsComponent extends Component {
      * @param {number} [z] - The z-component of the torque force in world-space.
      * @example
      * // Apply via vector
-     * var torque = new pc.Vec3(0, 10, 0);
-     * entity.physics.applyTorque(torque);
+     * const torque = new pc.Vec3(0, 10, 0);
+     * entity.rigidbody.applyTorque(torque);
      * @example
      * // Apply via numbers
      * entity.physics.applyTorque(0, 10, 0);
@@ -916,14 +916,14 @@ class PhysicsComponent extends Component {
      * local-space of the entity.
      * @example
      * // Apply an impulse along the world-space positive y-axis at the entity's position.
-     * var impulse = new pc.Vec3(0, 10, 0);
-     * entity.physics.applyImpulse(impulse);
+     * const impulse = new pc.Vec3(0, 10, 0);
+     * entity.rigidbody.applyImpulse(impulse);
      * @example
      * // Apply an impulse along the world-space positive y-axis at 1 unit down the positive
      * // z-axis of the entity's local-space.
-     * var impulse = new pc.Vec3(0, 10, 0);
-     * var relativePoint = new pc.Vec3(0, 0, 1);
-     * entity.physics.applyImpulse(impulse, relativePoint);
+     * const impulse = new pc.Vec3(0, 10, 0);
+     * const relativePoint = new pc.Vec3(0, 0, 1);
+     * entity.rigidbody.applyImpulse(impulse, relativePoint);
      * @example
      * // Apply an impulse along the world-space positive y-axis at the entity's position.
      * entity.physics.applyImpulse(0, 10, 0);
@@ -970,8 +970,8 @@ class PhysicsComponent extends Component {
      * @param {number} [z] - The z-component of the torque impulse in world-space.
      * @example
      * // Apply via vector
-     * var torque = new pc.Vec3(0, 10, 0);
-     * entity.physics.applyTorqueImpulse(torque);
+     * const torque = new pc.Vec3(0, 10, 0);
+     * entity.rigidbody.applyTorqueImpulse(torque);
      * @example
      * // Apply via numbers
      * entity.physics.applyTorqueImpulse(0, 10, 0);
@@ -1171,8 +1171,8 @@ class PhysicsComponent extends Component {
      * entity.physics.teleport(0, 0, 0);
      * @example
      * // Teleport the entity to world-space coordinate [1, 2, 3] and reset orientation
-     * var position = new pc.Vec3(1, 2, 3);
-     * entity.physics.teleport(position, pc.Vec3.ZERO);
+     * const position = new pc.Vec3(1, 2, 3);
+     * entity.rigidbody.teleport(position, pc.Vec3.ZERO);
      * @example
      * // Teleport the entity to world-space coordinate [1, 2, 3] and reset orientation
      * entity.physics.teleport(1, 2, 3, 0, 0, 0);

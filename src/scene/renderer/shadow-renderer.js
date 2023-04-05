@@ -30,11 +30,7 @@ function gauss(x, sigma) {
     return Math.exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
-const maxBlurSize = 25;
 function gaussWeights(kernelSize) {
-    if (kernelSize > maxBlurSize) {
-        kernelSize = maxBlurSize;
-    }
     const sigma = (kernelSize - 1) / (2 * 3);
 
     const halfWidth = (kernelSize - 1) * 0.5;
@@ -284,7 +280,7 @@ class ShadowRenderer {
 
             if (material.chunks) {
 
-                renderer.setCullMode(true, false, meshInstance);
+                renderer.setupCullMode(true, 1, meshInstance);
 
                 // Uniforms I (shadow): material
                 material.setParameters(device);

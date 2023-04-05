@@ -6,7 +6,7 @@ import { Color } from '../../../core/math/color.js';
 import {
     ADDRESS_CLAMP_TO_EDGE,
     CLEARFLAG_COLOR, CLEARFLAG_DEPTH, CLEARFLAG_STENCIL,
-    CULLFACE_BACK, CULLFACE_NONE,
+    CULLFACE_NONE,
     FILTER_NEAREST, FILTER_LINEAR, FILTER_NEAREST_MIPMAP_NEAREST, FILTER_NEAREST_MIPMAP_LINEAR,
     FILTER_LINEAR_MIPMAP_NEAREST, FILTER_LINEAR_MIPMAP_LINEAR,
     FUNC_ALWAYS,
@@ -1050,7 +1050,6 @@ class WebglGraphicsDevice extends GraphicsDevice {
         this.blendColor = new Color(0, 0, 0, 0);
         gl.blendColor(0, 0, 0, 0);
 
-        this.cullMode = CULLFACE_BACK;
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
 
@@ -1923,9 +1922,9 @@ class WebglGraphicsDevice extends GraphicsDevice {
                     // Set breakpoint here to debug "Source and destination textures of the draw are the same" errors
                     if (this.renderTarget._samples < 2) {
                         if (this.renderTarget.colorBuffer && this.renderTarget.colorBuffer === texture) {
-                            Debug.error("Trying to bind current color buffer as a texture");
+                            Debug.error("Trying to bind current color buffer as a texture", { renderTarget: this.renderTarget, texture });
                         } else if (this.renderTarget.depthBuffer && this.renderTarget.depthBuffer === texture) {
-                            Debug.error("Trying to bind current depth buffer as a texture");
+                            Debug.error("Trying to bind current depth buffer as a texture", { texture });
                         }
                     }
                 }
@@ -2521,17 +2520,6 @@ class WebglGraphicsDevice extends GraphicsDevice {
         }
     }
 
-    /**
-     * Controls how triangles are culled based on their face direction. The default cull mode is
-     * {@link CULLFACE_BACK}.
-     *
-     * @param {number} cullMode - The cull mode to set. Can be:
-     *
-     * - {@link CULLFACE_NONE}
-     * - {@link CULLFACE_BACK}
-     * - {@link CULLFACE_FRONT}
-     * - {@link CULLFACE_FRONTANDBACK}
-     */
     setCullMode(cullMode) {
         if (this.cullMode !== cullMode) {
             if (cullMode === CULLFACE_NONE) {
@@ -2549,16 +2537,6 @@ class WebglGraphicsDevice extends GraphicsDevice {
             }
             this.cullMode = cullMode;
         }
-    }
-
-    /**
-     * Gets the current cull mode.
-     *
-     * @returns {number} The current cull mode.
-     * @ignore
-     */
-    getCullMode() {
-        return this.cullMode;
     }
 
     /**
