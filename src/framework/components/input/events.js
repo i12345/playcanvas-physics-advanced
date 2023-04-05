@@ -168,6 +168,8 @@ export class MouseInputEvent extends InputEvent {
  *  typeof EVENT_INPUT_DRAG_START | typeof EVENT_INPUT_DRAG_END
  * } type - The type of event
  *
+ * @property {MouseEvent} event - The native DOM event
+ *
  * @augments MouseInputEvent
  */
 export class MouseButtonInputEvent extends MouseInputEvent {
@@ -233,6 +235,8 @@ export class MouseButtonInputEvent extends MouseInputEvent {
  * @property {typeof EVENT_INPUT_MOUSE_MOVE |
  *  typeof EVENT_INPUT_DRAG
  * } type - The type of event
+ *
+ * @property {MouseEvent} event - The native DOM event
  *
  * @augments MouseInputEvent
  */
@@ -330,7 +334,7 @@ export const EVENT_INPUT_KEY_UP = "keyup";
  * @property {typeof EVENT_INPUT_KEY_DOWN | typeof EVENT_INPUT_KEY_UP} type - The type of event
  *
  * @property {KeyboardEvent} event - The native DOM event
- * 
+ *
  * @augments InputEvent
  */
 export class KeyInputEvent extends InputEvent {
