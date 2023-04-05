@@ -713,7 +713,7 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _ondblclick(e) {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent(EVENT_INPUT_DBLCLICK, node, p, button, buttons, modifiers);
+        const event = new MouseButtonInputEvent(EVENT_INPUT_DBLCLICK, node, e, p, button, buttons, modifiers);
         this._bubbleEvent(event);
         this._position_last.mousemove = p;
     }
@@ -726,7 +726,7 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _oncontextmenu(e) {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event = new MouseButtonInputEvent(EVENT_INPUT_CONTEXTMENU, node, p, button, buttons, modifiers);
+        const event = new MouseButtonInputEvent(EVENT_INPUT_CONTEXTMENU, node, e, p, button, buttons, modifiers);
         this._bubbleEvent(event);
         this._position_last.mousemove = p;
         if (event.handled) e.preventDefault();
@@ -740,13 +740,13 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onmousedown(e) {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event_mousedown = new MouseButtonInputEvent(EVENT_INPUT_MOUSE_DOWN, node, p, button, buttons, modifiers);
+        const event_mousedown = new MouseButtonInputEvent(EVENT_INPUT_MOUSE_DOWN, node, e, p, button, buttons, modifiers);
         this._bubbleEvent(event_mousedown);
         this._position_last.mousemove = p;
         this._position_last.over = node;
         this._target.click = node;
 
-        const event_dragstart = new MouseButtonInputEvent(EVENT_INPUT_DRAG_START, node, p, button, buttons, modifiers);
+        const event_dragstart = new MouseButtonInputEvent(EVENT_INPUT_DRAG_START, node, e, p, button, buttons, modifiers);
         const drag_target = this._bubbleEvent(event_dragstart);
         if (event_dragstart.handled)
             this._target.drag = drag_target;
@@ -761,7 +761,7 @@ export class InputComponentSystem extends ComponentSystem {
      */
     _onmouseup(e) {
         const { node, p, button, buttons, modifiers } = this._onMouseEvent(e);
-        const event_mouseup = new MouseButtonInputEvent(EVENT_INPUT_MOUSE_UP, node, p, button, buttons, modifiers);
+        const event_mouseup = new MouseButtonInputEvent(EVENT_INPUT_MOUSE_UP, node, e, p, button, buttons, modifiers);
         this._bubbleEvent(event_mouseup);
 
         let wasDragging = false;
@@ -769,6 +769,7 @@ export class InputComponentSystem extends ComponentSystem {
             const event_dragend = new MouseButtonInputEvent(
                 EVENT_INPUT_DRAG_END,
                 this._target.drag,
+                e,
                 p,
                 button,
                 buttons,
@@ -781,7 +782,7 @@ export class InputComponentSystem extends ComponentSystem {
 
         if (!wasDragging) {
             if (this._target.click === node) {
-                const event = new MouseButtonInputEvent(EVENT_INPUT_CLICK, node, p, button, buttons, modifiers);
+                const event = new MouseButtonInputEvent(EVENT_INPUT_CLICK, node, e, p, button, buttons, modifiers);
                 this._bubbleEvent(event);
             }
             this._target.click = null;
@@ -802,12 +803,12 @@ export class InputComponentSystem extends ComponentSystem {
 
         if (this._position_last.over !== node) {
             if (this._position_last.over) {
-                const event_leave = new MouseInputEvent(EVENT_INPUT_MOUSE_LEAVE, this._position_last.over, p, buttons, modifiers);
+                const event_leave = new MouseInputEvent(EVENT_INPUT_MOUSE_LEAVE, this._position_last.over, e, p, buttons, modifiers);
                 this._bubbleEvent(event_leave);
                 this._position_last.over = null;
             }
 
-            const event_enter = new MouseInputEvent(EVENT_INPUT_MOUSE_ENTER, node, p, buttons, modifiers);
+            const event_enter = new MouseInputEvent(EVENT_INPUT_MOUSE_ENTER, node, e, p, buttons, modifiers);
             this._bubbleEvent(event_enter);
             this._position_last.over = node;
         }
@@ -815,13 +816,14 @@ export class InputComponentSystem extends ComponentSystem {
         const delta = this._position_last.mousemove ? new Vec2().sub2(p, this._position_last.mousemove) : Vec2.ZERO;
         this._position_last.mousemove = p;
 
-        const event_move = new MouseMoveInputEvent(EVENT_INPUT_MOUSE_MOVE, node, p, delta, buttons, modifiers);
+        const event_move = new MouseMoveInputEvent(EVENT_INPUT_MOUSE_MOVE, node, e, p, delta, buttons, modifiers);
         this._bubbleEvent(event_move);
 
         if (this._target.drag) {
             const event_drag = new MouseMoveInputEvent(
                 EVENT_INPUT_DRAG,
                 this._target.drag,
+                e,
                 p,
                 delta,
                 buttons,
@@ -846,12 +848,12 @@ export class InputComponentSystem extends ComponentSystem {
         /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
 
-        const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
+        const event = new MouseWheelInputEvent(node, e, p, direction, buttons, modifiers);
         this._bubbleEvent(event, node, skipSet);
 
         for (const node of [...this.focused, this._position_last.over]) {
             if (node) {
-                const event = new MouseWheelInputEvent(node, p, direction, buttons, modifiers);
+                const event = new MouseWheelInputEvent(node, e, p, direction, buttons, modifiers);
                 this._bubbleEvent(event, node, skipSet);
             }
         }
@@ -868,12 +870,12 @@ export class InputComponentSystem extends ComponentSystem {
 
         if (this._position_last.over !== node) {
             if (this._position_last.over) {
-                const event_leave = new MouseInputEvent(EVENT_INPUT_MOUSE_LEAVE, this._position_last.over, p, buttons, modifiers);
+                const event_leave = new MouseInputEvent(EVENT_INPUT_MOUSE_LEAVE, this._position_last.over, e, p, buttons, modifiers);
                 this._bubbleEvent(event_leave);
                 this._position_last.over = null;
             }
 
-            const event_enter = new MouseInputEvent(EVENT_INPUT_MOUSE_ENTER, node, p, buttons, modifiers);
+            const event_enter = new MouseInputEvent(EVENT_INPUT_MOUSE_ENTER, node, e, p, buttons, modifiers);
             this._bubbleEvent(event_enter);
             this._position_last.over = node;
         }
@@ -889,7 +891,7 @@ export class InputComponentSystem extends ComponentSystem {
         const { p, buttons, modifiers } = this._onMouseEvent(e);
 
         if (this._position_last.over) {
-            const event_enter = new MouseInputEvent(EVENT_INPUT_MOUSE_LEAVE, this._position_last.over, p, buttons, modifiers);
+            const event_enter = new MouseInputEvent(EVENT_INPUT_MOUSE_LEAVE, this._position_last.over, e, p, buttons, modifiers);
             this._bubbleEvent(event_enter);
             this._position_last.over = null;
         }
@@ -951,16 +953,12 @@ export class InputComponentSystem extends ComponentSystem {
         const modifiers = this._modifiers(e);
         /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
-        let handled = false;
         for (const node of [...this.focused, this._position_last.over]) {
             if (node) {
-                const event = new KeyInputEvent(EVENT_INPUT_KEY_DOWN, node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
-                if (this._bubbleEvent(event, node, skipSet) !== undefined)
-                    handled = true;
+                const event = new KeyInputEvent(EVENT_INPUT_KEY_DOWN, node, e, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
+                this._bubbleEvent(event, node, skipSet);
             }
         }
-        if (handled)
-            e.stopPropagation();
     }
 
     /**
@@ -973,16 +971,12 @@ export class InputComponentSystem extends ComponentSystem {
         const modifiers = this._modifiers(e);
         /** @type {Set<import('../../../scene/graph-node').GraphNode>} */
         const skipSet = new Set();
-        let handled = false;
         for (const node of [...this.focused, this._position_last.over]) {
             if (node) {
-                const event = new KeyInputEvent(EVENT_INPUT_KEY_UP, node, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
-                if (this._bubbleEvent(event, node, skipSet) !== undefined)
-                    handled = true;
+                const event = new KeyInputEvent(EVENT_INPUT_KEY_UP, node, e, e.key, e.code, e.location, modifiers, e.isComposing, e.repeat);
+                this._bubbleEvent(event, node, skipSet);
             }
         }
-        if (handled)
-            e.stopPropagation();
     }
 
     /**

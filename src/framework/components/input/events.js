@@ -26,21 +26,38 @@ export class InputEvent {
     target;
 
     /**
+     * The native DOM event.
+     *
+     * @type {Event}
+     */
+    event;
+
+    /**
      * Initializes an input event
      *
      * @param {string} type - The type of event
      * @param {import('../../../scene/graph-node').GraphNode} target - The original target of the event
+     * @param {Event} event - The native DOM event
      */
-    constructor(type, target) {
+    constructor(type, target, event) {
         this.type = type;
         this.target = target;
+        this.event = event;
     }
 
     /**
      * Stops this event from propagating up the scene graph
+     *
+     * @param {boolean} [stopPropagationInDOM] - Whether or not to stop the DOM
+     * event from propagating. Defaults to `true`. If `false`, then the DOM
+     * event may bubble up the document hierarchy.
      */
-    preventDefault() {
+    handle(stopPropagationInDOM = true) {
         this.handled = true;
+
+        if (stopPropagationInDOM) {
+            this.event.stopPropagation();
+        }
     }
 }
 
@@ -80,6 +97,8 @@ export const EVENT_INPUT_DRAG = "drag";
  *  typeof EVENT_INPUT_DRAG
  * } type - The type of event
  *
+ * @property {MouseEvent} event - The native DOM event
+ *
  * @augments InputEvent
  */
 export class MouseInputEvent extends InputEvent {
@@ -117,6 +136,7 @@ export class MouseInputEvent extends InputEvent {
      *  typeof EVENT_INPUT_DRAG
      * } type - The type of event
      * @param {import('../../../scene/graph-node').GraphNode} target - The original target of the event
+     * @param {MouseEvent} event - The native DOM event
      * @param {import('../../../core/math/vec2').Vec2} p - The position of the mouse (in client coordinates)
      * @param {number} buttons - The buttons pressed during this event (not necessarily causing it)
      * @param {Modifiers} modifiers - The modifier keys pressed during this event (not necessarily causing it)
@@ -124,11 +144,12 @@ export class MouseInputEvent extends InputEvent {
     constructor(
         type,
         target,
+        event,
         p,
         buttons,
         modifiers
     ) {
-        super(type, target);
+        super(type, target, event);
 
         this.type = type;
         this.p = p;
@@ -185,6 +206,7 @@ export class MouseButtonInputEvent extends MouseInputEvent {
      *  typeof EVENT_INPUT_DRAG_START | typeof EVENT_INPUT_DRAG_END
      * } type - The type of event
      * @param {import('../../../scene/graph-node').GraphNode} target - The original target of the event
+     * @param {MouseEvent} event - The native DOM event
      * @param {import('../../../core/math/vec2').Vec2} p - The position of the mouse (in client coordinates)
      * @param {number} button - The button causing this event
      * @param {number} buttons - The buttons pressed during this event (not necessarily causing it)
@@ -193,12 +215,13 @@ export class MouseButtonInputEvent extends MouseInputEvent {
     constructor(
         type,
         target,
+        event,
         p,
         button,
         buttons,
         modifiers
     ) {
-        super(type, target, p, buttons, modifiers);
+        super(type, target, event, p, buttons, modifiers);
 
         this.button = button;
     }
@@ -228,6 +251,7 @@ export class MouseMoveInputEvent extends MouseInputEvent {
      *  typeof EVENT_INPUT_DRAG
      * } type - The type of event
      * @param {import('../../../scene/graph-node').GraphNode} target - The original target of the event
+     * @param {MouseEvent} event - The native DOM event
      * @param {import('../../../core/math/vec2').Vec2} p - The position of the mouse (in client coordinates)
      * @param {import('../../../core/math/vec2').Vec2} delta - The change in mouse position (in client coordinates)
      * @param {number} buttons - The buttons pressed during this event (not necessarily causing it)
@@ -236,6 +260,7 @@ export class MouseMoveInputEvent extends MouseInputEvent {
     constructor(
         type,
         target,
+        event,
         p,
         delta,
         buttons,
@@ -244,6 +269,7 @@ export class MouseMoveInputEvent extends MouseInputEvent {
         super(
             type,
             target,
+            event,
             p,
             buttons,
             modifiers
@@ -253,6 +279,9 @@ export class MouseMoveInputEvent extends MouseInputEvent {
     }
 }
 
+/**
+ * @property {WheelEvent} event - The native DOM event
+ */
 export class MouseWheelInputEvent extends MouseInputEvent {
     /**
      * The mouse wheel direction
@@ -265,6 +294,7 @@ export class MouseWheelInputEvent extends MouseInputEvent {
      * Initializes a mouse scroll input event.
      *
      * @param {import('../../../scene/graph-node').GraphNode} target - The original target of the event
+     * @param {WheelEvent} event - The native DOM event
      * @param {import('../../../core/math/vec2').Vec2} p - The position of the mouse (in client coordinates)
      * @param {1|-1} direction - The mouse wheel direction
      * @param {number} buttons - The buttons pressed during this event (not necessarily causing it)
@@ -272,6 +302,7 @@ export class MouseWheelInputEvent extends MouseInputEvent {
      */
     constructor(
         target,
+        event,
         p,
         direction,
         buttons,
@@ -280,6 +311,7 @@ export class MouseWheelInputEvent extends MouseInputEvent {
         super(
             EVENT_INPUT_MOUSE_WHEEL,
             target,
+            event,
             p,
             buttons,
             modifiers
@@ -297,6 +329,8 @@ export const EVENT_INPUT_KEY_UP = "keyup";
  *
  * @property {typeof EVENT_INPUT_KEY_DOWN | typeof EVENT_INPUT_KEY_UP} type - The type of event
  *
+ * @property {KeyboardEvent} event - The native DOM event
+ * 
  * @augments InputEvent
  */
 export class KeyInputEvent extends InputEvent {
@@ -367,6 +401,7 @@ export class KeyInputEvent extends InputEvent {
      *
      * @param {typeof EVENT_INPUT_KEY_DOWN | typeof EVENT_INPUT_KEY_UP} type - The type of event
      * @param {import('../../../scene/graph-node').GraphNode} target - The original target of the event
+     * @param {KeyboardEvent} event - The native DOM event
      * @param {KeyInputEvent["key"]} key - (see property details)
      * @param {KeyInputEvent["code"]} code - (see property details)
      * @param {KeyInputEvent["location"]} location - (see property details)
@@ -377,6 +412,7 @@ export class KeyInputEvent extends InputEvent {
     constructor(
         type,
         target,
+        event,
         key,
         code,
         location,
@@ -384,7 +420,8 @@ export class KeyInputEvent extends InputEvent {
         isComposing,
         repeat
     ) {
-        super(type, target);
+        super(type, target, event);
+
         this.key = key;
         this.code = code;
         this.location = location;
