@@ -207,6 +207,28 @@ class Quat {
     }
 
     /**
+     * Computes the rotational distance between two quaternions.
+     *
+     * @param {Quat} rhs - The other quaternion to measure the rotational distance to
+     * @returns {number} - The angle from this quaternion to another
+     */
+    distance(rhs) {
+        /**
+         * Implemented from "Quaternion distance" by Jim Belk
+         * https://math.stackexchange.com/a/90098
+         */
+
+        const innerProduct = (
+            (this.x * rhs.x) +
+            (this.y * rhs.y) +
+            (this.z * rhs.z) +
+            (this.w * rhs.w)
+        );
+
+        return Math.acos((2 * (innerProduct ** 2)) - 1);
+    }
+
+    /**
      * Generates the inverse of the specified quaternion.
      *
      * @returns {Quat} Self for chaining.
