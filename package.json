@@ -1,6 +1,6 @@
 {
   "name": "playcanvas-extended",
-  "version": "1.64.1-dev",
+  "version": "1.64.2-dev",
   "author": "PlayCanvas <support@playcanvas.com>",
   "contributors": [
     {
@@ -151,6 +151,6 @@
     "test:types": "tsc --pretty false build/playcanvas.d.ts"
   },
   "dependencies": {
-    "ammojs3": "^0.0.6"
+    "ammojs3": "^0.0.8"
   }
 }
