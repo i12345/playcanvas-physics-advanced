@@ -5,10 +5,15 @@ vec3 lessThan2(vec3 a, vec3 b) {
 
 #ifndef UNPACKFLOAT
 #define UNPACKFLOAT
-float unpackFloat(vec4 rgbaDepth) {
-    const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);
-    return dot(rgbaDepth, bitShift);
-}
+
+    #ifdef GL2
+        float unpackFloat(vec4 rgbaDepth) { return rgbaDepth.r; }
+    #else
+        float unpackFloat(vec4 rgbaDepth) {
+            const vec4 bitShift = vec4(1.0 / (256.0 * 256.0 * 256.0), 1.0 / (256.0 * 256.0), 1.0 / 256.0, 1.0);
+            return dot(rgbaDepth, bitShift);
+        }
+    #endif
 #endif
 
 // ----- Direct/Spot Sampling -----
@@ -54,12 +59,20 @@ float _getShadowPCF3x3(SHADOWMAP_ACCEPT(shadowMap), vec3 shadowCoord, vec3 shado
     return sum;
 }
 
-float getShadowPCF3x3(SHADOWMAP_ACCEPT(shadowMap), vec3 shadowCoord, vec3 shadowParams) {
-    return _getShadowPCF3x3(SHADOWMAP_PASS(shadowMap), shadowCoord, shadowParams);
+float getShadowPCF3x3(SHADOWMAP_ACCEPT(shadowMap), vec3 shadowCoord, vec4 shadowParams) {
+    return _getShadowPCF3x3(SHADOWMAP_PASS(shadowMap), shadowCoord, shadowParams.xyz);
 }
 
 float getShadowSpotPCF3x3(SHADOWMAP_ACCEPT(shadowMap), vec3 shadowCoord, vec4 shadowParams) {
     return _getShadowPCF3x3(SHADOWMAP_PASS(shadowMap), shadowCoord, shadowParams.xyz);
+}
+
+float getShadowPCF1x1(SHADOWMAP_ACCEPT(shadowMap), vec3 shadowCoord, vec4 shadowParams) {
+    return textureShadow(shadowMap, shadowCoord);
+}
+
+float getShadowSpotPCF1x1(SHADOWMAP_ACCEPT(shadowMap), vec3 shadowCoord, vec4 shadowParams) {
+    return textureShadow(shadowMap, shadowCoord);
 }
 
 #else // GL1
@@ -104,12 +117,25 @@ float _getShadowPCF3x3(sampler2D shadowMap, vec3 shadowCoord, vec3 shadowParams)
     return _xgetShadowPCF3x3(depthKernel, shadowCoord, shadowMap, shadowParams);
 }
 
-float getShadowPCF3x3(sampler2D shadowMap, vec3 shadowCoord, vec3 shadowParams) {
-    return _getShadowPCF3x3(shadowMap, shadowCoord, shadowParams);
+float getShadowPCF3x3(sampler2D shadowMap, vec3 shadowCoord, vec4 shadowParams) {
+    return _getShadowPCF3x3(shadowMap, shadowCoord, shadowParams.xyz);
 }
 
 float getShadowSpotPCF3x3(sampler2D shadowMap, vec3 shadowCoord, vec4 shadowParams) {
     return _getShadowPCF3x3(shadowMap, shadowCoord, shadowParams.xyz);
+}
+
+float _getShadowPCF1x1(sampler2D shadowMap, vec3 shadowCoord) {
+    float shadowSample = unpackFloat(textureShadow(shadowMap, shadowCoord.xy));
+    return shadowSample > shadowCoord.z ? 1.0 : 0.0;
+}
+
+float getShadowPCF1x1(sampler2D shadowMap, vec3 shadowCoord, vec4 shadowParams) {
+    return _getShadowPCF1x1(shadowMap, shadowCoord);
+}
+
+float getShadowSpotPCF1x1(sampler2D shadowMap, vec3 shadowCoord, vec4 shadowParams) {
+    return _getShadowPCF1x1(shadowMap, shadowCoord);
 }
 #endif
 

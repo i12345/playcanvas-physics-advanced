@@ -21,8 +21,9 @@ class Trigger {
      * Create a new Trigger instance.
      *
      * @param {import('../../app-base.js').AppBase} app - The running {@link AppBase}.
-     * @param {import('./component').CollisionComponent} component - The component for which the trigger will be created.
-     * @param {import('./data').CollisionComponentData} data - The data for the component.
+     * @param {import('../component.js').Component} component - The component for which the trigger
+     * will be created.
+     * @param {ComponentData} data - The data for the component.
      */
     constructor(app, component, data) {
         this.entity = component.entity;
