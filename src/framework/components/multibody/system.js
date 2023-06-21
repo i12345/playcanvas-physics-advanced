@@ -1,10 +1,10 @@
-import { Component } from "../component";
-import { ComponentSystem } from "../system";
+import { Component } from "../component.js";
+import { ComponentSystem } from "../system.js";
 
-import { MultiBodyComponent } from "./component";
-import { MultiBodyComponentData } from "./data";
+import { MultiBodyComponent } from "./component.js";
+import { MultiBodyComponentData } from "./data.js";
 
-import { Vec3 } from "../../../core/math/vec3";
+import { Vec3 } from "../../../core/math/vec3.js";
 
 const _schema = ['enabled'];
 

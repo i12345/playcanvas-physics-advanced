@@ -1,4 +1,4 @@
-import { EventHandler } from "./event-handler";
+import { EventHandler } from "./event-handler.js";
 
 /**
  * @class ObservableSet
