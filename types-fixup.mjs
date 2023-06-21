@@ -197,7 +197,8 @@ const lightComponentProps = [
     ['affectSpecularity', 'boolean'],
     ['type', 'string'],
     ['vsmBlurMode', 'number'],
-    ['vsmBlurSize', 'number']
+    ['vsmBlurSize', 'number'],
+    ['vsmBias', 'number']
 ];
 
 path = './types/framework/components/light/component.d.ts';
