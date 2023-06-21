@@ -198,6 +198,8 @@ export { LayoutGroupComponentSystem } from './framework/components/layout-group/
 export { LightComponent } from './framework/components/light/component.js';
 export { LightComponentSystem } from './framework/components/light/system.js';
 export { Lightmapper } from './framework/lightmapper/lightmapper.js';
+export { MultiBodyComponent } from './framework/components/multibody/component.js';
+export { MultiBodyComponentSystem } from './framework/components/multibody/system.js';
 export { ModelComponent } from './framework/components/model/component.js';
 export { ModelComponentSystem } from './framework/components/model/system.js';
 export { ParticleSystemComponent } from './framework/components/particle-system/component.js';
