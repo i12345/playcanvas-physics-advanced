@@ -9,7 +9,7 @@ import { Component } from '../component.js';
 
 import { MOTION_LOCKED, JOINT_TYPE_6DOF } from './constants.js';
 
-class LinearAngularPair {
+export class LinearAngularPair {
     constructor(joint, linear, angular) {
         this._joint = joint;
         this._linear = linear;
@@ -40,7 +40,7 @@ class LinearAngularPair {
     }
 }
 
-class ObservedXYZ {
+export class ObservedXYZ {
     constructor(update, x, y, z) {
         this._update = update;
         this._x = x;
@@ -78,9 +78,22 @@ class ObservedXYZ {
     update() {
         this._update();
     }
+
+    /**
+     * Sets this ObservedXYZ to a given Vec3
+     *
+     * @param {Vec3} src - the Vec3 to set this ObservedXYZ
+     * @returns {void}
+     */
+    copy(src) {
+        this._x = src.x;
+        this._y = src.y;
+        this._z = src.z;
+        this._update();
+    }
 }
 
-class LinearAngularXYZPair extends LinearAngularPair {
+export class LinearAngularXYZPair extends LinearAngularPair {
     constructor(joint, { x: lx, y: ly, z: lz }, { x: ax, y: ay, z: az }) {
         const update = () => this.update();
         super(joint, new ObservedXYZ(update, lx, ly, lz), new ObservedXYZ(update, ax, ay, az));
