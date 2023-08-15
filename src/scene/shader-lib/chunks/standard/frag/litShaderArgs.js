@@ -1,82 +1,66 @@
 export default /* glsl */`
 
-struct IridescenceArgs
-{
-    // Iridescence effect intensity, range [0..1]
-    float intensity;
+// Surface albedo absorbance
+vec3 litArgs_albedo;
 
-    // Thickness of the iridescent microfilm layer, value is in nanometers, range [0..1000]
-    float thickness;
-};
+// Transparency
+float litArgs_opacity;
 
-struct ClearcoatArgs
-{
-    // Intensity of the clearcoat layer, range [0..1]
-    float specularity;
+// Emission color
+vec3 litArgs_emission;
 
-    // Glossiness of clearcoat layer, range [0..1]
-    float gloss;
+// Normal direction in world space
+vec3 litArgs_worldNormal;
 
-    // The normal used for the clearcoat layer
-    vec3 worldNormal;
-};
+// Ambient occlusion amount, range [0..1]
+float litArgs_ao;
 
-struct SheenArgs
-{
-    // Glossiness of the sheen layer, range [0..1]
-    float gloss;
+// Light map color
+vec3 litArgs_lightmap;
 
-    // The color of the f0 specularity factor for the sheen layer
-    vec3 specularity;
-};
+// Light map direction
+vec3 litArgs_lightmapDir;
 
-struct LitShaderArguments {
-    // Transparency
-    float opacity;
+// Surface metalness factor, range [0..1]
+float litArgs_metalness;
 
-    // Normal direction in world space
-    vec3 worldNormal;
+// The f0 specularity factor
+vec3 litArgs_specularity;
 
-    // Surface albedo absorbance
-    vec3 albedo;
+// Specularity intensity factor, range [0..1]
+float litArgs_specularityFactor;
 
-    // Transmission factor (refraction), range [0..1]
-    float transmission;
+// The microfacet glossiness factor, range [0..1]
+float litArgs_gloss;
 
-    // Uniform thickness of medium, used by transmission, range [0..inf]
-    float thickness;
+// Glossiness of the sheen layer, range [0..1]
+float litArgs_sheen_gloss;
 
-    // The f0 specularity factor
-    vec3 specularity;
+// The color of the f0 specularity factor for the sheen layer
+vec3 litArgs_sheen_specularity;
 
-    // The microfacet glossiness factor, range [0..1]
-    float gloss;
+// Transmission factor (refraction), range [0..1]
+float litArgs_transmission;
 
-    // Surface metalness factor, range [0..1]
-    float metalness;
+// Uniform thickness of medium, used by transmission, range [0..inf]
+float litArgs_thickness;
 
-    // Specularity intensity factor, range [0..1]
-    float specularityFactor;
+// Index of refraction
+float litArgs_ior;
 
-    // Ambient occlusion amount, range [0..1]
-    float ao;
+// Iridescence effect intensity, range [0..1]
+float litArgs_iridescence_intensity;
 
-    // Emission color
-    vec3 emission;
+// Thickness of the iridescent microfilm layer, value is in nanometers, range [0..1000]
+float litArgs_iridescence_thickness;
 
-    // Light map color
-    vec3 lightmap;
+// The normal used for the clearcoat layer
+vec3 litArgs_clearcoat_worldNormal;
 
-    // Light map direction
-    vec3 lightmapDir;
+// Intensity of the clearcoat layer, range [0..1]
+float litArgs_clearcoat_specularity;
 
-    // Iridescence extension arguments
-    IridescenceArgs iridescence;
+// Glossiness of clearcoat layer, range [0..1]
+float litArgs_clearcoat_gloss;
 
-    // Clearcoat extension arguments
-    ClearcoatArgs clearcoat;
-
-    // Sheen extension arguments
-    SheenArgs sheen;
-};
 `;

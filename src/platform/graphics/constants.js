@@ -1236,6 +1236,13 @@ export const DEVICETYPE_WEBGL2 = 'webgl2';
  */
 export const DEVICETYPE_WEBGPU = 'webgpu';
 
+/**
+ * A Null device type.
+ *
+ * @type {string}
+ */
+export const DEVICETYPE_NULL = 'null';
+
 // (bit-flags) shader stages for resource visibility on the GPU
 export const SHADERSTAGE_VERTEX = 1;
 export const SHADERSTAGE_FRAGMENT = 2;
@@ -1246,11 +1253,11 @@ export const SHADERSTAGE_COMPUTE = 4;
 export const BINDGROUP_MESH = 0;
 export const BINDGROUP_VIEW = 1;
 
+// names of bind groups
+export const bindGroupNames = ['mesh', 'view'];
+
 // name of the default uniform buffer slot in a bind group
 export const UNIFORM_BUFFER_DEFAULT_SLOT_NAME = 'default';
-
-// names of bind groups
-export const bindGroupNames = ['view', 'mesh'];
 
 // map of engine TYPE_*** enums to their corresponding typed array constructors and byte sizes
 export const typedArrayTypes = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array];
@@ -1326,3 +1333,4 @@ export const CHUNKAPI_1_57 = '1.57';
 export const CHUNKAPI_1_58 = '1.58';
 export const CHUNKAPI_1_60 = '1.60';
 export const CHUNKAPI_1_62 = '1.62';
+export const CHUNKAPI_1_65 = '1.65';

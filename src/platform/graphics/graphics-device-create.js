@@ -1,9 +1,10 @@
 import { Debug } from '../../core/debug.js';
 import { platform } from '../../core/platform.js';
 
+import { DEVICETYPE_WEBGL2, DEVICETYPE_WEBGL1, DEVICETYPE_WEBGPU, DEVICETYPE_NULL } from './constants.js';
 import { WebgpuGraphicsDevice } from './webgpu/webgpu-graphics-device.js';
-import { DEVICETYPE_WEBGL2, DEVICETYPE_WEBGL1, DEVICETYPE_WEBGPU } from './constants.js';
 import { WebglGraphicsDevice } from './webgl/webgl-graphics-device.js';
+import { NullGraphicsDevice } from './null/null-graphics-device.js';
 
 /**
  * Creates a graphics device.
@@ -27,6 +28,14 @@ import { WebglGraphicsDevice } from './webgl/webgl-graphics-device.js';
  * @param {string} [options.twgslUrl] - An url to twgsl script, required if glslangUrl was specified.
  * @param {boolean} [options.xrCompatible] - Boolean that hints to the user agent to use a
  * compatible graphics adapter for an immersive XR device.
+ * @param {'default'|'high-performance'|'low-power'} [options.powerPreference='default'] - A
+ * hint indicating what configuration of GPU would be selected. Possible values are:
+ *
+ * - 'default': Let the user agent decide which GPU configuration is most suitable. This is the
+ * default value.
+ * - 'high-performance': Prioritizes rendering performance over power consumption.
+ * - 'low-power': Prioritizes power saving over rendering performance.
+ *
  * @returns {Promise} - Promise object representing the created graphics device.
  */
 function createGraphicsDevice(canvas, options = {}) {
@@ -39,6 +48,9 @@ function createGraphicsDevice(canvas, options = {}) {
     }
     if (!deviceTypes.includes(DEVICETYPE_WEBGL1)) {
         deviceTypes.push(DEVICETYPE_WEBGL1);
+    }
+    if (!deviceTypes.includes(DEVICETYPE_NULL)) {
+        deviceTypes.push(DEVICETYPE_NULL);
     }
 
     // XR compatibility if not specified
@@ -55,9 +67,14 @@ function createGraphicsDevice(canvas, options = {}) {
             return device.initWebGpu(options.glslangUrl, options.twgslUrl);
         }
 
-        if (deviceType !== DEVICETYPE_WEBGPU) {
+        if (deviceType === DEVICETYPE_WEBGL1 || deviceType === DEVICETYPE_WEBGL2) {
             options.preferWebGl2 = deviceType === DEVICETYPE_WEBGL2;
             device = new WebglGraphicsDevice(canvas, options);
+            return Promise.resolve(device);
+        }
+
+        if (deviceType === DEVICETYPE_NULL) {
+            device = new NullGraphicsDevice(canvas, options);
             return Promise.resolve(device);
         }
     }

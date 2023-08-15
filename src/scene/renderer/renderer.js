@@ -17,11 +17,11 @@ import { Material } from '../materials/material.js';
 import {
     CLEARFLAG_COLOR, CLEARFLAG_DEPTH, CLEARFLAG_STENCIL,
     BINDGROUP_MESH, BINDGROUP_VIEW, UNIFORM_BUFFER_DEFAULT_SLOT_NAME,
-    UNIFORMTYPE_MAT4,
+    UNIFORMTYPE_MAT4, UNIFORMTYPE_MAT3, UNIFORMTYPE_VEC3, UNIFORMTYPE_VEC2, UNIFORMTYPE_FLOAT, UNIFORMTYPE_INT,
     SHADERSTAGE_VERTEX, SHADERSTAGE_FRAGMENT,
     SEMANTIC_ATTR,
     CULLFACE_BACK, CULLFACE_FRONT, CULLFACE_NONE,
-    TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT
+    TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT, SAMPLETYPE_FLOAT, SAMPLETYPE_DEPTH
 } from '../../platform/graphics/constants.js';
 import { DebugGraphics } from '../../platform/graphics/debug-graphics.js';
 import { UniformBuffer } from '../../platform/graphics/uniform-buffer.js';
@@ -33,7 +33,6 @@ import { ShadowMapCache } from './shadow-map-cache.js';
 import { ShadowRendererLocal } from './shadow-renderer-local.js';
 import { ShadowRendererDirectional } from './shadow-renderer-directional.js';
 import { CookieRenderer } from './cookie-renderer.js';
-import { StaticMeshes } from './static-meshes.js';
 import { ShadowRenderer } from './shadow-renderer.js';
 
 let _skinUpdateIndex = 0;
@@ -59,6 +58,9 @@ const _tempProjMat2 = new Mat4();
 const _tempProjMat3 = new Mat4();
 const _tempSet = new Set();
 
+const _tempMeshInstances = [];
+const _tempMeshInstancesSkinned = [];
+
 /**
  * The base renderer functionality to allow implementation of specialized renderers.
  *
@@ -67,6 +69,14 @@ const _tempSet = new Set();
 class Renderer {
     /** @type {boolean} */
     clustersDebugRendered = false;
+
+    /**
+     * A set of visible mesh instances which need further processing before being rendered, e.g.
+     * skinning or morphing. Extracted during culling.
+     *
+     * @type {Set<import('../mesh-instance.js').MeshInstance>}
+     */
+    processingMeshInstances = new Set();
 
     /**
      * Create a new instance.
@@ -519,20 +529,24 @@ class Renderer {
         // #endif
     }
 
+    /**
+     * Update skin matrices ahead of rendering.
+     *
+     * @param {import('../mesh-instance.js').MeshInstance[]|Set<import('../mesh-instance.js').MeshInstance>} drawCalls - MeshInstances
+     * containing skinInstance.
+     * @ignore
+     */
     updateGpuSkinMatrices(drawCalls) {
         // #if _PROFILER
         const skinTime = now();
         // #endif
 
-        const count = drawCalls.length;
-        for (let i = 0; i < count; i++) {
-            const drawCall = drawCalls[i];
-            if (drawCall.visibleThisFrame) {
-                const skin = drawCall.skinInstance;
-                if (skin && skin._dirty) {
-                    skin.updateMatrixPalette(drawCall.node, _skinUpdateIndex);
-                    skin._dirty = false;
-                }
+        for (const drawCall of drawCalls) {
+            const skin = drawCall.skinInstance;
+
+            if (skin && skin._dirty) {
+                skin.updateMatrixPalette(drawCall.node, _skinUpdateIndex);
+                skin._dirty = false;
             }
         }
 
@@ -541,26 +555,40 @@ class Renderer {
         // #endif
     }
 
+    /**
+     * Update morphing ahead of rendering.
+     *
+     * @param {import('../mesh-instance.js').MeshInstance[]|Set<import('../mesh-instance.js').MeshInstance>} drawCalls - MeshInstances
+     * containing morphInstance.
+     * @ignore
+     */
     updateMorphing(drawCalls) {
         // #if _PROFILER
         const morphTime = now();
         // #endif
 
-        const drawCallsCount = drawCalls.length;
-        for (let i = 0; i < drawCallsCount; i++) {
-            const drawCall = drawCalls[i];
+        for (const drawCall of drawCalls) {
             const morphInst = drawCall.morphInstance;
-            if (morphInst && morphInst._dirty && drawCall.visibleThisFrame) {
+            if (morphInst && morphInst._dirty) {
                 morphInst.update();
             }
         }
+
         // #if _PROFILER
         this._morphTime += now() - morphTime;
         // #endif
     }
 
+    /**
+     * Update draw calls ahead of rendering.
+     *
+     * @param {import('../mesh-instance.js').MeshInstance[]|Set<import('../mesh-instance.js').MeshInstance>} drawCalls - MeshInstances
+     * requiring updates.
+     * @ignore
+     */
     gpuUpdate(drawCalls) {
-        // skip everything with visibleThisFrame === false
+        // Note that drawCalls can be either a Set or an Array and contains mesh instances
+        // that are visible in this frame
         this.updateGpuSkinMatrices(drawCalls);
         this.updateMorphing(drawCalls);
     }
@@ -637,22 +665,59 @@ class Renderer {
         this.viewPosId.setValue(vp);
     }
 
-    initViewBindGroupFormat() {
+    initViewBindGroupFormat(isClustered) {
 
         if (this.device.supportsUniformBuffers && !this.viewUniformFormat) {
 
             // format of the view uniform buffer
-            this.viewUniformFormat = new UniformBufferFormat(this.device, [
-                new UniformFormat("matrix_viewProjection", UNIFORMTYPE_MAT4)
-            ]);
+            const uniforms = [
+                new UniformFormat("matrix_viewProjection", UNIFORMTYPE_MAT4),
+                new UniformFormat("cubeMapRotationMatrix", UNIFORMTYPE_MAT3),
+                new UniformFormat("view_position", UNIFORMTYPE_VEC3),
+                new UniformFormat("skyboxIntensity", UNIFORMTYPE_FLOAT),
+                new UniformFormat("exposure", UNIFORMTYPE_FLOAT),
+                new UniformFormat("textureBias", UNIFORMTYPE_FLOAT)
+            ];
+
+            if (isClustered) {
+                uniforms.push(...[
+                    new UniformFormat("clusterCellsCountByBoundsSize", UNIFORMTYPE_VEC3),
+                    new UniformFormat("clusterTextureSize", UNIFORMTYPE_VEC3),
+                    new UniformFormat("clusterBoundsMin", UNIFORMTYPE_VEC3),
+                    new UniformFormat("clusterBoundsDelta", UNIFORMTYPE_VEC3),
+                    new UniformFormat("clusterCellsDot", UNIFORMTYPE_VEC3),
+                    new UniformFormat("clusterCellsMax", UNIFORMTYPE_VEC3),
+                    new UniformFormat("clusterCompressionLimit0", UNIFORMTYPE_VEC2),
+                    new UniformFormat("shadowAtlasParams", UNIFORMTYPE_VEC2),
+                    new UniformFormat("clusterMaxCells", UNIFORMTYPE_INT),
+                    new UniformFormat("clusterSkip", UNIFORMTYPE_FLOAT)
+                ]);
+            }
+
+            this.viewUniformFormat = new UniformBufferFormat(this.device, uniforms);
 
             // format of the view bind group - contains single uniform buffer, and some textures
-            this.viewBindGroupFormat = new BindGroupFormat(this.device, [
+            const buffers = [
                 new BindBufferFormat(UNIFORM_BUFFER_DEFAULT_SLOT_NAME, SHADERSTAGE_VERTEX | SHADERSTAGE_FRAGMENT)
-            ], [
+            ];
+
+            const textures = [
                 new BindTextureFormat('lightsTextureFloat', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT),
-                new BindTextureFormat('lightsTexture8', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT)
-            ]);
+                new BindTextureFormat('lightsTexture8', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT),
+                new BindTextureFormat('shadowAtlasTexture', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_DEPTH),
+                new BindTextureFormat('cookieAtlasTexture', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_FLOAT),
+
+                new BindTextureFormat('areaLightsLutTex1', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_FLOAT),
+                new BindTextureFormat('areaLightsLutTex2', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_FLOAT)
+            ];
+
+            if (isClustered) {
+                textures.push(...[
+                    new BindTextureFormat('clusterWorldTexture', SHADERSTAGE_FRAGMENT, TEXTUREDIMENSION_2D, SAMPLETYPE_UNFILTERABLE_FLOAT)
+                ]);
+            }
+
+            this.viewBindGroupFormat = new BindGroupFormat(this.device, buffers, textures);
         }
     }
 
@@ -664,7 +729,7 @@ class Renderer {
         Debug.assert(viewCount === 1, "This code does not handle the viewCount yet");
 
         while (viewBindGroups.length < viewCount) {
-            const ub = new UniformBuffer(device, viewUniformFormat);
+            const ub = new UniformBuffer(device, viewUniformFormat, false);
             const bg = new BindGroup(device, viewBindGroupFormat, ub);
             DebugHelper.setName(bg, `ViewBindGroup_${bg.id}`);
             viewBindGroups.push(bg);
@@ -741,67 +806,53 @@ class Renderer {
         DebugGraphics.popGpuMarker(device);
     }
 
-    cull(camera, drawCalls, visibleList) {
+    /**
+     * @param {import('../camera.js').Camera} camera - The camera used for culling.
+     * @param {import('../mesh-instance.js').MeshInstance[]} drawCalls - Draw calls to cull.
+     * @param {import('../layer.js').CulledInstances} culledInstances - Stores culled instances.
+     */
+    cull(camera, drawCalls, culledInstances) {
         // #if _PROFILER
         const cullTime = now();
-        let numDrawCallsCulled = 0;
         // #endif
 
-        let visibleLength = 0;
-        const drawCallsCount = drawCalls.length;
+        const opaque = culledInstances.opaque;
+        opaque.length = 0;
+        const transparent = culledInstances.transparent;
+        transparent.length = 0;
 
-        const cullingMask = camera.cullingMask || 0xFFFFFFFF; // if missing assume camera's default value
+        const doCull = camera.frustumCulling;
+        const count = drawCalls.length;
 
-        if (!camera.frustumCulling) {
-            for (let i = 0; i < drawCallsCount; i++) {
-                // need to copy array anyway because sorting will happen and it'll break original draw call order assumption
-                const drawCall = drawCalls[i];
-                if (!drawCall.visible && !drawCall.command) continue;
-
-                // if the object's mask AND the camera's cullingMask is zero then the game object will be invisible from the camera
-                if (drawCall.mask && (drawCall.mask & cullingMask) === 0) continue;
-
-                visibleList[visibleLength] = drawCall;
-                visibleLength++;
-                drawCall.visibleThisFrame = true;
-            }
-            return visibleLength;
-        }
-
-        for (let i = 0; i < drawCallsCount; i++) {
+        for (let i = 0; i < count; i++) {
             const drawCall = drawCalls[i];
-            if (!drawCall.command) {
-                if (!drawCall.visible) continue; // use visible property to quickly hide/show meshInstances
-                let visible = true;
+            if (drawCall.command) {
 
-                // if the object's mask AND the camera's cullingMask is zero then the game object will be invisible from the camera
-                if (drawCall.mask && (drawCall.mask & cullingMask) === 0) continue;
-
-                if (drawCall.cull) {
-                    visible = drawCall._isVisible(camera);
-                    // #if _PROFILER
-                    numDrawCallsCulled++;
-                    // #endif
-                }
-
-                if (visible) {
-                    visibleList[visibleLength] = drawCall;
-                    visibleLength++;
-                    drawCall.visibleThisFrame = true;
-                }
-            } else {
-                visibleList[visibleLength] = drawCall;
-                visibleLength++;
+                // commands are always visible in both opaque and transparent buckets
                 drawCall.visibleThisFrame = true;
+                opaque.push(drawCall);
+                transparent.push(drawCall);
+
+            } else if (drawCall.visible) {
+
+                const visible = !doCull || drawCall._isVisible(camera);
+                if (visible) {
+                    drawCall.visibleThisFrame = true;
+
+                    // sort mesh instance into the right bucket based on its transparency
+                    const bucket = drawCall.transparent ? transparent : opaque;
+                    bucket.push(drawCall);
+
+                    if (drawCall.skinInstance || drawCall.morphInstance)
+                        this.processingMeshInstances.add(drawCall);
+                }
             }
         }
 
         // #if _PROFILER
         this._cullTime += now() - cullTime;
-        this._numDrawCallsCulled += numDrawCallsCulled;
+        this._numDrawCallsCulled += doCull ? count : 0;
         // #endif
-
-        return visibleLength;
     }
 
     cullLights(camera, lights) {
@@ -865,8 +916,7 @@ class Renderer {
                 }
 
                 if (light.visibleThisFrame && light.castShadows && light.shadowUpdateMode !== SHADOWUPDATE_NONE) {
-                    const casters = comp._lightCompositionData[i].shadowCastersList;
-                    this._shadowRendererLocal.cull(light, casters);
+                    this._shadowRendererLocal.cull(light, comp);
                 }
             }
         }
@@ -880,15 +930,14 @@ class Renderer {
             for (let j = 0; j < count; j++) {
                 const lightIndex = renderAction.directionalLightsIndices[j];
                 const light = comp._lights[lightIndex];
-                const casters = comp._lightCompositionData[lightIndex].shadowCastersList;
-                this._shadowRendererDirectional.cull(light, casters, renderAction.camera.camera);
+                this._shadowRendererDirectional.cull(light, comp, renderAction.camera.camera);
             }
         }
     }
 
     /**
      * visibility culling of lights, meshInstances, shadows casters
-     * Also applies meshInstance.visible and camera.cullingMask
+     * Also applies meshInstance.visible
      *
      * @param {import('../composition/layer-composition.js').LayerComposition} comp - The layer
      * composition.
@@ -898,6 +947,8 @@ class Renderer {
         // #if _PROFILER
         const cullTime = now();
         // #endif
+
+        this.processingMeshInstances.clear();
 
         const renderActions = comp._renderActions;
         for (let i = 0; i < renderActions.length; i++) {
@@ -910,7 +961,6 @@ class Renderer {
             /** @type {import('../layer.js').Layer} */
             const layer = comp.layerList[layerIndex];
             if (!layer.enabled || !comp.subLayerEnabled[layerIndex]) continue;
-            const transparent = comp.subLayerList[layerIndex];
 
             // camera
             const cameraPass = renderAction.cameraIndex;
@@ -932,26 +982,13 @@ class Renderer {
                 this.cullLights(camera.camera, layer._lights);
 
                 // cull mesh instances
-                const objects = layer.instances;
+                layer.onPreCull?.(cameraPass);
 
-                // collect them into layer arrays
-                const visible = transparent ? objects.visibleTransparent[cameraPass] : objects.visibleOpaque[cameraPass];
+                const culledInstances = layer.getCulledInstances(camera.camera);
+                const drawCalls = layer.meshInstances;
+                this.cull(camera.camera, drawCalls, culledInstances);
 
-                // shared objects are only culled once
-                if (!visible.done) {
-
-                    if (layer.onPreCull) {
-                        layer.onPreCull(cameraPass);
-                    }
-
-                    const drawCalls = transparent ? layer.transparentMeshInstances : layer.opaqueMeshInstances;
-                    visible.length = this.cull(camera.camera, drawCalls, visible.list);
-                    visible.done = true;
-
-                    if (layer.onPostCull) {
-                        layer.onPostCull(cameraPass);
-                    }
-                }
+                layer.onPostCull?.(cameraPass);
             }
         }
 
@@ -1026,25 +1063,57 @@ class Renderer {
      * @param {boolean} lightsChanged - True if lights of the composition has changed.
      */
     beginFrame(comp, lightsChanged) {
-        const meshInstances = comp._meshInstances;
 
-        // Update shaders if needed
         const scene = this.scene;
-        if (scene.updateShaders || lightsChanged) {
+        const updateShaders = scene.updateShaders || lightsChanged;
+
+        let totalMeshInstances = 0;
+        const layers = comp.layerList;
+        const layerCount = layers.length;
+        for (let i = 0; i < layerCount; i++) {
+            const layer = layers[i];
+
+            const meshInstances = layer.meshInstances;
+            const count = meshInstances.length;
+            totalMeshInstances += count;
+
+            for (let j = 0; j < count; j++) {
+                const meshInst = meshInstances[j];
+
+                // clear visibility
+                meshInst.visibleThisFrame = false;
+
+                // collect all mesh instances if we need to update their shaders. Note that there could
+                // be duplicates, which is not a problem for the shader updates, so we do not filter them out.
+                if (updateShaders) {
+                    _tempMeshInstances.push(meshInst);
+                }
+
+                // collect skinned mesh instances
+                if (meshInst.skinInstance) {
+                    _tempMeshInstancesSkinned.push(meshInst);
+                }
+            }
+        }
+
+        // #if _PROFILER
+        scene._stats.meshInstances = totalMeshInstances;
+        // #endif
+
+        // update shaders if needed
+        if (updateShaders) {
             const onlyLitShaders = !scene.updateShaders && lightsChanged;
-            this.updateShaders(meshInstances, onlyLitShaders);
+            this.updateShaders(_tempMeshInstances, onlyLitShaders);
             scene.updateShaders = false;
             scene._shaderVersion++;
         }
 
         // Update all skin matrices to properly cull skinned objects (but don't update rendering data yet)
-        this.updateCpuSkinMatrices(meshInstances);
+        this.updateCpuSkinMatrices(_tempMeshInstancesSkinned);
 
-        // clear mesh instance visibility
-        const miCount = meshInstances.length;
-        for (let i = 0; i < miCount; i++) {
-            meshInstances[i].visibleThisFrame = false;
-        }
+        // clear light arrays
+        _tempMeshInstances.length = 0;
+        _tempMeshInstancesSkinned.length = 0;
 
         // clear light visibility
         const lights = comp._lights;
@@ -1141,27 +1210,6 @@ class Renderer {
                 layer._postRenderCounter |= 1;
             }
             layer._postRenderCounterMax = layer._postRenderCounter;
-
-            // prepare layer for culling with the camera
-            for (let j = 0; j < layer.cameras.length; j++) {
-                layer.instances.prepare(j);
-            }
-
-            // Generate static lighting for meshes in this layer if needed
-            // Note: Static lighting is not used when clustered lighting is enabled
-            if (layer._needsStaticPrepare && layer._staticLightHash && !this.scene.clusteredLightingEnabled) {
-                // TODO: reuse with the same staticLightHash
-                if (layer._staticPrepareDone) {
-                    StaticMeshes.revert(layer.opaqueMeshInstances);
-                    StaticMeshes.revert(layer.transparentMeshInstances);
-                }
-                StaticMeshes.prepare(this.device, scene, layer.opaqueMeshInstances, layer._lights);
-                StaticMeshes.prepare(this.device, scene, layer.transparentMeshInstances, layer._lights);
-                comp._dirty = true;
-                scene.updateShaders = true;
-                layer._needsStaticPrepare = false;
-                layer._staticPrepareDone = true;
-            }
         }
 
         // Update static layer data, if something's changed
@@ -1178,7 +1226,7 @@ class Renderer {
 
         this.clustersDebugRendered = false;
 
-        this.initViewBindGroupFormat();
+        this.initViewBindGroupFormat(this.scene.clusteredLightingEnabled);
     }
 }
 

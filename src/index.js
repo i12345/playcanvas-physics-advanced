@@ -67,6 +67,7 @@ export { ScopeId } from './platform/graphics/scope-id.js';
 export { ScopeSpace } from './platform/graphics/scope-space.js';
 export { Shader } from './platform/graphics/shader.js';
 export { Texture } from './platform/graphics/texture.js';
+export { TextureUtils } from './platform/graphics/texture-utils.js';
 export { TransformFeedback } from './platform/graphics/transform-feedback.js';
 export { VertexBuffer } from './platform/graphics/vertex-buffer.js';
 export { VertexFormat } from './platform/graphics/vertex-format.js';
@@ -77,6 +78,9 @@ export { WebglGraphicsDevice } from './platform/graphics/webgl/webgl-graphics-de
 
 // PLATFORM / GRAPHICS / webgpu
 export { WebgpuGraphicsDevice } from './platform/graphics/webgpu/webgpu-graphics-device.js';
+
+// PLATFORM / GRAPHICS / null
+export { NullGraphicsDevice } from './platform/graphics/null/null-graphics-device.js';
 
 // PLATFORM / INPUT
 export * from './platform/input/constants.js';
@@ -108,6 +112,7 @@ export { BatchGroup } from './scene/batching/batch-group.js';
 export { SkinBatchInstance } from './scene/batching/skin-batch-instance.js';
 export { BatchManager } from './scene/batching/batch-manager.js';
 export { Camera } from './scene/camera.js';
+export { LitMaterial } from './scene/materials/lit-material.js';
 export { WorldClusters } from './scene/lighting/world-clusters.js';
 export { ForwardRenderer } from './scene/renderer/forward-renderer.js';
 export { GraphNode } from './scene/graph-node.js';
@@ -115,7 +120,7 @@ export { Layer } from './scene/layer.js';
 export { LayerComposition } from './scene/composition/layer-composition.js';
 export { Light } from './scene/light.js';
 export { LightingParams } from './scene/lighting/lighting-params.js';
-export { LitOptions } from './scene/materials/lit-options.js';
+export { LitShaderOptions } from './scene/shader-lib/programs/lit-shader-options.js';
 export { Material } from './scene/materials/material.js';
 export { Mesh } from './scene/mesh.js';
 export { MeshInstance, Command } from './scene/mesh-instance.js';
@@ -150,6 +155,7 @@ export { createShader, createShaderFromCode } from './scene/shader-lib/utils.js'
 export { ProgramLibrary } from './scene/shader-lib/program-library.js';
 export { shaderChunks } from './scene/shader-lib/chunks/chunks.js';
 export { shaderChunksLightmapper } from './scene/shader-lib/chunks/chunks-lightmapper.js';
+export { ChunkBuilder } from './scene/shader-lib/chunk-builder.js';     // used by shed
 
 // FRAMEWORK
 export * from './framework/constants.js';
@@ -331,6 +337,8 @@ export { XrHitTestSource } from './framework/xr/xr-hit-test-source.js';
 export { XrImageTracking } from './framework/xr/xr-image-tracking.js';
 export { XrTrackedImage } from './framework/xr/xr-tracked-image.js';
 export { XrDomOverlay } from './framework/xr/xr-dom-overlay.js';
+export { XrAnchors } from './framework/xr/xr-anchors.js';
+export { XrAnchor } from './framework/xr/xr-anchor.js';
 export { XrPlaneDetection } from './framework/xr/xr-plane-detection.js';
 export { XrPlane } from './framework/xr/xr-plane.js';
 

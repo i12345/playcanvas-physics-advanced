@@ -18,6 +18,8 @@ let ammoRayEnd;
 
 /**
  * Object holding the result of a successful raycast hit.
+ *
+ * @category Physics
  */
 class RaycastResult {
     /**
@@ -64,6 +66,8 @@ class RaycastResult {
 
 /**
  * Object holding the result of a contact between two rigid bodies.
+ *
+ * @category Physics
  */
 class SingleContactResult {
     /**
@@ -147,6 +151,8 @@ class SingleContactResult {
 
 /**
  * Object holding the result of a contact between two Entities.
+ *
+ * @category Physics
  */
 class ContactPoint {
     /**
@@ -213,6 +219,8 @@ class ContactPoint {
 
 /**
  * Object holding the result of a contact between two Entities.
+ *
+ * @category Physics
  */
 class ContactResult {
     /**
@@ -249,6 +257,7 @@ const _schema = ['enabled'];
  * settings for your project.
  *
  * @augments ComponentSystem
+ * @category Physics
  */
 class PhysicsComponentSystem extends ComponentSystem {
     /**

@@ -10,36 +10,54 @@ class ContactHardeningShadowsExample {
 
     controls(data: Observer) {
         return <>
-            <Panel headerText='Lights'>
-                <LabelGroup text='Area (lm)'>
+            <Panel headerText='Area light'>
+                <LabelGroup text='Enabled'>
+                    <BooleanInput id='area-light' binding={new BindingTwoWay()} link={{ observer: data, path: 'script.area.enabled' }} />
+                </LabelGroup>
+                <LabelGroup text='Intensity'>
                     <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.area.intensity' }} min={0.0} max={32.0}/>
                 </LabelGroup>
-                <LabelGroup text='Area Softness'>
-                    <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.area.size' }} min={0.1} max={35.0}/>
+                <LabelGroup text='Softness'>
+                    <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.area.size' }} min={0.01} max={32.0}/>
                 </LabelGroup>
-                <LabelGroup text='Area Shadows'>
+                <LabelGroup text='Shadows'>
                     <SelectInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.area.shadowType' }} options={[{ v: pc.SHADOW_PCSS, t: 'PCSS' }, { v: pc.SHADOW_PCF5, t: 'PCF' }]} />
                 </LabelGroup>
-                <LabelGroup text='Point (lm)'>
+            </Panel>
+            <Panel headerText='Point light'>
+                <LabelGroup text='Enabled'>
+                    <BooleanInput id='point-light' binding={new BindingTwoWay()} link={{ observer: data, path: 'script.point.enabled' }} />
+                </LabelGroup>
+                <LabelGroup text='Intensity'>
                     <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.point.intensity' }} min={0.0} max={32.0}/>
                 </LabelGroup>
-                <LabelGroup text='Point Softness'>
-                    <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.point.size' }} min={0.1} max={35.0}/>
+                <LabelGroup text='Softness'>
+                    <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.point.size' }} min={0.01} max={32.0}/>
                 </LabelGroup>
-                <LabelGroup text='Point Shadows'>
+                <LabelGroup text='Shadows'>
                     <SelectInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.point.shadowType' }} options={[{ v: pc.SHADOW_PCSS, t: 'PCSS' }, { v: pc.SHADOW_PCF5, t: 'PCF' }]} />
                 </LabelGroup>
-                <LabelGroup text='Directional (lm)'>
+            </Panel>
+            <Panel headerText='Directional light'>
+                <LabelGroup text='Enabled'>
+                    <BooleanInput id='directional-light' binding={new BindingTwoWay()} link={{ observer: data, path: 'script.directional.enabled' }} />
+                </LabelGroup>
+                <LabelGroup text='Intensity'>
                     <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.directional.intensity' }} min={0.0} max={32.0}/>
                 </LabelGroup>
-                <LabelGroup text='Directional Softness'>
-                    <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.directional.size' }} min={0.1} max={35.0}/>
+                <LabelGroup text='Softness'>
+                    <SliderInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.directional.size' }} min={0.01} max={32.0}/>
                 </LabelGroup>
-                <LabelGroup text='Directional Shadows'>
+                <LabelGroup text='Shadows'>
                     <SelectInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.directional.shadowType' }} options={[{ v: pc.SHADOW_PCSS, t: 'PCSS' }, { v: pc.SHADOW_PCF5, t: 'PCF' }]} />
                 </LabelGroup>
-                <LabelGroup>
+            </Panel>
+            <Panel headerText='Animate'>
+                <LabelGroup text='Cycle Active Light'>
                     <BooleanInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.cycle' }} />
+                </LabelGroup>
+                <LabelGroup text='Animate Lights'>
+                    <BooleanInput binding={new BindingTwoWay()} link={{ observer: data, path: 'script.animate' }} />
                 </LabelGroup>
             </Panel>
         </>;
@@ -60,10 +78,10 @@ class ContactHardeningShadowsExample {
 
             const assets = {
                 orbitCamera: new pc.Asset('script', 'script', { url: '/static/scripts/camera/orbit-camera.js' }),
-                helipad: new pc.Asset('helipad-env-atlas', 'texture', { url: '/static/assets/cubemaps/helipad-env-atlas.png' }, { type: pc.TEXTURETYPE_RGBP }),
+                helipad: new pc.Asset('helipad-env-atlas', 'texture', { url: '/static/assets/cubemaps/helipad-env-atlas.png' }, { type: pc.TEXTURETYPE_RGBP, mipmaps: false }),
                 cube: new pc.Asset('cube', 'container', { url: '/static/assets/models/playcanvas-cube.glb' }),
                 luts: new pc.Asset('luts', 'json', { url: '/static/assets/json/area-light-luts.json' }),
-                asset: new pc.Asset('asset', 'container', { url: '/static/assets/models/old_tree.glb' })
+                asset: new pc.Asset('asset', 'container', { url: '/static/assets/models/robot-arm.glb' })
             };
 
             const gfxOptions = {
@@ -88,7 +106,9 @@ class ContactHardeningShadowsExample {
                     // @ts-ignore
                     pc.LightComponentSystem,
                     // @ts-ignore
-                    pc.ScriptComponentSystem
+                    pc.ScriptComponentSystem,
+                    // @ts-ignore
+                    pc.AnimComponentSystem
                 ];
                 createOptions.resourceHandlers = [
                     // @ts-ignore
@@ -98,7 +118,11 @@ class ContactHardeningShadowsExample {
                     // @ts-ignore
                     pc.ScriptHandler,
                     // @ts-ignore
-                    pc.JsonHandler
+                    pc.JsonHandler,
+                    // @ts-ignore
+                    pc.AnimClipHandler,
+                    // @ts-ignore
+                    pc.AnimStateGraphHandler
                 ];
 
                 const app = new pc.AppBase(canvas);
@@ -139,30 +163,43 @@ class ContactHardeningShadowsExample {
                         material: planeMaterial
                     });
                     plane.setLocalScale(new pc.Vec3(100, 0, 100));
-                    plane.setLocalPosition(0, -1.0, 0);
+                    plane.setLocalPosition(0, 0, 0);
                     app.root.addChild(plane);
 
                     data.set('script', {
                         cycle: true,
+                        animate: true,
                         area: {
+                            enabled: true,
                             intensity: 16.0,
-                            size: 8,
+                            size: 2,
                             shadowType: pc.SHADOW_PCSS
                         },
                         point: {
+                            enabled: true,
                             intensity: 4.0,
-                            size: 8,
+                            size: 2,
                             shadowType: pc.SHADOW_PCSS
                         },
                         directional: {
+                            enabled: true,
                             intensity: 2.0,
-                            size: 20,
+                            size: 1,
                             shadowType: pc.SHADOW_PCSS
                         }
                     });
 
                     const occluder = assets.asset.resource.instantiateRenderEntity();
+                    occluder.addComponent('anim', {
+                        activate: true
+                    });
+                    occluder.setLocalScale(3, 3, 3);
                     app.root.addChild(occluder);
+
+                    occluder.anim.assignAnimation('Idle', assets.asset.resource.animations[0].resource);
+                    occluder.anim.baseLayer.weight = 1.0;
+                    occluder.anim.speed = 0.1;
+                    // const animLayer = occluder.anim.addLayer('Idle', 1.0, )
 
                     app.scene.envAtlas = assets.helipad.resource;
 
@@ -175,7 +212,7 @@ class ContactHardeningShadowsExample {
                         range: 150,
                         shadowResolution: 2048,
                         shadowDistance: 100,
-                        lightSize: data.get('script.area.size'),
+                        penumbraSize: data.get('script.area.size'),
                         shadowType: data.get('script.area.shadowType'),
                         intensity: data.get('script.area.intensity'),
                         falloffMode: pc.LIGHTFALLOFF_INVERSESQUARED,
@@ -211,13 +248,13 @@ class ContactHardeningShadowsExample {
                         color: new pc.Color(1, 1, 1),
                         castShadows: true,
                         numCascades: 1,
-                        lightSize: data.get('script.directional.size'),
+                        penumbraSize: data.get('script.directional.size'),
                         shadowType: data.get('script.directional.shadowType'),
                         intensity: data.get('script.directional.intensity'),
                         shadowBias: 0.5,
                         shadowDistance: 50,
                         normalOffsetBias: 0.1,
-                        shadowResolution: 2048
+                        shadowResolution: 8192
                     });
                     directionalLight.setEulerAngles(65, 35, 0);
                     app.root.addChild(directionalLight);
@@ -227,7 +264,7 @@ class ContactHardeningShadowsExample {
                         type: "omni",
                         color: new pc.Color(1, 0.25, 0.25),
                         range: 25,
-                        lightSize: data.get('script.point.size'),
+                        penumbraSize: data.get('script.point.size'),
                         shadowType: data.get('script.point.shadowType'),
                         intensity: data.get('script.point.intensity'),
                         castShadows: true,
@@ -276,30 +313,51 @@ class ContactHardeningShadowsExample {
                     app.root.addChild(camera);
 
                     data.on('*:set', (path: string, value: any) => {
-                        if (path === 'script.area.intensity') {
-                            areaLight.light.intensity = value;
-                            brightMaterial.emissiveIntensity = value;
-                            brightMaterial.update();
-                        } else if (path === 'script.area.size') {
-                            areaLight.light.lightSize = value;
-                        } else if (path === 'script.area.shadowType') {
-                            areaLight.light.shadowType = parseInt(value);
-                        } else if (path === 'script.directional.intensity') {
-                            directionalLight.light.intensity = value;
-                        } else if (path === 'script.directional.size') {
-                            directionalLight.light.lightSize = value;
-                        } else if (path === 'script.directional.shadowType') {
-                            directionalLight.light.shadowType = parseInt(value);
-                        } else if (path === 'script.point.intensity') {
-                            lightOmni.light.intensity = value;
-                        } else if (path === 'script.point.size') {
-                            lightOmni.light.lightSize = value;
-                        } else if (path === 'script.point.shadowType') {
-                            lightOmni.light.shadowType = parseInt(value);
-                        } else if (path === 'light.distance') {
-                            areaLight.setLocalPosition(0, 4, -value);
+                        switch (path) {
+                            case 'script.area.enabled':
+                                areaLight.enabled = value;
+                                break;
+                            case 'script.area.intensity':
+                                areaLight.light.intensity = value;
+                                brightMaterial.emissiveIntensity = value;
+                                brightMaterial.update();
+                                break;
+                            case 'script.area.size':
+                                areaLight.light.penumbraSize = value;
+                                break;
+                            case 'script.area.shadowType':
+                                areaLight.light.shadowType = parseInt(value);
+                                break;
+                            case 'script.directional.enabled':
+                                directionalLight.enabled = value;
+                                break;
+                            case 'script.directional.intensity':
+                                directionalLight.light.intensity = value;
+                                break;
+                            case 'script.directional.size':
+                                directionalLight.light.penumbraSize = value;
+                                break;
+                            case 'script.directional.shadowType':
+                                directionalLight.light.shadowType = parseInt(value);
+                                break;
+                            case 'script.point.enabled':
+                                lightOmni.enabled = value;
+                                break;
+                            case 'script.point.intensity':
+                                lightOmni.light.intensity = value;
+                                break;
+                            case 'script.point.size':
+                                lightOmni.light.penumbraSize = value;
+                                break;
+                            case 'script.point.shadowType':
+                                lightOmni.light.shadowType = parseInt(value);
+                                break;
                         }
                     });
+
+                    const areaLightElement = window.top.document.getElementById('area-light');
+                    const pointLightElement = window.top.document.getElementById('point-light');
+                    const directionalLightElement = window.top.document.getElementById('directional-light');
 
                     let resizeControlPanel = true;
                     let time = 0;
@@ -311,7 +369,6 @@ class ContactHardeningShadowsExample {
                             // @ts-ignore engine-tsd
                             camera.script.orbitCamera.distance = 25;
                         }
-                        time += dt;
                         timeDiff += dt;
 
                         if (data.get('script.cycle')) {
@@ -319,19 +376,36 @@ class ContactHardeningShadowsExample {
                                 index = (index + 1) % 3;
                                 timeDiff = 0;
                             }
+                            areaLight.enabled = index === 0;
+                            directionalLight.enabled = index === 1;
+                            lightOmni.enabled = index === 2;
+
+                            if (areaLightElement) {
+                                areaLightElement.ui.enabled = false;
+                                pointLightElement.ui.enabled = false;
+                                directionalLightElement.ui.enabled = false;
+                            }
+                        } else {
+                            if (areaLightElement) {
+                                areaLightElement.ui.enabled = true;
+                                pointLightElement.ui.enabled = true;
+                                directionalLightElement.ui.enabled = true;
+                            }
+
+                            areaLight.enabled = data.get('script.area.enabled');
+                            directionalLight.enabled = data.get('script.directional.enabled');
+                            lightOmni.enabled = data.get('script.point.enabled');
                         }
 
-                        areaLight.enabled = index === 0;
-                        directionalLight.enabled = index === 1;
-                        lightOmni.enabled = index === 2;
-
-                        const x = Math.sin(time * 0.2);
-                        const z = Math.cos(time * 0.2);
-
-                        lightOmni.setLocalPosition(x * 4, 5, z * 4);
-                        directionalLight.setEulerAngles(65, 35 + (time * 2), 0);
-                        areaLight.setEulerAngles(45, 180 + time * 0.2 * 180.0 / Math.PI, 0);
-                        areaLight.setLocalPosition(-x * 4, 7, -z * 4);
+                        if (data.get('script.animate')) {
+                            time += dt;
+                            const x = Math.sin(time * 0.2);
+                            const z = Math.cos(time * 0.2);
+                            lightOmni.setLocalPosition(x * 4, 5, z * 4);
+                            directionalLight.setEulerAngles(65, 35 + (time * 2), 0);
+                            areaLight.setEulerAngles(45, 180 + time * 0.2 * 180.0 / Math.PI, 0);
+                            areaLight.setLocalPosition(-x * 4, 7, -z * 4);
+                        }
 
                         // resize control panel to fit the content better
                         if (resizeControlPanel) {
