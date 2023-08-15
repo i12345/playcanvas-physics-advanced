@@ -43,7 +43,10 @@ class XrAnchors extends EventHandler {
     /**
      * Index of XrAnchors, with XRAnchor (native handle) used as a key.
      *
-     * @type {Map<XRAnchor,XrAnchor>}
+     * Type actually is Map<{@link XRAnchor}, XrAnchor>, but XRAnchor
+     * gave errors with parcel, so was replaced with `unknown`.
+     *
+     * @type {Map<unknown,XrAnchor>}
      * @ignore
      */
     _index = new Map();

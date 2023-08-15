@@ -75,7 +75,9 @@ class XrManager extends EventHandler {
     _baseLayer = null;
 
     /**
-     * @type {XRReferenceSpace|null}
+     * Type actually is {@link XRReferenceSpace}, but this gave errors with parcel,
+     * so it was replaced with `unknown` here.
+     * @type {unknown|null}
      * @ignore
      */
     _referenceSpace = null;
