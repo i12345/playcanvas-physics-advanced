@@ -239,7 +239,7 @@ class RenderComponent extends Component {
     set meshInstances(value) {
 
         Debug.assert(Array.isArray(value), `MeshInstances set to a Render component must be an array.`);
-        this.destroyMeshInstances();
+        this.destroyMeshInstances(value);
 
         this._meshInstances = value;
 
@@ -589,10 +589,12 @@ class RenderComponent extends Component {
         }
     }
 
-    /** @private */
-    destroyMeshInstances() {
-
-        const meshInstances = this._meshInstances;
+    /**
+     * @private
+     * @param {MeshInstance[]} [keep] - the mesh instances to keep
+     */
+    destroyMeshInstances(keep) {
+        const meshInstances = this._meshInstances.filter(meshInstance => !(keep?.includes(meshInstance) ?? false));
         if (meshInstances) {
             this.removeFromLayers();
 
