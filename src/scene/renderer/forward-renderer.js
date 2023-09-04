@@ -8,11 +8,9 @@ import { DebugGraphics } from '../../platform/graphics/debug-graphics.js';
 import { RenderPass } from '../../platform/graphics/render-pass.js';
 
 import {
-    COMPUPDATED_LIGHTS,
     FOG_NONE, FOG_LINEAR,
     LIGHTTYPE_OMNI, LIGHTTYPE_SPOT, LIGHTTYPE_DIRECTIONAL,
     LIGHTSHAPE_PUNCTUAL,
-    MASK_AFFECT_LIGHTMAPPED, MASK_AFFECT_DYNAMIC, MASK_BAKE,
     LAYERID_DEPTH
 } from '../constants.js';
 
@@ -26,11 +24,13 @@ const webgl1DepthClearColor = new Color(254.0 / 255, 254.0 / 255, 254.0 / 255, 2
 
 const _drawCallList = {
     drawCalls: [],
+    shaderInstances: [],
     isNewMaterial: [],
     lightMaskChanged: [],
 
     clear: function () {
         this.drawCalls.length = 0;
+        this.shaderInstances.length = 0;
         this.isNewMaterial.length = 0;
         this.lightMaskChanged.length = 0;
     }
@@ -463,8 +463,9 @@ class ForwardRenderer extends Renderer {
     // execute first pass over draw calls, in order to update materials / shaders
     renderForwardPrepareMaterials(camera, drawCalls, sortedLights, layer, pass) {
 
-        const addCall = (drawCall, isNewMaterial, lightMaskChanged) => {
+        const addCall = (drawCall, shaderInstance, isNewMaterial, lightMaskChanged) => {
             _drawCallList.drawCalls.push(drawCall);
+            _drawCallList.shaderInstances.push(shaderInstance);
             _drawCallList.isNewMaterial.push(isNewMaterial);
             _drawCallList.lightMaskChanged.push(lightMaskChanged);
         };
@@ -475,7 +476,7 @@ class ForwardRenderer extends Renderer {
         const device = this.device;
         const scene = this.scene;
         const clusteredLightingEnabled = scene.clusteredLightingEnabled;
-        const lightHash = layer ? layer.getLightHash(clusteredLightingEnabled) : 0;
+        const lightHash = layer?.getLightHash(clusteredLightingEnabled) ?? 0;
         let prevMaterial = null, prevObjDefs, prevLightMask;
 
         const drawCallsCount = drawCalls.length;
@@ -486,7 +487,7 @@ class ForwardRenderer extends Renderer {
 
             if (drawCall.command) {
 
-                addCall(drawCall, false, false);
+                addCall(drawCall, null, false, false);
 
             } else {
 
@@ -523,27 +524,14 @@ class ForwardRenderer extends Renderer {
                     }
                 }
 
-                if (!drawCall._shader[pass] || drawCall._shaderDefs !== objDefs || drawCall._lightHash !== lightHash) {
+                // marker to allow us to see the source node for shader alloc
+                DebugGraphics.pushGpuMarker(device, `Node: ${drawCall.node.name}`);
 
-                    // marker to allow us to see the source node for shader alloc
-                    DebugGraphics.pushGpuMarker(device, `Node: ${drawCall.node.name}`);
+                const shaderInstance = drawCall.getShaderInstance(pass, lightHash, scene, this.viewUniformFormat, this.viewBindGroupFormat, sortedLights);
 
-                    // use variants cache on material to quickly find the shader, as they are all
-                    // the same for the same pass, using all lights of the scene
-                    const variantKey = pass + '_' + objDefs + '_' + lightHash;
-                    drawCall._shader[pass] = material.variants[variantKey];
-                    if (!drawCall._shader[pass]) {
-                        drawCall.updatePassShader(scene, pass, sortedLights, this.viewUniformFormat, this.viewBindGroupFormat);
-                        material.variants[variantKey] = drawCall._shader[pass];
-                    }
-                    drawCall._lightHash = lightHash;
+                DebugGraphics.popGpuMarker(device);
 
-                    DebugGraphics.popGpuMarker(device);
-                }
-
-                Debug.assert(drawCall._shader[pass], "no shader for pass", material);
-
-                addCall(drawCall, material !== prevMaterial, !prevMaterial || lightMask !== prevLightMask);
+                addCall(drawCall, shaderInstance, material !== prevMaterial, !prevMaterial || lightMask !== prevLightMask);
 
                 prevMaterial = material;
                 prevObjDefs = objDefs;
@@ -581,13 +569,14 @@ class ForwardRenderer extends Renderer {
                 // We have a mesh instance
                 const newMaterial = preparedCalls.isNewMaterial[i];
                 const lightMaskChanged = preparedCalls.lightMaskChanged[i];
+                const shaderInstance = preparedCalls.shaderInstances[i];
                 const material = drawCall.material;
                 const objDefs = drawCall._shaderDefs;
                 const lightMask = drawCall.mask;
 
                 if (newMaterial) {
 
-                    const shader = drawCall._shader[pass];
+                    const shader = shaderInstance.shader;
                     if (!shader.failed && !device.setShader(shader)) {
                         Debug.error(`Error compiling shader [${shader.label}] for material=${material.name} pass=${pass} objDefs=${objDefs}`, material);
                     }
@@ -644,7 +633,7 @@ class ForwardRenderer extends Renderer {
                 this.setMorphing(device, drawCall.morphInstance);
                 this.setSkinning(device, drawCall);
 
-                this.setupMeshUniformBuffers(drawCall, pass);
+                this.setupMeshUniformBuffers(shaderInstance, drawCall);
 
                 const style = drawCall.renderStyle;
                 device.setIndexBuffer(mesh.indexBuffer[style]);
@@ -747,38 +736,6 @@ class ForwardRenderer extends Renderer {
     }
 
     /**
-     * @param {import('../composition/layer-composition.js').LayerComposition} comp - The layer
-     * composition.
-     * @param {number} compUpdatedFlags - Flags of what was updated.
-     */
-    updateLightStats(comp, compUpdatedFlags) {
-
-        // #if _PROFILER
-        const scene = this.scene;
-        if (compUpdatedFlags & COMPUPDATED_LIGHTS || !scene._statsUpdated) {
-            const stats = scene._stats;
-            stats.lights = comp._lights.length;
-            stats.dynamicLights = 0;
-            stats.bakedLights = 0;
-
-            for (let i = 0; i < stats.lights; i++) {
-                const l = comp._lights[i];
-                if (l.enabled) {
-                    if ((l.mask & MASK_AFFECT_DYNAMIC) || (l.mask & MASK_AFFECT_LIGHTMAPPED)) { // if affects dynamic or baked objects in real-time
-                        stats.dynamicLights++;
-                    }
-                    if (l.mask & MASK_BAKE) { // if baked into lightmaps
-                        stats.bakedLights++;
-                    }
-                }
-            }
-        }
-
-        scene._statsUpdated = true;
-        // #endif
-    }
-
-    /**
      * Builds a frame graph for the rendering of the whole frame.
      *
      * @param {import('../frame-graph.js').FrameGraph} frameGraph - The frame-graph that is built.
@@ -801,8 +758,7 @@ class ForwardRenderer extends Renderer {
                 const renderPass = new RenderPass(this.device, () => {
                     // render cookies for all local visible lights
                     if (this.scene.lighting.cookiesEnabled) {
-                        this.renderCookies(layerComposition._splitLights[LIGHTTYPE_SPOT]);
-                        this.renderCookies(layerComposition._splitLights[LIGHTTYPE_OMNI]);
+                        this.renderCookies(this.lights);
                     }
                 });
                 renderPass.requiresCubemaps = false;
@@ -819,8 +775,7 @@ class ForwardRenderer extends Renderer {
 
                 // render shadows only when needed
                 if (this.scene.lighting.shadowsEnabled) {
-                    const splitLights = layerComposition._splitLights;
-                    this._shadowRendererLocal.prepareClusteredRenderPass(renderPass, splitLights[LIGHTTYPE_SPOT], splitLights[LIGHTTYPE_OMNI]);
+                    this._shadowRendererLocal.prepareClusteredRenderPass(renderPass, this.localLights);
                 }
 
                 // update clusters all the time
@@ -832,8 +787,7 @@ class ForwardRenderer extends Renderer {
         } else {
 
             // non-clustered local shadows - these are shared by all cameras (not entirely correctly)
-            const splitLights = layerComposition._splitLights;
-            this._shadowRendererLocal.buildNonClusteredRenderPasses(frameGraph, splitLights[LIGHTTYPE_SPOT], splitLights[LIGHTTYPE_OMNI]);
+            this._shadowRendererLocal.buildNonClusteredRenderPasses(frameGraph, this.localLights);
         }
 
         // main passes
@@ -858,7 +812,7 @@ class ForwardRenderer extends Renderer {
 
             // directional shadows get re-rendered for each camera
             if (renderAction.hasDirectionalShadowLights && camera) {
-                this._shadowRendererDirectional.buildFrameGraph(frameGraph, renderAction, camera);
+                this._shadowRendererDirectional.buildFrameGraph(frameGraph, renderAction.directionalLights, camera);
             }
 
             // start of block of render actions rendering to the same render target
@@ -985,14 +939,13 @@ class ForwardRenderer extends Renderer {
         // update the skybox, since this might change _meshInstances
         this.scene._updateSky(this.device);
 
-        // update layer composition if something has been invalidated
-        const updated = this.updateLayerComposition(comp, clusteredLightingEnabled);
-        const lightsChanged = (updated & COMPUPDATED_LIGHTS) !== 0;
+        // update layer composition
+        this.updateLayerComposition(comp, clusteredLightingEnabled);
 
-        this.updateLightStats(comp, updated);
+        this.collectLights(comp);
 
         // Single per-frame calculations
-        this.beginFrame(comp, lightsChanged);
+        this.beginFrame(comp);
         this.setSceneConstants();
 
         // visibility culling of lights, meshInstances, shadows casters
@@ -1100,6 +1053,12 @@ class ForwardRenderer extends Renderer {
             // add debug mesh instances to visible list
             this.scene.immediate.onPreRenderLayer(layer, visible, transparent);
 
+            // set up layer uniforms
+            if (layer.requiresLightCube) {
+                this.lightCube.update(this.scene.ambientLight, layer._lights);
+                this.constantLightCube.setValue(this.lightCube.colors);
+            }
+
             // upload clustered lights uniforms
             if (clusteredLightingEnabled && renderAction.lightClusters) {
                 renderAction.lightClusters.activate();
@@ -1129,7 +1088,7 @@ class ForwardRenderer extends Renderer {
             const draws = this._forwardDrawCalls;
             this.renderForward(camera.camera,
                                visible,
-                               layer._splitLights,
+                               layer.splitLights,
                                shaderPass,
                                layer.onDrawCall,
                                layer,
