@@ -41,7 +41,6 @@ import { Asset } from './asset/asset.js';
 import { AssetRegistry } from './asset/asset-registry.js';
 import { BundleRegistry } from './bundle/bundle-registry.js';
 import { ComponentSystemRegistry } from './components/registry.js';
-import { SceneGrab } from '../scene/graphics/scene-grab.js';
 import { BundleHandler } from './handlers/bundle.js';
 import { ResourceLoader } from './handlers/loader.js';
 import { I18n } from './i18n/i18n.js';
@@ -126,6 +125,13 @@ let app = null;
  * @augments EventHandler
  */
 class AppBase extends EventHandler {
+    /**
+     * A request id returned by requestAnimationFrame, allowing us to cancel it.
+     *
+     * @ignore
+     */
+    frameRequestId;
+
     /**
      * Create a new AppBase instance.
      *
@@ -372,33 +378,11 @@ class AppBase extends EventHandler {
          */
         this.scenes = new SceneRegistry(this);
 
-        const self = this;
-        this.defaultLayerWorld = new Layer({
-            name: "World",
-            id: LAYERID_WORLD
-        });
-
-        this.sceneGrab = new SceneGrab(this.graphicsDevice, this.scene);
-        this.defaultLayerDepth = this.sceneGrab.layer;
-
-        this.defaultLayerSkybox = new Layer({
-            enabled: true,
-            name: "Skybox",
-            id: LAYERID_SKYBOX,
-            opaqueSortMode: SORTMODE_NONE
-        });
-        this.defaultLayerUi = new Layer({
-            enabled: true,
-            name: "UI",
-            id: LAYERID_UI,
-            transparentSortMode: SORTMODE_MANUAL
-        });
-        this.defaultLayerImmediate = new Layer({
-            enabled: true,
-            name: "Immediate",
-            id: LAYERID_IMMEDIATE,
-            opaqueSortMode: SORTMODE_NONE
-        });
+        this.defaultLayerWorld = new Layer({ name: "World", id: LAYERID_WORLD });
+        this.defaultLayerDepth = new Layer({ name: "Depth", id: LAYERID_DEPTH, enabled: false, opaqueSortMode: SORTMODE_NONE });
+        this.defaultLayerSkybox = new Layer({ name: "Skybox", id: LAYERID_SKYBOX, opaqueSortMode: SORTMODE_NONE });
+        this.defaultLayerUi = new Layer({ name: "UI", id: LAYERID_UI, transparentSortMode: SORTMODE_MANUAL });
+        this.defaultLayerImmediate = new Layer({ name: "Immediate", id: LAYERID_IMMEDIATE, opaqueSortMode: SORTMODE_NONE });
 
         const defaultLayerComposition = new LayerComposition("default");
         defaultLayerComposition.pushOpaque(this.defaultLayerWorld);
@@ -409,20 +393,6 @@ class AppBase extends EventHandler {
         defaultLayerComposition.pushTransparent(this.defaultLayerImmediate);
         defaultLayerComposition.pushTransparent(this.defaultLayerUi);
         this.scene.layers = defaultLayerComposition;
-
-        // Default layers patch
-        this.scene.on('set:layers', function (oldComp, newComp) {
-            const list = newComp.layerList;
-            let layer;
-            for (let i = 0; i < list.length; i++) {
-                layer = list[i];
-                switch (layer.id) {
-                    case LAYERID_DEPTH:
-                        self.sceneGrab.patch(layer);
-                        break;
-                }
-            }
-        });
 
         // placeholder texture for area light LUTs
         AreaLightLuts.createPlaceholder(device);
@@ -1730,8 +1700,9 @@ class AppBase extends EventHandler {
      *
      * @param {Vec3[]} positions - An array of points to draw lines between. The length of the
      * array must be a multiple of 2.
-     * @param {Color[]} colors - An array of colors to color the lines. This must be the same
-     * length as the position array. The length of the array must also be a multiple of 2.
+     * @param {Color[] | Color} colors - An array of colors or a single color. If an array is
+     * specified, this must be the same length as the position array. The length of the array
+     * must also be a multiple of 2.
      * @param {boolean} [depthTest] - Specifies if the lines are depth tested against the depth
      * buffer. Defaults to true.
      * @param {Layer} [layer] - The layer to render the lines into. Defaults to {@link LAYERID_IMMEDIATE}.
@@ -1961,6 +1932,7 @@ class AppBase extends EventHandler {
 
         const canvasId = this.graphicsDevice.canvas.id;
 
+        this.fire('destroy', this); // fire destroy event
         this.off('librariesloaded');
 
         if (typeof document !== 'undefined') {
@@ -2088,6 +2060,15 @@ class AppBase extends EventHandler {
         if (getApplication() === this) {
             setApplication(null);
         }
+
+        AppBase.cancelTick(this);
+    }
+
+    static cancelTick(app) {
+        if (app.frameRequestId) {
+            window.cancelAnimationFrame(app.frameRequestId);
+            app.frameRequestId = undefined;
+        }
     }
 
     /**
@@ -2132,7 +2113,6 @@ const _frameEndData = {};
  */
 const makeTick = function (_app) {
     const application = _app;
-    let frameRequest;
     /**
      * @param {number} [timestamp] - The timestamp supplied by requestAnimationFrame.
      * @param {*} [frame] - XRFrame from requestAnimationFrame callback.
@@ -2141,12 +2121,10 @@ const makeTick = function (_app) {
         if (!application.graphicsDevice)
             return;
 
-        setApplication(application);
+        application.frameRequestId = null;
+        application._inFrameUpdate = true;
 
-        if (frameRequest) {
-            window.cancelAnimationFrame(frameRequest);
-            frameRequest = null;
-        }
+        setApplication(application);
 
         // have current application pointer in pc
         app = application;
@@ -2161,9 +2139,9 @@ const makeTick = function (_app) {
 
         // Submit a request to queue up a new animation frame immediately
         if (application.xr?.session) {
-            frameRequest = application.xr.session.requestAnimationFrame(application.tick);
+            application.frameRequestId = application.xr.session.requestAnimationFrame(application.tick);
         } else {
-            frameRequest = platform.browser ? window.requestAnimationFrame(application.tick) : null;
+            application.frameRequestId = platform.browser ? window.requestAnimationFrame(application.tick) : null;
         }
 
         if (application.graphicsDevice.contextLost)
@@ -2175,7 +2153,6 @@ const makeTick = function (_app) {
         application._fillFrameStats();
         // #endif
 
-        application._inFrameUpdate = true;
         application.fire("frameupdate", ms);
 
         let shouldRenderFrame = true;

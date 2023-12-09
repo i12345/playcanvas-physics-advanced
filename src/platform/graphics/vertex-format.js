@@ -10,6 +10,7 @@ import {
 } from './constants.js';
 
 const stringIds = new StringIds();
+const webgpuValidElementSizes = [2, 4, 8, 12, 16];
 
 /**
  * A vertex format is a descriptor that defines the layout of vertex data inside a
@@ -47,6 +48,7 @@ const stringIds = new StringIds();
  * - {@link TYPE_INT32}
  * - {@link TYPE_UINT32}
  * - {@link TYPE_FLOAT32}
+ * - {@link TYPE_FLOAT16}
  * @property {boolean} elements[].normalize If true, vertex attribute data will be mapped from a 0
  * to 255 range down to 0 to 1 when fed to a shader. If false, vertex attribute data is left
  * unchanged. If this property is unspecified, false is assumed.
@@ -94,11 +96,16 @@ class VertexFormat {
      * - {@link TYPE_UINT16}
      * - {@link TYPE_INT32}
      * - {@link TYPE_UINT32}
+     * - {@link TYPE_FLOAT16}
      * - {@link TYPE_FLOAT32}
      *
      * @param {boolean} [description[].normalize] - If true, vertex attribute data will be mapped
      * from a 0 to 255 range down to 0 to 1 when fed to a shader. If false, vertex attribute data
-     * is left unchanged. If this property is unspecified, false is assumed.
+     * is left unchanged. If this property is unspecified, false is assumed. This property is
+     * ignored when asInt is true.
+     * @param {boolean} [description[].asInt] - If true, vertex attribute data will be accessible
+     * as integer numbers in shader code. Defaults to false, which means that vertex attribute data
+     * will be accessible as floating point numbers. Can be only used with INT and UINT data types.
      * @param {number} [vertexCount] - When specified, vertex format will be set up for
      * non-interleaved format with a specified number of vertices. (example: PPPPNNNNCCCC), where
      * arrays of individual attributes will be stored one right after the other (subject to
@@ -144,7 +151,7 @@ class VertexFormat {
             elementSize = elementDesc.components * typedArrayTypesByteSize[elementDesc.type];
 
             // WebGPU has limited element size support (for example uint16x3 is not supported)
-            Debug.assert(!graphicsDevice.isWebGPU || [2, 4, 8, 12, 16].includes(elementSize),
+            Debug.assert(VertexFormat.isElementValid(graphicsDevice, elementDesc),
                          `WebGPU does not support the format of vertex element ${elementDesc.semantic} : ${vertexTypesNames[elementDesc.type]} x ${elementDesc.components}`);
 
             // align up the offset to elementSize (when vertexCount is specified only - case of non-interleaved format)
@@ -157,14 +164,17 @@ class VertexFormat {
                              `Non-interleaved vertex format with element size not multiple of 4 can have performance impact on some platforms. Element size: ${elementSize}`);
             }
 
+            const asInt = elementDesc.asInt ?? false;
+            const normalize = asInt ? false : (elementDesc.normalize ?? false);
             const element = {
                 name: elementDesc.semantic,
                 offset: (vertexCount ? offset : (elementDesc.hasOwnProperty('offset') ? elementDesc.offset : offset)),
                 stride: (vertexCount ? elementSize : (elementDesc.hasOwnProperty('stride') ? elementDesc.stride : this.size)),
                 dataType: elementDesc.type,
                 numComponents: elementDesc.components,
-                normalize: elementDesc.normalize ?? false,
-                size: elementSize
+                normalize: normalize,
+                size: elementSize,
+                asInt: asInt
             };
             this._elements.push(element);
 
@@ -222,6 +232,13 @@ class VertexFormat {
         }
 
         return VertexFormat._defaultInstancingFormat;
+    }
+
+    static isElementValid(graphicsDevice, elementDesc) {
+        const elementSize = elementDesc.components * typedArrayTypesByteSize[elementDesc.type];
+        if (graphicsDevice.isWebGPU && !webgpuValidElementSizes.includes(elementSize))
+            return false;
+        return true;
     }
 
     /**

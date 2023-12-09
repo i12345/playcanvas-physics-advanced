@@ -638,6 +638,7 @@ class Scene extends EventHandler {
      * - {@link TONEMAP_FILMIC}
      * - {@link TONEMAP_HEJL}
      * - {@link TONEMAP_ACES}
+     * - {@link TONEMAP_ACES2}
      *
      * Defaults to {@link TONEMAP_LINEAR}.
      *
@@ -790,7 +791,7 @@ class Scene extends EventHandler {
      * @type {number}
      */
     get lightmapPixelFormat() {
-        return this.lightmapHDR && this.device.getHdrFormat(false, true, false, true) || PIXELFORMAT_RGBA8;
+        return this.lightmapHDR && this.device.getRenderableHdrFormat() || PIXELFORMAT_RGBA8;
     }
 }
 

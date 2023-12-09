@@ -75,13 +75,13 @@ class PhysicsComponent extends Component {
 
     /**
      * @private
-     * @type {import('ammojs3').default.btRigidBody}
+     * @type {import('ammojs3').default.btRigidBody|null}
      */
     _rigidBody = null;
 
     /**
      * @private
-     * @type {import('ammojs3').default.btMultiBodyLinkCollider}
+     * @type {import('ammojs3').default.btMultiBodyLinkCollider|null}
      */
     _multibodyLinkCollider = null;
 

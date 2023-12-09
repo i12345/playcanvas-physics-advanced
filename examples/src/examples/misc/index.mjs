@@ -1,7 +1,3 @@
-import HelloWorldExample from "./hello-world";
-import MiniStatsExample from "./mini-stats";
-
-export {
-    HelloWorldExample,
-    MiniStatsExample
-};
+export * from "./hello-world.mjs";
+export * from "./mini-stats.mjs";
+export * from "./spineboy.mjs";

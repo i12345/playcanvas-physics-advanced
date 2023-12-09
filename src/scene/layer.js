@@ -151,8 +151,28 @@ class Layer {
      * True if the objects rendered on the layer require light cube (emitters with lighting do).
      *
      * @type {boolean}
+     * @ignore
      */
     requiresLightCube = false;
+
+    /**
+     * @type {import('../framework/components/camera/component.js').CameraComponent[]}
+     * @ignore
+     */
+    cameras = [];
+
+    /**
+     * @type {Set<import('./camera.js').Camera>}
+     * @ignore
+     */
+    camerasSet = new Set();
+
+    /**
+     * True if the composition is invalidated.
+     *
+     * @ignore
+     */
+    _dirtyComposition = false;
 
     /**
      * Create a new Layer instance.
@@ -275,6 +295,7 @@ class Layer {
          * @type {Function}
          */
         this.onPreCull = options.onPreCull;
+
         /**
          * Custom function that is called before this layer is rendered. Useful, for example, for
          * reacting on screen size changes. This function is called before the first occurrence of
@@ -285,6 +306,7 @@ class Layer {
          * @type {Function}
          */
         this.onPreRender = options.onPreRender;
+
         /**
          * Custom function that is called before opaque mesh instances (not semi-transparent) in
          * this layer are rendered. This function will receive camera index as the only argument.
@@ -294,6 +316,7 @@ class Layer {
          * @type {Function}
          */
         this.onPreRenderOpaque = options.onPreRenderOpaque;
+
         /**
          * Custom function that is called before semi-transparent mesh instances in this layer are
          * rendered. This function will receive camera index as the only argument. You can get the
@@ -313,6 +336,7 @@ class Layer {
          * @type {Function}
          */
         this.onPostCull = options.onPostCull;
+
         /**
          * Custom function that is called after this layer is rendered. Useful to revert changes
          * made in {@link Layer#onPreRender}. This function is called after the last occurrence of this
@@ -323,6 +347,7 @@ class Layer {
          * @type {Function}
          */
         this.onPostRender = options.onPostRender;
+
         /**
          * Custom function that is called after opaque mesh instances (not semi-transparent) in
          * this layer are rendered. This function will receive camera index as the only argument.
@@ -332,6 +357,7 @@ class Layer {
          * @type {Function}
          */
         this.onPostRenderOpaque = options.onPostRenderOpaque;
+
         /**
          * Custom function that is called after semi-transparent mesh instances in this layer are
          * rendered. This function will receive camera index as the only argument. You can get the
@@ -349,6 +375,7 @@ class Layer {
          * @type {Function}
          */
         this.onDrawCall = options.onDrawCall;
+
         /**
          * Custom function that is called after the layer has been enabled. This happens when:
          *
@@ -361,6 +388,7 @@ class Layer {
          * @type {Function}
          */
         this.onEnable = options.onEnable;
+
         /**
          * Custom function that is called after the layer has been disabled. This happens when:
          *
@@ -395,14 +423,6 @@ class Layer {
          */
         this.customCalculateSortValues = null;
 
-        /**
-         * @type {import('../framework/components/camera/component.js').CameraComponent[]}
-         * @ignore
-         */
-        this.cameras = [];
-
-        this._dirtyCameras = false;
-
         // light hash based on the light keys
         this._lightHash = 0;
         this._lightHashDirty = false;
@@ -430,6 +450,7 @@ class Layer {
      */
     set enabled(val) {
         if (val !== this._enabled) {
+            this._dirtyComposition = true;
             this._enabled = val;
             if (val) {
                 this.incrementCounter();
@@ -452,7 +473,7 @@ class Layer {
      */
     set clearColorBuffer(val) {
         this._clearColorBuffer = val;
-        this._dirtyCameras = true;
+        this._dirtyComposition = true;
     }
 
     get clearColorBuffer() {
@@ -466,7 +487,7 @@ class Layer {
      */
     set clearDepthBuffer(val) {
         this._clearDepthBuffer = val;
-        this._dirtyCameras = true;
+        this._dirtyComposition = true;
     }
 
     get clearDepthBuffer() {
@@ -480,7 +501,7 @@ class Layer {
      */
     set clearStencilBuffer(val) {
         this._clearStencilBuffer = val;
-        this._dirtyCameras = true;
+        this._dirtyComposition = true;
     }
 
     get clearStencilBuffer() {
@@ -832,9 +853,11 @@ class Layer {
      * {@link CameraComponent}.
      */
     addCamera(camera) {
-        if (this.cameras.indexOf(camera) >= 0) return;
-        this.cameras.push(camera);
-        this._dirtyCameras = true;
+        if (!this.camerasSet.has(camera.camera)) {
+            this.camerasSet.add(camera.camera);
+            this.cameras.push(camera);
+            this._dirtyComposition = true;
+        }
     }
 
     /**
@@ -844,10 +867,11 @@ class Layer {
      * {@link CameraComponent}.
      */
     removeCamera(camera) {
-        const index = this.cameras.indexOf(camera);
-        if (index >= 0) {
+        if (this.camerasSet.has(camera.camera)) {
+            this.camerasSet.delete(camera.camera);
+            const index = this.cameras.indexOf(camera);
             this.cameras.splice(index, 1);
-            this._dirtyCameras = true;
+            this._dirtyComposition = true;
         }
     }
 
@@ -856,7 +880,8 @@ class Layer {
      */
     clearCameras() {
         this.cameras.length = 0;
-        this._dirtyCameras = true;
+        this.camerasSet.clear();
+        this._dirtyComposition = true;
     }
 
     /**
@@ -869,7 +894,6 @@ class Layer {
     _calculateSortDistances(drawCalls, drawCallsCount, camPos, camFwd) {
         for (let i = 0; i < drawCallsCount; i++) {
             const drawCall = drawCalls[i];
-            if (drawCall.command) continue;
             if (drawCall.layer <= LAYER_FX) continue; // Only alpha sort mesh instances in the main world (backwards comp)
             if (drawCall.calculateSortDistance) {
                 drawCall.zdist = drawCall.calculateSortDistance(drawCall, camPos, camFwd);

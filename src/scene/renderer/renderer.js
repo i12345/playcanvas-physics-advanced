@@ -33,9 +33,9 @@ import { BindGroupFormat, BindBufferFormat, BindTextureFormat } from '../../plat
 import { ShadowMapCache } from './shadow-map-cache.js';
 import { ShadowRendererLocal } from './shadow-renderer-local.js';
 import { ShadowRendererDirectional } from './shadow-renderer-directional.js';
-import { CookieRenderer } from './cookie-renderer.js';
 import { ShadowRenderer } from './shadow-renderer.js';
 import { WorldClustersAllocator } from './world-clusters-allocator.js';
+import { RenderPassUpdateClustered } from './render-pass-update-clustered.js';
 
 let _skinUpdateIndex = 0;
 const boneTextureSize = [0, 0, 0, 0];
@@ -92,16 +92,33 @@ class Renderer {
     /**
      * A list of all unique lights in the layer composition.
      *
-     * @type {import('../lighting/light.js').Light[]}
+     * @type {import('../light.js').Light[]}
      */
     lights = [];
 
     /**
      * A list of all unique local lights (spot & omni) in the layer composition.
      *
-     * @type {import('../lighting/light.js').Light[]}
+     * @type {import('../light.js').Light[]}
      */
     localLights = [];
+
+    /**
+     * A list of unique directional shadow casting lights for each enabled camera. This is generated
+     * each frame during light culling.
+     *
+     * @type {Map<import('../camera.js').Camera, Array<import('../light.js').Light>>}
+     */
+    cameraDirShadowLights = new Map();
+
+    /**
+     * A mapping of a directional light to a camera, for which the shadow is currently valid. This
+     * is cleared each frame, and updated each time a directional light shadow is rendered for a
+     * camera, and allows us to manually schedule shadow passes when a new camera needs a shadow.
+     *
+     * @type {Map<import('../light.js').Light, import('../camera.js').Camera>}
+     */
+    dirLightShadows = new Map();
 
     /**
      * Create a new instance.
@@ -127,8 +144,9 @@ class Renderer {
         this._shadowRendererLocal = new ShadowRendererLocal(this, this.shadowRenderer);
         this._shadowRendererDirectional = new ShadowRendererDirectional(this, this.shadowRenderer);
 
-        // cookies
-        this._cookieRenderer = new CookieRenderer(graphicsDevice, this.lightTextureAtlas);
+        // clustered passes
+        this._renderPassUpdateClustered = new RenderPassUpdateClustered(this.device, this, this.shadowRenderer,
+                                                                        this._shadowRendererLocal, this.lightTextureAtlas);
 
         // view bind group format with its uniform buffer format
         this.viewUniformFormat = null;
@@ -200,8 +218,8 @@ class Renderer {
         this.shadowMapCache.destroy();
         this.shadowMapCache = null;
 
-        this._cookieRenderer.destroy();
-        this._cookieRenderer = null;
+        this._renderPassUpdateClustered.destroy();
+        this._renderPassUpdateClustered = null;
 
         this.lightTextureAtlas.destroy();
         this.lightTextureAtlas = null;
@@ -294,31 +312,12 @@ class Renderer {
 
         let viewCount = 1;
         if (camera.xr && camera.xr.session) {
-            let transform;
-            const parent = camera._node.parent;
-            if (parent)
-                transform = parent.getWorldTransform();
-
+            const transform = camera._node?.parent?.getWorldTransform() || null;
             const views = camera.xr.views;
-            viewCount = views.length;
+            viewCount = views.list.length;
             for (let v = 0; v < viewCount; v++) {
-                const view = views[v];
-
-                if (parent) {
-                    view.viewInvOffMat.mul2(transform, view.viewInvMat);
-                    view.viewOffMat.copy(view.viewInvOffMat).invert();
-                } else {
-                    view.viewInvOffMat.copy(view.viewInvMat);
-                    view.viewOffMat.copy(view.viewMat);
-                }
-
-                view.viewMat3.setFromMat4(view.viewOffMat);
-                view.projViewOffMat.mul2(view.projMat, view.viewOffMat);
-
-                view.position[0] = view.viewInvOffMat.data[12];
-                view.position[1] = view.viewInvOffMat.data[13];
-                view.position[2] = view.viewInvOffMat.data[14];
-
+                const view = views.list[v];
+                view.updateTransforms(transform);
                 camera.frustum.setFromMat4(view.projViewOffMat);
             }
         } else {
@@ -401,11 +400,11 @@ class Renderer {
      *
      * @param {import('../camera.js').Camera} camera - The camera supplying the value to clear to.
      * @param {boolean} [clearColor] - True if the color buffer should be cleared. Uses the value
-     * from the camra if not supplied.
+     * from the camera if not supplied.
      * @param {boolean} [clearDepth] - True if the depth buffer should be cleared. Uses the value
-     * from the camra if not supplied.
+     * from the camera if not supplied.
      * @param {boolean} [clearStencil] - True if the stencil buffer should be cleared. Uses the
-     * value from the camra if not supplied.
+     * value from the camera if not supplied.
      */
     clear(camera, clearColor, clearDepth, clearStencil) {
 
@@ -496,9 +495,9 @@ class Renderer {
 
     updateCameraFrustum(camera) {
 
-        if (camera.xr && camera.xr.views.length) {
+        if (camera.xr && camera.xr.views.list.length) {
             // calculate frustum based on XR view
-            const view = camera.xr.views[0];
+            const view = camera.xr.views.list[0];
             viewProjMat.mul2(view.projMat, view.viewOffMat);
             camera.frustum.setFromMat4(viewProjMat);
             return;
@@ -799,6 +798,12 @@ class Renderer {
 
         DebugGraphics.pushGpuMarker(device, meshInstance.node.name);
 
+        const modelMatrix = meshInstance.node.worldTransform;
+        this.modelMatrixId.setValue(modelMatrix.data);
+        if (normal) {
+            this.normalMatrixId.setValue(meshInstance.node.normalMatrix.data);
+        }
+
         const instancingData = meshInstance.instancingData;
         if (instancingData) {
             if (instancingData.count > 0) {
@@ -807,13 +812,6 @@ class Renderer {
                 device.draw(mesh.primitive[style], instancingData.count);
             }
         } else {
-            const modelMatrix = meshInstance.node.worldTransform;
-            this.modelMatrixId.setValue(modelMatrix.data);
-
-            if (normal) {
-                this.normalMatrixId.setValue(meshInstance.node.normalMatrix.data);
-            }
-
             device.draw(mesh.primitive[style]);
         }
 
@@ -859,16 +857,9 @@ class Renderer {
 
         for (let i = 0; i < count; i++) {
             const drawCall = drawCalls[i];
-            if (drawCall.command) {
+            if (drawCall.visible) {
 
-                // commands are always visible in both opaque and transparent buckets
-                drawCall.visibleThisFrame = true;
-                opaque.push(drawCall);
-                transparent.push(drawCall);
-
-            } else if (drawCall.visible) {
-
-                const visible = !doCull || drawCall._isVisible(camera);
+                const visible = !doCull || !drawCall.cull || drawCall._isVisible(camera);
                 if (visible) {
                     drawCall.visibleThisFrame = true;
 
@@ -1024,17 +1015,16 @@ class Renderer {
             }
         }
 
-        // shadow casters culling for directional lights
-        const renderActions = comp._renderActions;
-        for (let i = 0; i < renderActions.length; i++) {
-            const renderAction = renderActions[i];
-            renderAction.directionalLights.length = 0;
-            const camera = renderAction.camera.camera;
-
-            // first use of each camera renders directional shadows
-            if (renderAction.firstCameraUse)  {
+        // shadow casters culling for directional lights - start with none and collect lights for cameras
+        this.cameraDirShadowLights.clear();
+        const cameras = comp.cameras;
+        for (let i = 0; i < cameras.length; i++) {
+            const cameraComponent = cameras[i];
+            if (cameraComponent.enabled) {
+                const camera = cameraComponent.camera;
 
                 // get directional lights from all layers of the camera
+                let lightList;
                 const cameraLayers = camera.layers;
                 for (let l = 0; l < cameraLayers.length; l++) {
                     const cameraLayer = comp.getLayerById(cameraLayers[l]);
@@ -1047,13 +1037,19 @@ class Renderer {
                             // unique shadow casting lights
                             if (light.castShadows && !_tempSet.has(light)) {
                                 _tempSet.add(light);
-                                renderAction.directionalLights.push(light);
+
+                                lightList = lightList ?? [];
+                                lightList.push(light);
 
                                 // frustum culling for the directional shadow when rendering the camera
                                 this._shadowRendererDirectional.cull(light, comp, camera);
                             }
                         }
                     }
+                }
+
+                if (lightList) {
+                    this.cameraDirShadowLights.set(camera, lightList);
                 }
 
                 _tempSet.clear();
@@ -1076,45 +1072,44 @@ class Renderer {
 
         this.processingMeshInstances.clear();
 
-        const renderActions = comp._renderActions;
-        for (let i = 0; i < renderActions.length; i++) {
+        // for all cameras
+        const numCameras = comp.cameras.length;
+        for (let i = 0; i < numCameras; i++) {
+            const camera = comp.cameras[i];
 
-            /** @type {import('../composition/render-action.js').RenderAction} */
-            const renderAction = renderActions[i];
+            let currentRenderTarget;
+            let cameraChanged = true;
+            this._camerasRendered++;
 
-            // layer
-            const layerIndex = renderAction.layerIndex;
-            /** @type {import('../layer.js').Layer} */
-            const layer = comp.layerList[layerIndex];
-            if (!layer.enabled || !comp.subLayerEnabled[layerIndex]) continue;
+            // for all of its enabled layers
+            const layerIds = camera.layers;
+            for (let j = 0; j < layerIds.length; j++) {
+                const layer = comp.getLayerById(layerIds[j]);
+                if (layer && layer.enabled) {
 
-            // camera
-            const cameraPass = renderAction.cameraIndex;
-            /** @type {import('../../framework/components/camera/component.js').CameraComponent} */
-            const camera = layer.cameras[cameraPass];
+                    // update camera and frustum when the render target changes
+                    // TODO: This is done here to handle the backwards compatibility with the deprecated Layer.renderTarget,
+                    // when this is no longer needed, this code can be moved up to execute once per camera.
+                    const renderTarget = camera.renderTarget ?? layer.renderTarget;
+                    if (cameraChanged || renderTarget !== currentRenderTarget) {
+                        cameraChanged = false;
+                        currentRenderTarget = renderTarget;
+                        camera.frameUpdate(renderTarget);
+                        this.updateCameraFrustum(camera.camera);
+                    }
 
-            if (camera) {
+                    // cull each layer's non-directional lights once with each camera
+                    // lights aren't collected anywhere, but marked as visible
+                    this.cullLights(camera.camera, layer._lights);
 
-                camera.frameUpdate(renderAction.renderTarget);
+                    // cull mesh instances
+                    layer.onPreCull?.(comp.camerasMap.get(camera));
 
-                // update camera and frustum once
-                if (renderAction.firstCameraUse) {
-                    this.updateCameraFrustum(camera.camera);
-                    this._camerasRendered++;
+                    const culledInstances = layer.getCulledInstances(camera.camera);
+                    this.cull(camera.camera, layer.meshInstances, culledInstances);
+
+                    layer.onPostCull?.(comp.camerasMap.get(camera));
                 }
-
-                // cull each layer's non-directional lights once with each camera
-                // lights aren't collected anywhere, but marked as visible
-                this.cullLights(camera.camera, layer._lights);
-
-                // cull mesh instances
-                layer.onPreCull?.(cameraPass);
-
-                const culledInstances = layer.getCulledInstances(camera.camera);
-                const drawCalls = layer.meshInstances;
-                this.cull(camera.camera, drawCalls, culledInstances);
-
-                layer.onPostCull?.(cameraPass);
             }
         }
 
@@ -1163,11 +1158,6 @@ class Renderer {
 
         // keep temp set empty
         _tempSet.clear();
-    }
-
-    renderCookies(lights) {
-        const cookieRenderTarget = this.lightTextureAtlas.cookieRenderTarget;
-        this._cookieRenderer.render(cookieRenderTarget, lights);
     }
 
     /**
@@ -1235,31 +1225,8 @@ class Renderer {
         }
     }
 
-    /**
-     * @param {import('../composition/layer-composition.js').LayerComposition} comp - The layer
-     * composition.
-     */
     updateLightTextureAtlas() {
         this.lightTextureAtlas.update(this.localLights, this.scene.lighting);
-    }
-
-    /**
-     * @param {import('../composition/layer-composition.js').LayerComposition} comp - The layer
-     * composition.
-     */
-    updateClusters(comp) {
-
-        // #if _PROFILER
-        const startTime = now();
-        // #endif
-
-        const renderActions = comp._renderActions;
-        this.worldClustersAllocator.update(renderActions, this.scene.gammaCorrection, this.scene.lighting);
-
-        // #if _PROFILER
-        this._lightClustersTime += now() - startTime;
-        this._lightClusters = this.worldClustersAllocator.count;
-        // #endif
     }
 
     /**
@@ -1267,10 +1234,8 @@ class Renderer {
      *
      * @param {import('../composition/layer-composition.js').LayerComposition} comp - The layer
      * composition to update.
-     * @param {boolean} clusteredLightingEnabled - True if clustered lighting is enabled.
-     * @ignore
      */
-    updateLayerComposition(comp, clusteredLightingEnabled) {
+    updateLayerComposition(comp) {
 
         // #if _PROFILER
         const layerCompositionUpdateTime = now();
@@ -1317,6 +1282,9 @@ class Renderer {
         this.clustersDebugRendered = false;
 
         this.initViewBindGroupFormat(this.scene.clusteredLightingEnabled);
+
+        // no valid shadows at the start of the frame
+        this.dirLightShadows.clear();
     }
 }
 

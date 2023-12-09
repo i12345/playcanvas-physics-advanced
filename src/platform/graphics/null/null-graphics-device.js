@@ -66,11 +66,6 @@ class NullGraphicsDevice extends GraphicsDevice {
         super.postInit();
     }
 
-    resizeCanvas(width, height) {
-        this._width = width;
-        this._height = height;
-    }
-
     frameStart() {
         super.frameStart();
     }
@@ -128,27 +123,7 @@ class NullGraphicsDevice extends GraphicsDevice {
         super.initializeContextCaches();
     }
 
-    startPass(renderPass) {
-    }
-
-    endPass(renderPass) {
-    }
-
     clear(options) {
-    }
-
-    get width() {
-        return this._width;
-    }
-
-    get height() {
-        return this._height;
-    }
-
-    setDepthBias(on) {
-    }
-
-    setDepthBiasValues(constBias, slopeBias) {
     }
 
     setViewport(x, y, w, h) {

@@ -180,6 +180,21 @@ class CameraComponent extends Component {
     }
 
     /**
+     * Sets the render passes the camera will use for rendering, instead of its default rendering.
+     * Set this to an empty array to return to the default behavior.
+     *
+     * @type {import('../../../platform/graphics/render-pass.js').RenderPass[]}
+     * @ignore
+     */
+    set renderPasses(passes) {
+        this._camera.renderPasses = passes;
+    }
+
+    get renderPasses() {
+        return this._camera.renderPasses;
+    }
+
+    /**
      * Set camera aperture in f-stops, the default value is 16.0. Higher value means less exposure.
      *
      * @type {number}
@@ -707,6 +722,8 @@ class CameraComponent extends Component {
         if (!ok) {
             Debug.warnOnce('CameraComponent.requestSceneColorMap was called, but the camera does not have a Depth layer, ignoring.');
         }
+
+        this.camera._enableRenderPassColorGrab(this.system.app.graphicsDevice, this.renderSceneColorMap);
     }
 
     /**
@@ -722,12 +739,14 @@ class CameraComponent extends Component {
         if (!ok) {
             Debug.warnOnce('CameraComponent.requestSceneDepthMap was called, but the camera does not have a Depth layer, ignoring.');
         }
+
+        this.camera._enableRenderPassDepthGrab(this.system.app.graphicsDevice, this.system.app.renderer, this.renderSceneDepthMap);
     }
 
     dirtyLayerCompositionCameras() {
         // layer composition needs to update order
         const layerComp = this.system.app.scene.layers;
-        layerComp._dirtyCameras = true;
+        layerComp._dirty = true;
     }
 
     /**
@@ -880,12 +899,14 @@ class CameraComponent extends Component {
     onRemove() {
         this.onDisable();
         this.off();
+
+        this.camera.destroy();
     }
 
     /**
      * Calculates aspect ratio value for a given render target.
      *
-     * @param {import('../../../platform/graphics/render-target.js').RenderTarget} [rt] - Optional
+     * @param {import('../../../platform/graphics/render-target.js').RenderTarget|null} [rt] - Optional
      * render target. If unspecified, the backbuffer is used.
      * @returns {number} The aspect ratio of the render target (or backbuffer).
      */
@@ -899,7 +920,7 @@ class CameraComponent extends Component {
     /**
      * Prepare the camera for frame rendering.
      *
-     * @param {import('../../../platform/graphics/render-target.js').RenderTarget} rt - Render
+     * @param {import('../../../platform/graphics/render-target.js').RenderTarget|null} rt - Render
      * target to which rendering will be performed. Will affect camera's aspect ratio, if
      * aspectRatioMode is {@link ASPECT_AUTO}.
      * @ignore
