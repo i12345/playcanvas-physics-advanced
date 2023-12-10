@@ -9,7 +9,16 @@ import { Component } from '../component.js';
 
 import { MOTION_LOCKED, JOINT_TYPE_6DOF } from './constants.js';
 
+/**
+ * @template T paired types
+ */
 export class LinearAngularPair {
+    /**
+     * Constructs a new linear angular pair
+     * @param {JointComponent} joint - The joint component to trigger updates to
+     * @param {T} linear - Linear element
+     * @param {T} angular - Angular element
+     */
     constructor(joint, linear, angular) {
         this._joint = joint;
         this._linear = linear;
@@ -40,7 +49,17 @@ export class LinearAngularPair {
     }
 }
 
+/**
+ * @template T
+ */
 export class ObservedXYZ {
+    /**
+     * Constructs an observed XYZ vector
+     * @param {() => void} update - update callback
+     * @param {T} x - x component
+     * @param {T} y - y component
+     * @param {T} z - z component
+     */
     constructor(update, x, y, z) {
         this._update = update;
         this._x = x;
@@ -93,7 +112,17 @@ export class ObservedXYZ {
     }
 }
 
+/**
+ * @template T
+ * @augments {LinearAngularPair<ObservedXYZ<T>>}
+ */
 export class LinearAngularXYZPair extends LinearAngularPair {
+    /**
+     * Constructs a linear angular pair of observed XYZ vectors.
+     * @param {JointComponent} joint - joint component for update callbacks
+     * @param {{ x: T, y: T, z: T }} linear - initial linear components
+     * @param {{ x: T, y: T, z: T }} angular - initial angular components
+     */
     constructor(joint, { x: lx, y: ly, z: lz }, { x: ax, y: ay, z: az }) {
         const update = () => this.update();
         super(joint, new ObservedXYZ(update, lx, ly, lz), new ObservedXYZ(update, ax, ay, az));
