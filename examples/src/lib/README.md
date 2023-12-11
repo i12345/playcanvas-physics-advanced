@@ -2,10 +2,10 @@ This directory contains a set of precompiled WebAssembly modules which can optio
 
 The modules are as follows:
 
-ammo.js
+ammojs3
 -------
 Direct port of the Bullet physics engine to JavaScript using Emscripten.
-https://github.com/kripken/ammo.js
+https://github.com/i12345/ammo.js adapted from https://github.com/kripken/ammo.js
 
 
 basis.js
