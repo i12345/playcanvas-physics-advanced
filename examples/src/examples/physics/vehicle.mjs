@@ -39,7 +39,7 @@ async function example({ canvas, deviceType, assetPath, scriptsPath, ammoPath, g
         pc.LightComponentSystem,
         pc.ScriptComponentSystem,
         pc.CollisionComponentSystem,
-        pc.RigidBodyComponentSystem
+        pc.PhysicsComponentSystem
     ];
     createOptions.resourceHandlers = [
         // @ts-ignore

@@ -870,7 +870,7 @@ class PhysicsComponent extends Component {
      * @example
      * // Apply via vector
      * const torque = new pc.Vec3(0, 10, 0);
-     * entity.rigidbody.applyTorque(torque);
+     * entity.physics.applyTorque(torque);
      * @example
      * // Apply via numbers
      * entity.physics.applyTorque(0, 10, 0);
@@ -918,13 +918,13 @@ class PhysicsComponent extends Component {
      * @example
      * // Apply an impulse along the world-space positive y-axis at the entity's position.
      * const impulse = new pc.Vec3(0, 10, 0);
-     * entity.rigidbody.applyImpulse(impulse);
+     * entity.physics.applyImpulse(impulse);
      * @example
      * // Apply an impulse along the world-space positive y-axis at 1 unit down the positive
      * // z-axis of the entity's local-space.
      * const impulse = new pc.Vec3(0, 10, 0);
      * const relativePoint = new pc.Vec3(0, 0, 1);
-     * entity.rigidbody.applyImpulse(impulse, relativePoint);
+     * entity.physics.applyImpulse(impulse, relativePoint);
      * @example
      * // Apply an impulse along the world-space positive y-axis at the entity's position.
      * entity.physics.applyImpulse(0, 10, 0);
@@ -972,7 +972,7 @@ class PhysicsComponent extends Component {
      * @example
      * // Apply via vector
      * const torque = new pc.Vec3(0, 10, 0);
-     * entity.rigidbody.applyTorqueImpulse(torque);
+     * entity.physics.applyTorqueImpulse(torque);
      * @example
      * // Apply via numbers
      * entity.physics.applyTorqueImpulse(0, 10, 0);
@@ -1097,7 +1097,7 @@ class PhysicsComponent extends Component {
         if (body.isActive() || entity._wasDirty) {
             if (entity._wasDirty) {
                 // Warn the user about setting transform instead of using teleport function
-                Debug.warn('Cannot set rigid body transform from entity. Use entity.rigidbody#teleport instead.');
+                Debug.warn('Cannot set rigid body transform from entity. Use entity.physics#teleport instead.');
             }
 
             let objTransform = _ammoTransform;
@@ -1173,7 +1173,7 @@ class PhysicsComponent extends Component {
      * @example
      * // Teleport the entity to world-space coordinate [1, 2, 3] and reset orientation
      * const position = new pc.Vec3(1, 2, 3);
-     * entity.rigidbody.teleport(position, pc.Vec3.ZERO);
+     * entity.physics.teleport(position, pc.Vec3.ZERO);
      * @example
      * // Teleport the entity to world-space coordinate [1, 2, 3] and reset orientation
      * entity.physics.teleport(1, 2, 3, 0, 0, 0);

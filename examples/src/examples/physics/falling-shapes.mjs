@@ -34,7 +34,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         pc.LightComponentSystem,
         pc.ScriptComponentSystem,
         pc.CollisionComponentSystem,
-        pc.RigidBodyComponentSystem,
+        pc.PhysicsComponentSystem,
         pc.ElementComponentSystem
     ];
     createOptions.resourceHandlers = [
@@ -72,7 +72,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         app.scene.ambientLight = new pc.Color(0.2, 0.2, 0.2);
 
         // Set the gravity for our rigid bodies
-        app.systems.rigidbody.gravity.set(0, -9.81, 0);
+        app.systems.physics.gravity.set(0, -9.81, 0);
         /**
          * @param {pc.Color} color 
          * @returns {pc.StandardMaterial}
@@ -252,13 +252,13 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
                     app.root.addChild(clone);
 
-                    clone.rigidbody.teleport(pc.math.random(-1, 1), 10, pc.math.random(-1, 1));
-                    clone.rigidbody.angularVelocity = new pc.Vec3(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5);
+                    clone.physics.teleport(pc.math.random(-1, 1), 10, pc.math.random(-1, 1));
+                    clone.physics.angularVelocity = new pc.Vec3(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5);
                 }
             }
 
             // Show active bodies in red and frozen bodies in gray
-            app.root.findComponents('rigidbody').forEach(function (/** @type {pc.RigidBodyComponent} */ body) {
+            app.root.findComponents('rigidbody').forEach(function (/** @type {pc.PhysicsComponent} */ body) {
                 body.entity.render.meshInstances[0].material = body.isActive() ? red : gray;
             });
         });

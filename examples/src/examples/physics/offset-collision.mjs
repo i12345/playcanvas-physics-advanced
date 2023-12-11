@@ -37,7 +37,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         pc.LightComponentSystem,
         pc.ScriptComponentSystem,
         pc.CollisionComponentSystem,
-        pc.RigidBodyComponentSystem,
+        pc.PhysicsComponentSystem,
         pc.AnimComponentSystem
     ];
     createOptions.resourceHandlers = [
@@ -92,7 +92,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         lightEntity.setLocalEulerAngles(45, 30, 0);
 
         // Set the gravity for our rigid bodies
-        app.systems.rigidbody.gravity.set(0, -9.81, 0);
+        app.systems.physics.gravity.set(0, -9.81, 0);
 
         /**
          * @param {pc.Color} color - The color.
@@ -238,7 +238,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
                     // Create a new ball to drop
                     const clone = ball.clone();
-                    clone.rigidbody.teleport(pc.math.random(-0.25, 0.25), 5, pc.math.random(-0.25, 0.25));
+                    clone.physics.teleport(pc.math.random(-0.25, 0.25), 5, pc.math.random(-0.25, 0.25));
 
                     app.root.addChild(clone);
                     clone.enabled = true;
@@ -247,7 +247,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
             // Show active bodies in red and frozen bodies in gray
             app.root.findByTag("shape").forEach(function (/** @type {pc.Entity} */ entity) {
-                entity.render.meshInstances[0].material = entity.rigidbody.isActive() ? red : gray;
+                entity.render.meshInstances[0].material = entity.physics.isActive() ? red : gray;
             });
 
             // Render the offset collision

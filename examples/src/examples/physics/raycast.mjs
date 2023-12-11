@@ -35,7 +35,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         pc.LightComponentSystem,
         pc.ScriptComponentSystem,
         pc.CollisionComponentSystem,
-        pc.RigidBodyComponentSystem,
+        pc.PhysicsComponentSystem,
         pc.ElementComponentSystem
     ];
     createOptions.resourceHandlers = [
@@ -172,7 +172,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
             // Render the ray used in the raycast
             app.drawLine(start, end, white);
 
-            const result = app.systems.rigidbody.raycastFirst(start, end);
+            const result = app.systems.physics.raycastFirst(start, end);
             if (result) {
                 result.entity.render.material = red;
 
@@ -188,7 +188,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
             // Render the ray used in the raycast
             app.drawLine(start, end, white);
 
-            const results = app.systems.rigidbody.raycastAll(start, end);
+            const results = app.systems.physics.raycastAll(start, end);
             results.forEach(function (result) {
                 result.entity.render.material = red;
 

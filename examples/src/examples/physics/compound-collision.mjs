@@ -30,7 +30,7 @@ async function example({ canvas, deviceType, ammoPath, glslangPath, twgslPath })
         pc.LightComponentSystem,
         pc.ScriptComponentSystem,
         pc.CollisionComponentSystem,
-        pc.RigidBodyComponentSystem,
+        pc.PhysicsComponentSystem,
         pc.ElementComponentSystem
     ];
     createOptions.resourceHandlers = [
@@ -402,7 +402,7 @@ async function example({ canvas, deviceType, ammoPath, glslangPath, twgslPath })
         }
 
         // Show active bodies in red and frozen bodies in gray
-        app.root.findComponents('rigidbody').forEach(function (/** @type {pc.RigidBodyComponent} */ body) {
+        app.root.findComponents('rigidbody').forEach(function (/** @type {pc.PhysicsComponent} */ body) {
             body.entity.findComponents('render').forEach(function (/** @type {pc.RenderComponent} */ render) {
                 render.material = body.isActive() ? red : gray;
             });
