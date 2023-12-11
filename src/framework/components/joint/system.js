@@ -1029,6 +1029,8 @@ class JointComponentSystem extends ComponentSystem {
                 case JOINT_TYPE_INVALID:
                 default:
                     Debug.error(`_createImplementation: Invalid collision system type: ${joint.type}`);
+                    impl = new FixedJointImpl();
+                    break;
             }
             this.implementations[joint.type] = impl;
         }
@@ -1065,24 +1067,20 @@ class JointComponentSystem extends ComponentSystem {
      * Updates the angular parameters for a joint.
      *
      * @param {JointComponent} joint - The joint to update angular parameters for
-     * @param {Vec3} limits_lower - The angular lower limits
-     * @param {Vec3} limits_upper - The angular upper limits
      */
-    updateAngularParameters(joint, limits_lower, limits_upper) {
+    updateAngularParameters(joint) {
         const impl = this._getImplementation(joint);
-        impl.updateAngularParameters(joint, limits_lower, limits_upper);
+        impl.updateAngularParameters(joint);
     }
 
     /**
      * Updates the linear parameters for a joint.
      *
      * @param {JointComponent} joint - The joint to update linear parameters for
-     * @param {Vec3} limits_lower - The linear lower limits
-     * @param {Vec3} limits_upper - The linear upper limits
      */
-    updateLinearParameters(joint, limits_lower, limits_upper) {
+    updateLinearParameters(joint) {
         const impl = this._getImplementation(joint);
-        impl.updateLinearParameters(joint, limits_lower, limits_upper);
+        impl.updateLinearParameters(joint);
     }
 
     /**

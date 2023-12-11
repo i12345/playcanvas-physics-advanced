@@ -160,6 +160,8 @@ class JointComponent extends Component {
         this._isForMultibodyLink = false;
         this._skipMultiBodyChance = false;
 
+        this._componentA = null;
+        this._componentB = null;
         this._entityA = null;
         this._entityB = null;
         this._breakForce = 3.4e+38;
@@ -310,12 +312,16 @@ class JointComponent extends Component {
         return this._skipMultiBodyChance;
     }
 
-    set entityA(body) {
+    set entityA(entity) {
+        if (this._componentA !== entity) {
+            this._componentA = entity;
+        }
+
         if (this._entityA && !this._skipMultiBodyChance) {
             this._removeMultiBodyEventHandlers();
         }
         // this._destroyConstraint();
-        this._entityA = body;
+        this._entityA = entity;
         if (this._entityA && !this._skipMultiBodyChance) {
             this._addMultiBodyEventHandlers();
         }
@@ -325,17 +331,35 @@ class JointComponent extends Component {
     /**
      * The first entity in this constraint.
      *
-     * If an entity is specified that does not have a {@link PhysicsComponent},
-     * then the closest parent of that entity with a {@link PhysicsComponent}
-     * will be used, preserving the relative transform.
+     * This is {@link componentA} or its nearest parent entity that has a
+     * {@link PhysicsComponent}.
      *
-     * If {@link isForMultibodyLink} is true, then this entity will be the
-     * parent multibody link.
-     *
-     * @type {import('../../entity').Entity}
+     * @type {import('../../entity.js').Entity|null}
      */
     get entityA() {
         return this._entityA;
+    }
+
+    set componentA(node) {
+        this._componentA = node;
+        this.entityA = node ? this._nearestEntity(node) : null;
+    }
+
+    /**
+     * The first graph node in this constraint.
+     *
+     * If a graph node is specified or an entity that does not have a
+     * {@link PhysicsComponent}, then the closest entity parent with a
+     * {@link PhysicsComponent} will be used, preserving the relative
+     * transform.
+     *
+     * If {@link isForMultibodyLink} is true, then this node will be the parent
+     * multibody link.
+     *
+     * @type {import('../../../scene/graph-node.js').GraphNode|null}
+     */
+    get componentA() {
+        return this._componentA;
     }
 
     set entityB(body) {
@@ -347,17 +371,35 @@ class JointComponent extends Component {
     /**
      * The second entity in this constraint.
      *
-     * If an entity is specified that does not have a {@link PhysicsComponent},
-     * then the closest parent of that entity with a {@link PhysicsComponent}
-     * will be used, preserving the relative transform.
+     * This is {@link componentB} or its nearest parent entity that has a
+     * {@link PhysicsComponent}.
      *
-     * If {@link isForMultibodyLink} is true, then this entity will be the
-     * child multibody link.
-     *
-     * @type {import('../../entity').Entity}
+     * @type {import('../../entity.js').Entity|null}
      */
     get entityB() {
         return this._entityB;
+    }
+
+    set componentB(node) {
+        this._componentB = node;
+        this.entityB = node ? this._nearestEntity(node) : null;
+    }
+
+    /**
+     * The second graph node in this constraint.
+     *
+     * If a graph node is specified or an entity that does not have a
+     * {@link PhysicsComponent}, then the closest entity parent with a
+     * {@link PhysicsComponent} will be used, preserving the relative
+     * transform.
+     *
+     * If {@link isForMultibodyLink} is true, then this node will be the child
+     * multibody link.
+     *
+     * @type {import('../../../scene/graph-node.js').GraphNode|null}
+     */
+    get componentB() {
+        return this._componentB;
     }
 
     set breakForce(force) {
@@ -379,6 +421,28 @@ class JointComponent extends Component {
 
     get enableCollision() {
         return this._enableCollision;
+    }
+
+    /**
+     * Returns the nearest entity with a {@link PhysicsComponent}
+     *
+     * @private
+     * @param {import('../../../scene/graph-node.js').GraphNode} node - the
+     * node to begin search from
+     * @returns {import('../../entity.js').Entity|null} - The nearest entity
+     * with physics from the node
+     */
+    _nearestEntity(node) {
+        /** @type {import('../../entity.js').Entity|null} */
+        let entity;
+        while (node !== node.root) {
+            entity = node;
+            if (entity?.physics) {
+                return entity;
+            }
+        }
+
+        return null;
     }
 
     _convertTransform(pcTransform, ammoTransform) {
@@ -426,6 +490,7 @@ class JointComponent extends Component {
     /**
      * @private
      * @param {import('../multibody/system').MultiBodySetup|undefined} multiBodySetup
+     * - The multibody setup this joint can be part of
      */
     _createConstraint(multiBodySetup) {
         this._isForMultibodyLink = !this._skipMultiBodyChance && (this._entityA?.multibody?.couldBeInMultibody ?? false);
