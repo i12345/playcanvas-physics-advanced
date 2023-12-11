@@ -82,7 +82,7 @@ async function example({ canvas, deviceType, ammoPath, glslangPath, twgslPath })
     const scene = [
         {
             // The Chair entity has a collision component of type 'compound' and a
-            // rigidbody component. This means that any descendent entity with a
+            // physics component. This means that any descendent entity with a
             // collision component is added to a compound collision shape on the
             // Chair entity. You can use compound collision shapes to define
             // complex, rigid shapes.
@@ -95,7 +95,7 @@ async function example({ canvas, deviceType, ammoPath, glslangPath, twgslPath })
                         type: 'compound'
                     }
                 }, {
-                    type: 'rigidbody',
+                    type: 'physics',
                     options: {
                         type: 'dynamic',
                         friction: 0.5,
@@ -283,7 +283,7 @@ async function example({ canvas, deviceType, ammoPath, glslangPath, twgslPath })
                         halfExtents: [5, 0.5, 5]
                     }
                 }, {
-                    type: 'rigidbody',
+                    type: 'physics',
                     options: {
                         type: 'static',
                         restitution: 0.5
@@ -402,7 +402,7 @@ async function example({ canvas, deviceType, ammoPath, glslangPath, twgslPath })
         }
 
         // Show active bodies in red and frozen bodies in gray
-        app.root.findComponents('rigidbody').forEach(function (/** @type {pc.PhysicsComponent} */ body) {
+        app.root.findComponents('physics').forEach(function (/** @type {pc.PhysicsComponent} */ body) {
             body.entity.findComponents('render').forEach(function (/** @type {pc.RenderComponent} */ render) {
                 render.material = body.isActive() ? red : gray;
             });

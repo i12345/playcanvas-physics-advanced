@@ -307,7 +307,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
             type: 'box',
             halfExtents: new pc.Vec3(7.5, 0, 7.5)
         });
-        planeEntity.addComponent("rigidbody", {
+        planeEntity.addComponent("physics", {
             type: 'static'
         });
         planeEntity.setLocalScale(15, 1, 15);

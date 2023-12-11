@@ -100,8 +100,8 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         // scale it
         floor.setLocalScale(10, 1, 10);
 
-        // add a rigidbody component so that other objects collide with it
-        floor.addComponent("rigidbody", {
+        // add a physics component so that other objects collide with it
+        floor.addComponent("physics", {
             type: "static",
             restitution: 0.5
         });
@@ -169,8 +169,8 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
                 });
             }
 
-            // ...a rigidbody component of type 'dynamic' so that it is simulated by the physics engine...
-            template.addComponent("rigidbody", {
+            // ...a physics component of type 'dynamic' so that it is simulated by the physics engine...
+            template.addComponent("physics", {
                 type: "dynamic",
                 mass: 50,
                 restitution: 0.5
@@ -258,7 +258,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
             }
 
             // Show active bodies in red and frozen bodies in gray
-            app.root.findComponents('rigidbody').forEach(function (/** @type {pc.PhysicsComponent} */ body) {
+            app.root.findComponents('physics').forEach(function (/** @type {pc.PhysicsComponent} */ body) {
                 body.entity.render.meshInstances[0].material = body.isActive() ? red : gray;
             });
         });

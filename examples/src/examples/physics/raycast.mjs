@@ -116,7 +116,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         function createPhysicalShape(type, material, x, y, z) {
             const e = new pc.Entity();
 
-            // Have to set the position of the entity before adding the static rigidbody
+            // Have to set the position of the entity before adding the static physics
             // component because static bodies cannot be moved after creation
             app.root.addChild(e);
             e.setPosition(x, y, z);
@@ -125,7 +125,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
                 type: type,
                 material: material
             });
-            e.addComponent("rigidbody", {
+            e.addComponent("physics", {
                 type: "static"
             });
             e.addComponent("collision", {

@@ -120,8 +120,8 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         floor.setLocalScale(10, 1, 10);
         floor.translateLocal(0, -0.5, 0);
 
-        // Add a rigidbody component so that other objects collide with it
-        floor.addComponent("rigidbody", {
+        // Add a physics component so that other objects collide with it
+        floor.addComponent("physics", {
             type: "static",
             restitution: 0.5
         });
@@ -176,7 +176,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
         // Add a rigid body and collision for the head with offset as the model's origin is
         // at the feet on the floor
-        modelEntity.addComponent("rigidbody", {
+        modelEntity.addComponent("physics", {
             type: "static",
             restitution: 0.5
         });
@@ -210,7 +210,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
             type: "sphere"
         });
 
-        ball.addComponent("rigidbody", {
+        ball.addComponent("physics", {
             type: "dynamic",
             mass: 50,
             restitution: 0.5
