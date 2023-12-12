@@ -433,11 +433,12 @@ class JointComponent extends Component {
      * with physics from the node
      */
     _nearestEntity(node) {
-        /** @type {import('../../entity.js').Entity|null} */
+        /** @type {import('../../entity.js').Entity} */
         let entity;
-        while (node !== node.root) {
-            entity = node;
-            if (entity?.physics) {
+        const root = this.entity.root;
+        for (; node !== root; node = /** @type {typeof node} */ (node.parent)) {
+            entity = /** @type {typeof entity} */ (/** @type {unknown} */ (node));
+            if (entity.physics) {
                 return entity;
             }
         }
