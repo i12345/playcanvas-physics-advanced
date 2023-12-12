@@ -167,6 +167,8 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
         // ball.enabled = false;
 
+        const useMultibody = false;
+
         /**
          * Makes a link
          *
@@ -217,32 +219,40 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
          * @returns {{ head: pc.Entity, tail: pc.GraphNode}} - chain head and tail
          */
         function chain(n, radius = 0.1, length = 1.5, parent = null) {
-            /** @type {pc.Entity|null} */
-            let tail = null;
+            /** @type {pc.GraphNode|null} */
+            let tail = parent;
             /** @type {pc.Entity|null} */
             let head = null;
+            /** @type {pc.GraphNode|null} */
+            let prev = parent;
 
-            while (n-- > 0) {
-                const prev = tail ?? parent;
-                const nextLink = link(length, radius, 0, prev);
+            for (let i = 0; i < n; i++) {
+                const nextLink = link(length, radius, 0, tail);
 
                 if (!head) {
                     head = nextLink.entity;
                 }
-                if (prev instanceof pc.Entity) {
-                    prev.addComponent('joint');
+                if (prev) {
+                    const jointEntity = new pc.Entity(`Joint ${i}`);
+                    prev.addChild(jointEntity);
+                    if (tail) jointEntity.setLocalPosition(tail.getLocalPosition());
+                    jointEntity.addComponent('multibody');
+                    jointEntity.multibody.couldBeInMultibody = useMultibody;
 
-                    // prev.joint.type = pc.JOINT_TYPE_HINGE;
-                    // prev.joint.motion.angular.x = pc.MOTION_FREE;
+                    jointEntity.addComponent('joint');
 
-                    prev.joint.type = pc.JOINT_TYPE_SPHERICAL;
-                    prev.joint.motion.angular.x = pc.MOTION_FREE;
-                    prev.joint.motion.angular.z = pc.MOTION_FREE;
+                    // jointEntity.joint.type = pc.JOINT_TYPE_HINGE;
+                    // jointEntity.joint.motion.angular.x = pc.MOTION_FREE;
 
-                    prev.joint.componentB = nextLink.entity;
-                    prev.joint.componentA = prev;
+                    jointEntity.joint.type = pc.JOINT_TYPE_SPHERICAL;
+                    jointEntity.joint.motion.angular.x = pc.MOTION_FREE;
+                    jointEntity.joint.motion.angular.z = pc.MOTION_FREE;
+
+                    jointEntity.joint.componentA = nextLink.entity;
+                    jointEntity.joint.componentB = prev;
                 }
                 tail = nextLink.tail;
+                prev = nextLink.entity;
             }
 
             return {
@@ -251,7 +261,7 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
             };
         }
 
-        const box = new pc.Entity();
+        const box = new pc.Entity("box");
         box.setLocalPosition(0, 4, 1);
         app.root.addChild(box);
         const box_size = new pc.Vec3(0.5, 0.5, 0.5);
@@ -260,26 +270,38 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         box_render.setLocalScale(box_size);
         box_render.addComponent('render', { type: 'box' });
         box_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
-        const box_attach_entity = new pc.Entity();
-        box_attach_entity.setLocalPosition(box_size.x, 0, 0);
-        box.addChild(box_attach_entity);
+        // const box_attach_node = new pc.Entity("box attach node");
+        // box_attach_node.setLocalPosition(box_size.x, 0, 0);
+        // box_attach_node.addComponent('physics');
+        // box_attach_node.addComponent('multibody');
+        // box.addChild(box_attach_node);
         box.addComponent('collision', { type: 'box', halfExtents: box_size.clone().divScalar(2) });
         box.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 1 });
-        
-        const chain1 = chain(20, 0.1, 0.5, box_attach_entity);
+
+        const links = 5;
+        const link_length = 0.85;
+        const link_radius = 0.1;
+
+        const chain1 = chain(links, link_radius, link_length, box); //box_attach_node);
+
+        if (useMultibody) {
+            box.addComponent('multibody');
+            box.multibody.makeBase();
+        }
 
         const weight = new pc.Entity();
-        const weight_size = new pc.Vec3(0.5, 0.5, 0.5);
+        const weight_size_half = new pc.Vec3(0.5, 0.5, 0.5);
         const weight_render = new pc.Entity();
         chain1.tail.addChild(weight);
-        weight.addComponent('collision', { type: 'box', halfExtents: weight_size });
+        weight.addComponent('collision', { type: 'box', halfExtents: weight_size_half });
         weight.addChild(weight_render);
-        weight_render.setLocalScale(weight_size);
+        weight_render.setLocalScale(weight_size_half);
         weight_render.addComponent('render', { type: 'box' });
         weight_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
-        weight.setLocalPosition(weight_size.x, 0, 0);
+        weight.setLocalPosition(weight_size_half.x + (link_length / 2) + link_radius, 0, 0);
         weight.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 5 });
-        
+        weight.addComponent('multibody');
+
         chain1.tail.addComponent('joint');
         chain1.tail.joint.componentA = chain1.tail;
         chain1.tail.joint.componentB = weight;
