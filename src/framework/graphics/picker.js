@@ -286,9 +286,11 @@ class Picker {
 }
 
 class PickerManaged {
-    get app() {
-        return this.picker.app;
-    }
+    /**
+     * @param {import('../app-base.js').AppBase} app - The application managing
+     * this picker instance.
+     */
+    app;
 
     /**
      * @param {import('../components/camera/component.js').CameraComponent} camera - The camera
@@ -327,6 +329,7 @@ class PickerManaged {
      * @param {Layer[]|undefined} [layers] - Layers from which objects will be picked. If not supplied, all layers of the specified camera will be used.
      */
     constructor(app, size, camera, scene, layers) {
+        this.app = app;
         this.camera = camera;
         this.scene = scene;
         this.layers = layers;
