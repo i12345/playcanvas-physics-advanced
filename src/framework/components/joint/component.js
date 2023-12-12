@@ -353,7 +353,7 @@ class JointComponent extends Component {
      * {@link PhysicsComponent} will be used, preserving the relative
      * transform.
      *
-     * If {@link isForMultibodyLink} is true, then this node will be the parent
+     * If {@link isForMultibodyLink} is true, then this node will be the child
      * multibody link.
      *
      * @type {import('../../../scene/graph-node.js').GraphNode|null}
@@ -393,7 +393,7 @@ class JointComponent extends Component {
      * {@link PhysicsComponent} will be used, preserving the relative
      * transform.
      *
-     * If {@link isForMultibodyLink} is true, then this node will be the child
+     * If {@link isForMultibodyLink} is true, then this node will be the parent
      * multibody link.
      *
      * @type {import('../../../scene/graph-node.js').GraphNode|null}
@@ -490,11 +490,16 @@ class JointComponent extends Component {
 
     /**
      * @private
-     * @param {import('../multibody/system').MultiBodySetup|undefined} multiBodySetup
+     * @param {import('../multibody/system.js').MultiBodySetup|undefined} multiBodySetup
      * - The multibody setup this joint can be part of
      */
     _createConstraint(multiBodySetup) {
+        this._destroyConstraint(undefined);
         this._isForMultibodyLink = !this._skipMultiBodyChance && (this._entityA?.multibody?.couldBeInMultibody ?? false);
+
+        if (this._isForMultibodyLink && !(this.entityA.isDescendantOf(this.entityB)))
+            throw new Error("entityA must be descendant of entityB for multibody joints");
+
         if (this._isForMultibodyLink && !multiBodySetup) {
             // If this joint is making a multibody link, then this method should be called from the multibody's setup event
             this.entityA.multibody.createBody();
@@ -502,9 +507,9 @@ class JointComponent extends Component {
         }
 
         if (this._entityA?.physics) {
-            if (!this._isForMultibodyLink) {
-                this._destroyConstraint(undefined);
-            }
+            // if (!this._isForMultibodyLink) {
+            //     this._destroyConstraint(undefined);
+            // }
 
             const mat = new Mat4();
 
@@ -544,7 +549,7 @@ class JointComponent extends Component {
 
     /**
      * @private
-     * @param {import('../multibody/system').MultiBodySetup|undefined} multiBodySetup
+     * @param {import('../multibody/system.js').MultiBodySetup|undefined} multiBodySetup
      */
     _destroyConstraint(multiBodySetup) {
         const app = this.system.app;
@@ -631,7 +636,7 @@ class JointComponent extends Component {
      * Event handler for entityA.multibody:beforeSetup.
      *
      * @private
-     * @param {import('../multibody/system').MultiBodySetup} multibodySetup - The multibody setup for the eligibility check
+     * @param {import('../multibody/system.js').MultiBodySetup} multibodySetup - The multibody setup for the eligibility check
      */
     _entityA_multibody_beforeSetup(multibodySetup) {
         multibodySetup.links.push(this.entityA);

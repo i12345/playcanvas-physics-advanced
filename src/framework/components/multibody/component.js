@@ -12,13 +12,13 @@ class MultiBodyComponent extends Component {
         super(system, entity);
 
         /**
-         * @type {import('ammojs3').default.btMultiBody}
+         * @type {import('ammojs3').default.btMultiBody|null}
          * @private
          */
         this._multibody = null;
 
         /**
-         * @type {import('ammojs3').default.btMultibodyLink}
+         * @type {import('ammojs3').default.btMultibodyLink|null}
          * @private
         */
         this._link = null;
@@ -30,7 +30,7 @@ class MultiBodyComponent extends Component {
         this._linkIndex = null;
 
         /**
-         * @type {MultiBodyComponent}
+         * @type {MultiBodyComponent|null}
          * @private
          */
         this._base = null;
@@ -42,12 +42,11 @@ class MultiBodyComponent extends Component {
         this._isBuildingMultibody = false;
     }
 
-    /** @type {import('ammojs3').default.btMultiBody} */
     set multibody(multibody) {
         this._multibody = multibody;
     }
 
-    /** @type {import('ammojs3').default.btMultiBody} */
+    /** @type {import('ammojs3').default.btMultiBody|null} */
     get multibody() {
         return this._multibody;
     }
@@ -56,7 +55,7 @@ class MultiBodyComponent extends Component {
         this._link = link;
     }
 
-    /** @type {import('ammojs3').default.btMultibodyLink} */
+    /** @type {import('ammojs3').default.btMultibodyLink|null} */
     get link() {
         return this._link;
     }
@@ -94,31 +93,31 @@ class MultiBodyComponent extends Component {
      * to this event.
      *
      * @event PhysicsComponent#beforeSetup
-     * @param {import('./system').MultiBodySetup} setup - Information to prepare to make the multibody
+     * @param {import('./system.js').MultiBodySetup} setup - Information to prepare to make the multibody
      */
 
     /**
      * Fired when an entity becomes the base or descendant of a multibody.
      *
      * @event PhysicsComponent#setup
-     * @param {import('./system').MultiBodySetup} setup - Information to make the multibody
+     * @param {import('./system.js').MultiBodySetup} setup - Information to make the multibody
      */
 
     /**
      * Fired after an entity becomes the base or descendant of a multibody.
      *
      * @event PhysicsComponent#afterSetup
-     * @param {import('./system').MultiBodySetup} setup - Information used to make the multibody
+     * @param {import('./system.js').MultiBodySetup} setup - Information used to make the multibody
      */
 
     /**
      * Fired when an entity is removed from a multibody.
      *
      * @event PhysicsComponent#unsetup
-     * @param {import('./system').MultiBodySetup} unsetup - Information used to make the multibody
+     * @param {import('./system.js').MultiBodySetup} unsetup - Information used to make the multibody
      */
 
-    /** */
+    /** Fired when this component is enabled */
     onEnable() {
         this._findBase();
         if (this._base && !this._base._isBuildingMultibody) {
@@ -126,6 +125,7 @@ class MultiBodyComponent extends Component {
         }
     }
 
+    /** Fired when this component is disabled */
     onDisable() {
         if (this.isInMultibody) {
             this.removeLinkFromMultiBody();
@@ -136,7 +136,7 @@ class MultiBodyComponent extends Component {
         this._base = null;
         let base = this.entity.parent;
         while (base) {
-            if (base.multibody && base.multibody._base) {
+            if (base.multibody && (/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (base))).multibody._base?.enabled) {
                 this._base = base.multibody._base;
                 break;
             }
@@ -147,7 +147,7 @@ class MultiBodyComponent extends Component {
 
     /**
      * @private
-     * @param {import('./system').MultiBodySetup} setup - The setup information
+     * @param {import('./system.js').MultiBodySetup} setup - The setup information
      */
     setup(setup) {
         const index = this._linkIndex = setup.indexOf(this.entity);
@@ -173,7 +173,7 @@ class MultiBodyComponent extends Component {
 
     /**
      * @private
-     * @param {import('./system').MultiBodySetup} setup - The setup information
+     * @param {import('./system.js').MultiBodySetup} setup - The setup information
      */
     beforeSetup(setup) {
         this.fire('beforeSetup', setup);
@@ -182,6 +182,7 @@ class MultiBodyComponent extends Component {
             if (child.findComponent) {
                 if (!child.multibody) {
                     child.addComponent('multibody');
+                    child.multibody.enabled = true;
                 }
                 if (child.multibody._base === this._base) {
                     child.multibody.beforeSetup(setup);
@@ -192,7 +193,7 @@ class MultiBodyComponent extends Component {
 
     /**
      * @private
-     * @param {import('./system').MultiBodySetup} setup - The setup information
+     * @param {import('./system.js').MultiBodySetup} setup - The setup information
      */
     afterSetup(setup) {
         if (this.isInMultibody) {
@@ -216,7 +217,7 @@ class MultiBodyComponent extends Component {
 
     /**
      * @private
-     * @param {import('./system').MultiBodySetup} setup - The setup information
+     * @param {import('./system.js').MultiBodySetup} setup - The setup information
      */
     unsetup(setup) {
         if (this._link || this._multibody) {
@@ -243,7 +244,18 @@ class MultiBodyComponent extends Component {
             throw new Error("Cannot remove from multibody because not in multibody.");
         }
 
-        this.createBody();
+        if (!this.isBaseLink) {
+            this.createBody();
+        } else {
+            const system = /** @type {import('./system.js').MultiBodyComponentSystem} */ (this.system)
+            const setup = system.getSetup(this.entity);
+            system.destroyMultiBody(this.entity);
+
+            for (const link of setup.links) {
+                link.multibody._findBase();
+                link.multibody.createBody();
+            }
+        }
     }
 
     createBody() {

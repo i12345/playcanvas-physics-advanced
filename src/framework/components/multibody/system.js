@@ -17,9 +17,9 @@ class MultiBodySetup {
      * entity (if they are not already bases of their own multibodies),
      * so they can change to become links in this {@link base}'s multibody.
      *
-     * @param {import('../../entity').Entity} base - The base entity for this
-     * multibody
-     * @param {import('../../entity').Entity[]} links - The entities to make
+     * @param {import('../../entity.js').Entity} base - The base entity for
+     * this multibody
+     * @param {import('../../entity.js').Entity[]} links - The entities to make
      * links for this multibody
      */
     constructor(base, links) {
@@ -96,11 +96,23 @@ class MultiBodyComponentSystem extends ComponentSystem {
     }
 
     /**
+     * Gets the {@link MultiBodySetup} for the given base entity.
+     * @param {import('../../entity.js').Entity} base - base entity for the
+     * multibody to get setup for.
+     * @returns {MultiBodySetup} - The setup for the multibody with this base.
+     */
+    getSetup(base) {
+        return this._setup[base.getGuid()];
+    }
+
+    /**
      * Invites a component to an existing multibody, and, if accepted,
      * recreates the multibody.
      *
-     * @param {import('../../entity').Entity} base - The base for the multibody.
-     * @param {import('../../entity').Entity} entity - The entity to invite to the multibody.
+     * @param {import('../../entity.js').Entity} base - The base for the
+     * multibody.
+     * @param {import('../../entity.js').Entity} entity - The entity to invite
+     * to the multibody.
      */
     offerLinkMembership(base, entity) {
         const setup = new MultiBodySetup(base, []);
@@ -118,7 +130,8 @@ class MultiBodyComponentSystem extends ComponentSystem {
      * Creates a multibody from the given {@link base} link.
      *
      * @private
-     * @param {import('../../entity').Entity} base - The base component for the multibody.
+     * @param {import('../../entity.js').Entity} base - The base component for
+     * the multibody.
      */
     createMultiBody(base) {
         if (!base.physics || !base.physics.enabled)
@@ -166,7 +179,8 @@ class MultiBodyComponentSystem extends ComponentSystem {
      * Destroys the multibody for the given {@link base} link.
      *
      * @private
-     * @param {import('../../entity').Entity} base - The base component for the multibody.
+     * @param {import('../../entity.js').Entity} base - The base component for
+     * the multibody.
      */
     destroyMultiBody(base) {
         const multibody = base.multibody._multibody;
@@ -183,7 +197,8 @@ class MultiBodyComponentSystem extends ComponentSystem {
      * Before removing a multibody component from an entity.
      *
      * @private
-     * @param {import('../../entity').Entity} entity - The entity to remove the multibody component from
+     * @param {import('../../entity.js').Entity} entity - The entity to remove
+     * the multibody component from
      * @param {MultiBodyComponent} component - The multibody component to remove
      */
     onBeforeRemove(entity, component) {
@@ -196,11 +211,12 @@ class MultiBodyComponentSystem extends ComponentSystem {
      * Removes a multibody component from an entity.
      *
      * @private
-     * @param {import('../../entity').Entity} entity - The entity to remove the multibody component from
+     * @param {import('../../entity.js').Entity} entity - The entity to remove
+     * the multibody component from
      * @param {MultiBodyComponent} component - The multibody component to remove
      */
     onRemove(entity, component) {
-        if (component._base) {
+        if (component.isBaseLink) {
             this.destroyMultiBody(component._base.entity);
         }
     }
