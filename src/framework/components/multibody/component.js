@@ -114,7 +114,7 @@ class MultiBodyComponent extends Component {
     /**
      * Fired when an entity is removed from a multibody.
      *
-     * @event PhysicsComponent#afterSetup
+     * @event PhysicsComponent#unsetup
      * @param {import('./system').MultiBodySetup} unsetup - Information used to make the multibody
      */
 
