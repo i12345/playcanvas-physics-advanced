@@ -1,5 +1,31 @@
 import { Component } from "../component.js";
 
+/**
+ * The multibody component, when combined with a {@link PhysicsComponent}, allows your entities
+ * to compose articulated multibodies using bullet physics. This can give much greater precision
+ * and control for many entities with joints.
+ *
+ * The multibody component must be manually enabled at the root entity, and when using multibody
+ * components, the joint componentA/entityA should be the child entity and componentB/entityB should
+ * be the parent entity. The root entity for a multibody will be the componentB/entityB of at least
+ * one joint.
+ *
+ * You should never need to use the MultiBodyComponent constructor. To add a MultiBodyComponent to
+ * a {@link Entity}, use {@link Entity#addComponent}:
+ *
+ * To create a multibody chain, do:
+ *
+ * ```javascript
+ * //TODO
+ * ```
+ *
+ * Relevant 'Engine-only' examples:
+ *
+ * - Joint (not in official playcanvas; see physics > joint example in custom build)
+ *
+ * @augments Component
+ * @category Physics
+ */
 class MultiBodyComponent extends Component {
     /**
      * Create a new MultiBodyComponent instance.
@@ -69,6 +95,12 @@ class MultiBodyComponent extends Component {
         return this._linkIndex;
     }
 
+    /**
+     * The base multibody component. This is automatically made to be
+     * the parent closest to root with enabled multibody component.
+     *
+     * @type {MultiBodyComponent|null}
+     */
     get base() {
         return this._base;
     }
@@ -128,20 +160,20 @@ class MultiBodyComponent extends Component {
     /** Fired when this component is disabled */
     onDisable() {
         if (this.isInMultibody) {
-            this.removeLinkFromMultiBody();
+            this.base?.createBody();
         }
     }
 
     _findBase() {
         this._base = null;
-        let base = this.entity.parent;
-        while (base) {
-            if (base.multibody && (/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (base))).multibody._base?.enabled) {
-                this._base = base.multibody._base;
+        let node = this.entity.parent;
+        while (node) {
+            if ((/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody?.enabled) {
+                this._base = (/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody;
                 break;
             }
 
-            base = base.parent;
+            node = node.parent;
         }
     }
 
@@ -176,7 +208,8 @@ class MultiBodyComponent extends Component {
      * @param {import('./system.js').MultiBodySetup} setup - The setup information
      */
     beforeSetup(setup) {
-        this.fire('beforeSetup', setup);
+        if (this.enabled)
+            this.fire('beforeSetup', setup);
 
         for (const child of this.entity.children) {
             if (child.findComponent) {
@@ -239,25 +272,9 @@ class MultiBodyComponent extends Component {
         }
     }
 
-    removeLinkFromMultiBody() {
-        if (!this.isInMultibody) {
-            throw new Error("Cannot remove from multibody because not in multibody.");
-        }
-
-        if (!this.isBaseLink) {
-            this.createBody();
-        } else {
-            const system = /** @type {import('./system.js').MultiBodyComponentSystem} */ (this.system)
-            const setup = system.getSetup(this.entity);
-            system.destroyMultiBody(this.entity);
-
-            for (const link of setup.links) {
-                link.multibody._findBase();
-                link.multibody.createBody();
-            }
-        }
-    }
-
+    /**
+     * Creates or re-creates the multibody this component may be part of.
+     */
     createBody() {
         if (this._base === this) {
             if (this.multibody) {

@@ -159,6 +159,7 @@ class JointComponent extends Component {
         this._type = JOINT_TYPE_6DOF;
         this._isForMultibodyLink = false;
         this._skipMultiBodyChance = false;
+        this._tmp_skipMultiBodyChance = false;
 
         this._componentA = null;
         this._componentB = null;
@@ -320,11 +321,13 @@ class JointComponent extends Component {
         if (this._entityA && !this._skipMultiBodyChance) {
             this._removeMultiBodyEventHandlers();
         }
-        // this._destroyConstraint();
+        this._tmp_skipMultiBodyChance = true;
+        this._destroyConstraint();
         this._entityA = entity;
         if (this._entityA && !this._skipMultiBodyChance) {
             this._addMultiBodyEventHandlers();
         }
+        this._tmp_skipMultiBodyChance = false;
         this._createConstraint(undefined);
     }
 
@@ -363,7 +366,7 @@ class JointComponent extends Component {
     }
 
     set entityB(body) {
-        // this._destroyConstraint(undefined);
+        this._destroyConstraint(undefined);
         this._entityB = body;
         this._createConstraint(undefined);
     }
@@ -494,6 +497,8 @@ class JointComponent extends Component {
      * - The multibody setup this joint can be part of
      */
     _createConstraint(multiBodySetup) {
+        if (!this.enabled) return;
+
         this._destroyConstraint(undefined);
         this._isForMultibodyLink = !this._skipMultiBodyChance && (this._entityA?.multibody?.couldBeInMultibody ?? false);
 
@@ -557,7 +562,7 @@ class JointComponent extends Component {
 
         if (this._isForMultibodyLink && !multiBodySetup) {
             // If this joint is making a multibody link, then this method should be called from the multibody's unsetup event
-            this.entity.multibody.removeLinkFromMultiBody();
+            this.entityA.multibody?.createBody();
             return;
         }
 
