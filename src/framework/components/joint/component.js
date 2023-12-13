@@ -156,23 +156,42 @@ class JointComponent extends Component {
         /** @type {import('ammojs3').default.btMultiBodyConstraint|null} */
         this._multiBodyMotorConstraint = null;
 
+        /** @type {import('./constants.js').JointType} */
         this._type = JOINT_TYPE_6DOF;
+        /** @type {boolean} */
         this._isForMultibodyLink = false;
+        /** @type {boolean} */
         this._skipMultiBodyChance = false;
-        this._tmp_skipMultiBodyChance = false;
 
+        /** @type {boolean} */
+        this._tmp_skipMultiBodyChance = false;
+        /** @type {boolean} */
+        this._isSettingConstraints = false;
+
+        /** @type {import('../../../scene/graph-node.js').GraphNode|null} */
         this._componentA = null;
+        /** @type {import('../../../scene/graph-node.js').GraphNode|null} */
         this._componentB = null;
+        /** @type {import('../../entity.js').Entity|null} */
         this._entityA = null;
+        /** @type {import('../../entity.js').Entity|null} */
         this._entityB = null;
+        /** @type {number} */
         this._breakForce = 3.4e+38;
+        /** @type {boolean} */
         this._enableCollision = true;
 
+        /** @type {LinearAngularXYZPair<import('./constants.js').JointMotion>} */
         this._motion = new LinearAngularXYZPair(this, { x: MOTION_LOCKED, y: MOTION_LOCKED, z: MOTION_LOCKED }, { x: MOTION_LOCKED, y: MOTION_LOCKED, z: MOTION_LOCKED });
+        /** @type {LinearAngularXYZPair<Vec2>} */
         this._limits = new LinearAngularXYZPair(this, { x: new Vec2(), y: new Vec2(), z: new Vec2() }, { x: new Vec2(), y: new Vec2(), z: new Vec2() });
+        /** @type {LinearAngularXYZPair<boolean>} */
         this._springs = new LinearAngularXYZPair(this, { x: false, y: false, z: false }, { x: false, y: false, z: false });
+        /** @type {LinearAngularPair<Vec3>} */
         this._stiffness = new LinearAngularPair(this, new Vec3(0, 0, 0), new Vec3(0, 0, 0));
+        /** @type {LinearAngularPair<Vec3>} */
         this._damping = new LinearAngularPair(this, new Vec3(0.1, 0.1, 0.1), new Vec3(0.1, 0.1, 0.1));
+        /** @type {LinearAngularPair<Vec3>} */
         this._equilibrium = new LinearAngularPair(this, new Vec3(0, 0, 0), new Vec3(0, 0, 0));
 
         this.on('beforeremove', this._onBeforeRemove, this);
@@ -204,20 +223,23 @@ class JointComponent extends Component {
         return this._equilibrium;
     }
 
-    /**
-     * @type {import('ammojs3').default.btTypedConstraint|null}
-     */
     set rigidBodyConstraint(constraint) {
-        if (this.enabled) {
-            const app = this.system.app;
-            const dynamicsWorld = app.systems.physics.dynamicsWorld;
-            if (this._multiBodyLimitConstraint) {
-                dynamicsWorld.removeConstraint(this._rigidBodyConstraint);
-                Ammo.destroy(this._rigidBodyConstraint);
-            }
-            if (constraint) {
-                dynamicsWorld.addConstraint(constraint, !this._enableCollision);
-            }
+        if (!this._isSettingConstraints)
+            throw new Error("cannot be changed");
+
+        if (constraint === this._rigidBodyConstraint)
+            return;
+
+        const app = this.system.app;
+        const dynamicsWorld = app.systems.physics.dynamicsWorld;
+
+        if (this._rigidBodyConstraint) {
+            dynamicsWorld.removeConstraint(this._rigidBodyConstraint);
+            Ammo.destroy(this._rigidBodyConstraint);
+        }
+
+        if (this.enabled && constraint) {
+            dynamicsWorld.addConstraint(constraint, this._enableCollision);
         }
 
         this._rigidBodyConstraint = constraint;
@@ -227,20 +249,23 @@ class JointComponent extends Component {
         return this._rigidBodyConstraint;
     }
 
-    /**
-     * @type {import('ammojs3').default.btMultiBodyConstraint|null}
-     */
     set multiBodyLimitConstraint(constraint) {
-        if (this.enabled) {
-            const app = this.system.app;
-            const dynamicsWorld = app.systems.physics.dynamicsWorld;
-            if (this._multiBodyLimitConstraint) {
-                dynamicsWorld.removeMultiBodyConstraint(this._multiBodyLimitConstraint);
-                Ammo.destroy(this._multiBodyLimitConstraint);
-            }
-            if (constraint) {
-                dynamicsWorld.addMultiBodyConstraint(constraint);
-            }
+        if (!this._isSettingConstraints)
+            throw new Error("cannot be changed");
+
+        if (constraint === this._multiBodyLimitConstraint)
+            return;
+
+        const app = this.system.app;
+        const dynamicsWorld = app.systems.physics.dynamicsWorld;
+
+        if (this._multiBodyLimitConstraint) {
+            dynamicsWorld.removeMultiBodyConstraint(this._multiBodyLimitConstraint);
+            Ammo.destroy(this._multiBodyLimitConstraint);
+        }
+
+        if (this.enabled && constraint) {
+            dynamicsWorld.addMultiBodyConstraint(constraint);
         }
 
         this._multiBodyLimitConstraint = constraint;
@@ -250,20 +275,23 @@ class JointComponent extends Component {
         return this._multiBodyLimitConstraint;
     }
 
-    /**
-     * @type {import('ammojs3').default.btMultiBodyConstraint|null}
-     */
     set multiBodyMotorConstraint(constraint) {
-        if (this.enabled) {
-            const app = this.system.app;
-            const dynamicsWorld = app.systems.physics.dynamicsWorld;
-            if (this._multiBodyMotorConstraint) {
-                dynamicsWorld.removeMultiBodyConstraint(this._multiBodyMotorConstraint);
-                Ammo.destroy(this._multiBodyMotorConstraint);
-            }
-            if (constraint) {
-                dynamicsWorld.addMultiBodyConstraint(constraint);
-            }
+        if (!this._isSettingConstraints)
+            throw new Error("cannot be changed");
+
+        if (constraint === this._multiBodyMotorConstraint)
+            return;
+
+        const app = this.system.app;
+        const dynamicsWorld = app.systems.physics.dynamicsWorld;
+
+        if (this._multiBodyMotorConstraint) {
+            dynamicsWorld.removeMultiBodyConstraint(this._multiBodyMotorConstraint);
+            Ammo.destroy(this._multiBodyMotorConstraint);
+        }
+
+        if (this.enabled && constraint) {
+            dynamicsWorld.addMultiBodyConstraint(constraint);
         }
 
         this._multiBodyMotorConstraint = constraint;
@@ -275,6 +303,7 @@ class JointComponent extends Component {
 
     set type(type) {
         if (this._type !== type) {
+            this._destroyConstraint(undefined);
             this._type = type;
             this._createConstraint(undefined);
         }
@@ -294,16 +323,9 @@ class JointComponent extends Component {
      * @type {boolean}
      */
     set skipMultiBodyChance(skip) {
-        if (this._skipMultiBodyChance && !skip) {
-            this._addMultiBodyEventHandlers();
-            if (this.entityA?.multibody?.couldBeInMultibody) {
-                this._createConstraint(undefined);
-            }
-        } else if (!this._skipMultiBodyChance && skip) {
-            this._removeMultiBodyEventHandlers();
-            if (this.entityA?.multibody?.isInMultibody) {
-                this._createConstraint(undefined);
-            }
+        if (this._skipMultiBodyChance !== skip && this.entityA?.multibody?.couldBeInMultibody) {
+            this._destroyConstraint(undefined);
+            this._createConstraint(undefined);
         }
 
         this._skipMultiBodyChance = skip;
@@ -314,20 +336,21 @@ class JointComponent extends Component {
     }
 
     set entityA(entity) {
-        if (this._componentA !== entity) {
+        if (entity !== null && !(this._componentA === entity || this._componentA?.isDescendantOf(entity))) {
             this._componentA = entity;
         }
 
-        if (this._entityA && !this._skipMultiBodyChance) {
+        this._destroyConstraint(undefined);
+
+        const changedEntity = (this._entityA === entity);
+        if (changedEntity) {
             this._removeMultiBodyEventHandlers();
         }
-        this._tmp_skipMultiBodyChance = true;
-        this._destroyConstraint();
+
         this._entityA = entity;
-        if (this._entityA && !this._skipMultiBodyChance) {
+        if (changedEntity) {
             this._addMultiBodyEventHandlers();
         }
-        this._tmp_skipMultiBodyChance = false;
         this._createConstraint(undefined);
     }
 
@@ -344,6 +367,7 @@ class JointComponent extends Component {
     }
 
     set componentA(node) {
+        if (this._componentA === node) return;
         this._componentA = node;
         this.entityA = node ? this._nearestEntity(node) : null;
     }
@@ -365,9 +389,13 @@ class JointComponent extends Component {
         return this._componentA;
     }
 
-    set entityB(body) {
+    set entityB(entity) {
+        if (entity !== null && !(this._componentB === entity || this._componentB?.isDescendantOf(entity))) {
+            this._componentB = entity;
+        }
+
         this._destroyConstraint(undefined);
-        this._entityB = body;
+        this._entityB = entity;
         this._createConstraint(undefined);
     }
 
@@ -384,6 +412,7 @@ class JointComponent extends Component {
     }
 
     set componentB(node) {
+        if (this._componentB === node) return;
         this._componentB = node;
         this.entityB = node ? this._nearestEntity(node) : null;
     }
@@ -417,7 +446,7 @@ class JointComponent extends Component {
     }
 
     set enableCollision(enableCollision) {
-        // this._destroyConstraint();
+        this._destroyConstraint(undefined);
         this._enableCollision = enableCollision;
         this._createConstraint(undefined);
     }
@@ -449,6 +478,12 @@ class JointComponent extends Component {
         return null;
     }
 
+    /**
+     * Converts a PlayCanvas transform into an ammo/bullet transform.
+     * @private
+     * @param {import('../../../core/math/mat4.js').Mat4} pcTransform - the PlayCanvas mat4 transform to convert
+     * @param {import('ammojs3').default.btTransform} ammoTransform - the Ammo/Bullet transform to copy into
+     */
     _convertTransform(pcTransform, ammoTransform) {
         const pos = pcTransform.getTranslation();
         const rot = new Quat();
@@ -470,7 +505,9 @@ class JointComponent extends Component {
             return;
         }
 
+        this._isSettingConstraints = true;
         this.system.updateAngularParameters(this);
+        this._isSettingConstraints = false;
     }
 
     /** @private */
@@ -479,7 +516,9 @@ class JointComponent extends Component {
             return;
         }
 
+        this._isSettingConstraints = true;
         this.system.updateLinearParameters(this);
+        this._isSettingConstraints = false;
     }
 
     /** @private */
@@ -488,7 +527,9 @@ class JointComponent extends Component {
             return;
         }
 
+        this._isSettingConstraints = true;
         this.system.updateOtherParameters(this);
+        this._isSettingConstraints = false;
     }
 
     /**
@@ -499,23 +540,23 @@ class JointComponent extends Component {
     _createConstraint(multiBodySetup) {
         if (!this.enabled) return;
 
-        this._destroyConstraint(undefined);
-        this._isForMultibodyLink = !this._skipMultiBodyChance && (this._entityA?.multibody?.couldBeInMultibody ?? false);
+        const _isForMultibodyLink = !this._skipMultiBodyChance && (this._entityA?.multibody?.couldBeInMultibody ?? false);
 
-        if (this._isForMultibodyLink && !(this.entityA.isDescendantOf(this.entityB)))
-            throw new Error("entityA must be descendant of entityB for multibody joints");
-
-        if (this._isForMultibodyLink && !multiBodySetup) {
-            // If this joint is making a multibody link, then this method should be called from the multibody's setup event
-            this.entityA.multibody.createBody();
-            return;
+        if (_isForMultibodyLink) {
+            if (!multiBodySetup) {
+                // If this joint is making a multibody link, then this method should be called from the multibody's setup event
+                this.entityA.multibody.createBody();
+                return;
+            } else if (this._tmp_skipMultiBodyChance) {
+                return;
+            } else if (!(this._entityA.isDescendantOf(this._entityB))) {
+                throw new Error("entityA must be descendant of entityB for multibody joints");
+            }
         }
 
-        if (this._entityA?.physics) {
-            // if (!this._isForMultibodyLink) {
-            //     this._destroyConstraint(undefined);
-            // }
+        this._isForMultibodyLink = _isForMultibodyLink;
 
+        if (this._entityA?.physics) {
             const mat = new Mat4();
 
             this._entityA.physics.activate();
@@ -541,7 +582,9 @@ class JointComponent extends Component {
                 this._convertTransform(mat, frameB);
             }
 
+            this._isSettingConstraints = true;
             this.system.createJoint(this._entityA, this._entityB, this, frameA, frameB);
+            this._isSettingConstraints = false;
 
             Ammo.destroy(frameB);
             Ammo.destroy(frameA);
@@ -557,31 +600,21 @@ class JointComponent extends Component {
      * @param {import('../multibody/system.js').MultiBodySetup|undefined} multiBodySetup
      */
     _destroyConstraint(multiBodySetup) {
-        const app = this.system.app;
-        const dynamicsWorld = app.systems.physics.dynamicsWorld;
-
         if (this._isForMultibodyLink && !multiBodySetup) {
             // If this joint is making a multibody link, then this method should be called from the multibody's unsetup event
-            this.entityA.multibody?.createBody();
+            this._tmp_skipMultiBodyChance = true;
+            this.entityA.multibody.createBody();
+            this._tmp_skipMultiBodyChance = false;
             return;
         }
 
-        if (this._rigidBodyConstraint) {
-            dynamicsWorld.removeConstraint(this._rigidBodyConstraint);
-            Ammo.destroy(this._rigidBodyConstraint);
-            this._rigidBodyConstraint = null;
-        } else {
-            if (this._multiBodyLimitConstraint) {
-                dynamicsWorld.removeMultiBodyConstraint(this._multiBodyLimitConstraint);
-                Ammo.destroy(this._multiBodyLimitConstraint);
-                this._multiBodyLimitConstraint = null;
-            }
-            if (this._multiBodyMotorConstraint) {
-                dynamicsWorld.removeMultiBodyConstraint(this._multiBodyMotorConstraint);
-                Ammo.destroy(this._multiBodyMotorConstraint);
-                this._multiBodyMotorConstraint = null;
-            }
-        }
+        this._isSettingConstraints = true;
+        this.rigidBodyConstraint = null;
+        this.multiBodyMotorConstraint = null;
+        this.multiBodyLimitConstraint = null;
+        this._isSettingConstraints = false;
+
+        this._isForMultibodyLink = false;
     }
 
     initFromData(data) {
@@ -613,25 +646,19 @@ class JointComponent extends Component {
      * @private
      */
     _addMultiBodyEventHandlers() {
-        if (!this.skipMultiBodyChance) {
-            if (!this._entityA.multibody) {
-                this._entityA.addComponent('multibody');
-            }
-
-            this._entityA.multibody.on('beforeSetup', this._entityA_multibody_beforeSetup, this);
-            this._entityA.multibody.on('setup', this._createConstraint, this);
-            this._entityA.multibody.on('unsetup', this._destroyConstraint, this);
+        if (!this._entityA?.multibody) {
+            this._entityA?.addComponent('multibody');
         }
+
+        this._entityA?.multibody.on('beforeSetup', this._entityA_multibody_beforeSetup, this);
+        this._entityA?.multibody.on('setup', this._createConstraint, this);
+        this._entityA?.multibody.on('unsetup', this._destroyConstraint, this);
     }
 
     /**
      * @private
      */
     _removeMultiBodyEventHandlers() {
-        if (!this._entityA?.multibody) {
-            return;
-        }
-
         this._entityA?.multibody?.off('beforeSetup', this._entityA_multibody_beforeSetup, this);
         this._entityA?.multibody?.off('setup', this._createConstraint, this);
         this._entityA?.multibody?.off('unsetup', this._destroyConstraint, this);

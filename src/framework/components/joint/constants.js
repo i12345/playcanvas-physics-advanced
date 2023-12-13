@@ -1,4 +1,12 @@
 /**
+ * @typedef {(typeof JOINT_TYPE_6DOF) | (typeof JOINT_TYPE_FIXED) | (typeof JOINT_TYPE_HINGE) | (typeof JOINT_TYPE_SLIDER) | (typeof JOINT_TYPE_SPHERICAL) | (typeof JOINT_TYPE_INVALID)} JointType
+ */
+
+/**
+ * @typedef {(typeof MOTION_FREE) | (typeof MOTION_LIMITED) | (typeof MOTION_LOCKED)} JointMotion
+ */
+
+/**
  * Specified degree of freedom has free movement.
  *
  * @type {string}
