@@ -39,7 +39,6 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         pc.CollisionComponentSystem,
         pc.PhysicsComponentSystem,
         pc.JointComponentSystem,
-        // pc.InputComponentSystem,
         pc.MultiBodyComponentSystem
     ];
     createOptions.resourceHandlers = [
@@ -146,92 +145,6 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
         app.root.addChild(cameraEntity);
 
-        // // create a ball template that we can clone in the update loop
-        // const ball = new pc.Entity();
-        // ball.tags.add('shape');
-        // ball.setLocalScale(0.4, 0.4, 0.4);
-        // ball.addComponent("render", {
-        //     type: "sphere"
-        // });
-
-        // ball.addComponent("physics", {
-        //     type: "dynamic",
-        //     mass: 50,
-        //     restitution: 0.5
-        // });
-
-        // ball.addComponent("collision", {
-        //     type: "sphere",
-        //     radius: 0.2
-        // });
-
-        // ball.enabled = false;
-
-        const useMultibody = true;
-
-        /**
-         * Makes a link
-         *
-         * @param {number} length - length of link
-         * @param {number} radius - radius of link
-         * @param {number} interlinkdist - inter-link distance
-         * @param {pc.GraphNode|null} parent - parent graph node / link
-         * @param {number} index - link index
-         * @returns {pc.Entity} - The link
-         */
-        function link(length, radius, interlinkdist, parent, index) {
-            const entity = new pc.Entity(`Link ${index}`);
-            parent?.addChild(entity);
-            entity.setLocalPosition(length + (2 * interlinkdist), 0, 0);
-            entity.addComponent('collision', { type: 'capsule', axis: 0 });
-            entity.collision.radius = radius;
-            entity.collision.height = length;
-            // entity.collision.height = length + (2 * radius);
-            entity.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC });
-            entity.physics.mass = 1;
-
-            const render_entity = new pc.Entity();
-            entity.addChild(render_entity);
-            render_entity.addComponent('render', { type: 'cylinder' });
-            render_entity.render.material = createMaterial(new pc.Color(0.3, 0.4, 0.4));
-            render_entity.setLocalEulerAngles(0, 0, 0);
-            render_entity.setLocalScale(length, radius, radius);
-
-            if (parent) {
-                const jointEntity = new pc.Entity(`Joint ${index}`);
-                entity.addChild(jointEntity);
-                jointEntity.setLocalPosition(-(length / 2) - (interlinkdist / 2), 0, 0);
-                jointEntity.addComponent('joint');
-                jointEntity.joint.type = pc.JOINT_TYPE_SPHERICAL;
-                jointEntity.joint.motion.angular.x = pc.MOTION_FREE;
-                jointEntity.joint.motion.angular.z = pc.MOTION_FREE;
-
-                jointEntity.joint.componentA = entity;
-                jointEntity.joint.componentB = parent;
-            }
-
-            return entity;
-        }
-
-        /**
-         * Makes a chain with a given number of links.
-         * @param {number} n - Number of chain links
-         * @param {number} [length] - length of capsule, from center of head to center of tail
-         * @param {number} [radius] - radius of capsule
-         * @param {pc.GraphNode|null} [parent] - the parent for the first link
-         * @returns {pc.GraphNode} - last link
-         */
-        function chain(n, radius = 0.1, length = 1.5, parent = null) {
-            /** @type {pc.GraphNode|null} */
-            let prev = parent;
-
-            for (let i = 0; i < n; i++) {
-                prev = link(length, radius, 0, prev, i);
-            }
-
-            return /** @type {pc.GraphNode} */ (prev);
-        }
-
         const box = new pc.Entity("box");
         box.setLocalPosition(0, 4, 1);
         app.root.addChild(box);
@@ -241,83 +154,90 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         box_render.setLocalScale(box_size);
         box_render.addComponent('render', { type: 'box' });
         box_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
-        // const box_attach_node = new pc.Entity("box attach node");
-        // box_attach_node.setLocalPosition(box_size.x, 0, 0);
-        // box_attach_node.addComponent('physics');
-        // box_attach_node.addComponent('multibody');
-        // box.addChild(box_attach_node);
         box.addComponent('collision', { type: 'box', halfExtents: box_size.clone().divScalar(2) });
         box.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 5 });
 
-        const links = 10;
-        const link_length = 0.85;
-        const link_radius = 0.1;
+        function addLink(/** @type {pc.GraphNode} */ prev, /** @type {number} */ q) {
+            const joint_length = 1;
+            const joint_margin = 0.25;
 
-        const chain1 = chain(links, link_radius, link_length, box); //box_attach_node);
+            const link1 = new pc.Entity("link1");
+            link1.setLocalPosition(joint_length + joint_margin, 0, 0);
+            prev.addChild(link1);
+            link1.addComponent('collision');
+            link1.addComponent('physics', { type: pc.BODYTYPE_DYNAMIC, mass: 0.1 });
+            link1.collision.type = 'box';
+            link1.collision.halfExtents = new pc.Vec3(joint_length / 2, 0.1, 0.1);
+            const link1_render = new pc.Entity();
+            link1.addChild(link1_render);
+            link1_render.addComponent('render', { type: 'box', material: createMaterial(new pc.Color(q, q, q)) });
+            link1_render.setLocalScale(link1.collision.halfExtents.clone().mulScalar(2));
+            const link1_joint = new pc.Entity();
+            link1_joint.setLocalPosition(-(joint_length / 2) - (joint_margin / 2), 0, 0);
+            link1.addChild(link1_joint);
+            link1_joint.addComponent('joint');
+            link1_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
+            link1_joint.joint.motion.angular.x = pc.MOTION_FREE;
+            link1_joint.joint.motion.angular.z = pc.MOTION_FREE;
+            link1_joint.joint.componentA = link1;
+            link1_joint.joint.componentB = prev;
 
-        const weight = new pc.Entity("weight");
-        const weight_size_half = new pc.Vec3(0.5, 0.5, 0.5);
-        const weight_render = new pc.Entity();
-        chain1.addChild(weight);
-        weight.addChild(weight_render);
-        weight_render.setLocalScale(weight_size_half);
-        weight_render.addComponent('render', { type: 'box' });
-        weight_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
-        weight.setLocalPosition(weight_size_half.x + (link_length / 2) + link_radius, 0, 0);
-        weight.addComponent('collision', { type: 'box', halfExtents: weight_size_half });
-        weight.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 1 });
-        weight.addComponent('multibody');
+            return {
+                entity: link1,
+                joint: /** @type {pc.JointComponent} */ (link1_joint.joint)
+            };
+        }
 
-        const weight_joint = new pc.Entity();
-        chain1.addChild(weight_joint);
-        weight_joint.setLocalPosition((link_length / 2) + (link_radius / 2), 0, 0);
+        const joints = /** @type {pc.JointComponent[]} */ ([]);
+        const n = 10;
+        for (let i = 0, prev = box; i < n; i++) {
+            const link = addLink(prev, i / n);
+            prev = link.entity;
+            joints.push(link.joint);
+        }
 
-        weight_joint.addComponent('joint');
-        weight_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
-        weight_joint.joint.motion.angular.x = pc.MOTION_FREE;
-        weight_joint.joint.motion.angular.z = pc.MOTION_FREE;
-        weight_joint.joint.componentB = chain1;
-        weight_joint.joint.componentA = weight;
+        // const weight = new pc.Entity("weight");
+        // const weight_size_half = new pc.Vec3(0.5, 0.5, 0.5);
+        // const weight_render = new pc.Entity();
+        // chain1.addChild(weight);
+        // weight.addChild(weight_render);
+        // weight_render.setLocalScale(weight_size_half);
+        // weight_render.addComponent('render', { type: 'box' });
+        // weight_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
+        // weight.setLocalPosition(weight_size_half.x + (link_length / 2) + link_radius, 0, 0);
+        // weight.addComponent('collision', { type: 'box', halfExtents: weight_size_half });
+        // weight.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 1 });
+        // weight.addComponent('multibody');
 
+        // const weight_joint = new pc.Entity();
+        // link1.addChild(weight_joint);
+        // weight_joint.setLocalPosition((link_length / 2) + (link_radius / 2), 0, 0);
+
+        // weight_joint.addComponent('joint');
+        // weight_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
+        // weight_joint.joint.motion.angular.x = pc.MOTION_FREE;
+        // weight_joint.joint.motion.angular.z = pc.MOTION_FREE;
+        // weight_joint.joint.componentB = chain1;
+        // weight_joint.joint.componentA = weight;
+
+        const useMultibody = true;
         if (useMultibody) {
             box.addComponent('multibody');
             box.multibody.makeBase();
         }
 
-        // app.systems.input.enabled = true;
-        // box.addComponent('input');
-        // box.input.focus();
-        // box.input.on(pc.EVENT_INPUT_KEY_DOWN, (/** @type {pc.KeyInputEvent} */ e) => {
-        //     const force = new pc.Vec3();
-        //     switch (e.key) {
-        //         case pc.KEY_LEFT:
-        //         case pc.KEY_A:
-        //             force.x = -1;
-        //             break;
-        //         case pc.KEY_RIGHT:
-        //         case pc.KEY_D:
-        //             force.x = +1;
-        //             break;
-        //         case pc.KEY_UP:
-        //         case pc.KEY_W:
-        //             force.z = -1;
-        //             break;
-        //         case pc.KEY_DOWN:
-        //         case pc.KEY_S:
-        //             force.z = +1;
-        //             break;
-        //         case pc.KEY_SPACE:
-        //             force.y = 10;
-        //             break;
-        //         default:
-        //             break;
-        //     }
-
-        //     box.physics?.applyForce(force);
-        // });
+        let t = 0;
 
         // Set an update function on the application's update event
         app.on("update", function (dt) {
+            t += dt;
+
+            if (t > 1) {
+                for (const joint of joints) {
+                    joint.
+                }
+            }
+
             cameraEntity.lookAt(box.getPosition());
 
             // Show active bodies in red and frozen bodies in gray
@@ -329,10 +249,10 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
     return app;
 }
 
-class JointExample {
+class JointWithMotorExample {
     static CATEGORY = 'Physics';
     static WEBGPU_ENABLED = true;
     static example = example;
 }
 
-export { JointExample };
+export { JointWithMotorExample };
