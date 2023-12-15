@@ -758,11 +758,11 @@ class JointComponent extends Component {
 
             this._entityA.physics.activate();
 
-            const jointWtm = this.entity.getWorldTransform();
+            const world_joint = this.entity.getWorldTransform();
 
-            const entityAWtm = this._entityA.getWorldTransform();
-            const invEntityAWtm = entityAWtm.clone().invert();
-            mat.mul2(invEntityAWtm, jointWtm);
+            const world_A = this._entityA.getWorldTransform();
+            const world_A_inv = world_A.clone().invert();
+            mat.mul2(world_A_inv, world_joint);
 
             const frameA = new Ammo.btTransform();
             const frameB = new Ammo.btTransform();
@@ -772,9 +772,9 @@ class JointComponent extends Component {
             if (this._entityB?.physics) {
                 this._entityB.physics.activate();
 
-                const entityBWtm = this._entityB.getWorldTransform();
-                const invEntityBWtm = entityBWtm.clone().invert();
-                mat.mul2(invEntityBWtm, jointWtm);
+                const world_B = this._entityB.getWorldTransform();
+                const world_B_inv = world_B.clone().invert();
+                mat.mul2(world_B_inv, world_joint);
 
                 this._convertTransform(mat, frameB);
             }
