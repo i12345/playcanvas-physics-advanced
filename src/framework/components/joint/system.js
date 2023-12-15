@@ -1,10 +1,12 @@
+import { Debug } from '../../../core/debug.js';
 import { math } from '../../../core/math/math.js';
+import { Quat } from '../../../core/math/quat.js';
 import { Vec3 } from '../../../core/math/vec3.js';
 import { Component } from '../component.js';
 import { ComponentSystem } from '../system.js';
 
 import { JointComponent } from './component.js';
-import { JOINT_TYPE_6DOF, JOINT_TYPE_FIXED, JOINT_TYPE_HINGE, JOINT_TYPE_INVALID, JOINT_TYPE_SLIDER, JOINT_TYPE_SPHERICAL, MOTION_FREE, MOTION_LIMITED, MOTION_LOCKED } from './constants.js';
+import { JOINT_TYPE_6DOF, JOINT_TYPE_FIXED, JOINT_TYPE_HINGE, JOINT_TYPE_INVALID, JOINT_TYPE_SLIDER, JOINT_TYPE_SPHERICAL, MOTION_FREE, MOTION_LIMITED, MOTION_LOCKED, MOTOR_TARGET_POSITION, MOTOR_TARGET_VELOCITY, MOTOR_OFF } from './constants.js';
 import { JointComponentData } from './data.js';
 
 const _schema = ['enabled'];
@@ -67,10 +69,12 @@ class JointImpl {
      * velocity or it can be turned off.
      *
      * @param {JointComponent} joint - The joint to set the motor for
-     * @param {'position'|'velocity'|'off'|null} mode - The motor mode.
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
      * If given `null`, the motor will turn off.
-     * @param {number|Vec3|undefined} target - The position or velocity the motor should target
-     * @param {number} maxImpulse - The maximum impulse the joint motor should apply
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
      */
     setMotor(joint, mode, target, maxImpulse) {
         throw new Error("not implemented");
@@ -265,12 +269,17 @@ class Generic6DofJointImpl extends JointImpl {
      * velocity or it can be turned off.
      *
      * @param {JointComponent} joint - The joint to set the motor for
-     * @param {'position'|'velocity'|'off'|null} mode - The motor mode.
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
      * If given `null`, the motor will turn off.
-     * @param {number|Vec3|undefined} target - The position or velocity the motor should target
-     * @param {number} maxImpulse - The maximum impulse the joint motor should apply
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
      */
     setMotor(joint, mode, target, maxImpulse) {
+        // TODO: implement
+        // https://stackoverflow.com/a/67466146
+
         throw new Error("motor not support for 6DoF constraint");
     }
 }
@@ -406,10 +415,12 @@ class SphericalJointImpl extends JointImpl {
      * velocity or it can be turned off.
      *
      * @param {JointComponent} joint - The joint to set the motor for
-     * @param {'position'|'velocity'|'off'|null} mode - The motor mode.
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
      * If given `null`, the motor will turn off.
-     * @param {number|Vec3|undefined} target - The position or velocity the motor should target
-     * @param {number} maxImpulse - The maximum impulse the joint motor should apply
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
      */
     setMotor(joint, mode, target, maxImpulse) {
         const enabled = mode && mode !== 'off';
@@ -417,7 +428,7 @@ class SphericalJointImpl extends JointImpl {
         if (joint.isForMultibodyLink) {
             const multibodyComponent = joint.entityA.multibody;
 
-            /** @type {import('ammojs3').default.btMultiBodySphericalJointMotor} */
+            /** @type {import('ammojs3').default.btMultiBodySphericalJointMotor|null} */
             let constraint = joint.multiBodyMotorConstraint;
             if (constraint && !enabled) {
                 joint.multiBodyMotorConstraint = null;
@@ -431,16 +442,23 @@ class SphericalJointImpl extends JointImpl {
                 return; // there was no constraint and it was not enabled
             }
 
-            constraint.setMaxAppliedImpulse(maxImpulse);
-            if (mode === 'position') {
-                if (!(target instanceof Vec3))
-                    throw new Error("target must be a Vec3");
+            if (maxImpulse !== undefined)
+                constraint.setMaxAppliedImpulse(maxImpulse);
 
+            if (mode === MOTOR_TARGET_POSITION) {
                 const q = new Ammo.btQuaternion();
-                q.setEulerZYX(target.z, target.y, target.x);
+
+                if (target instanceof Vec3) {
+                    q.setEulerZYX(target.z, target.y, target.x);
+                } else if (target instanceof Quat) {
+                    q.setValue(target.x, target.y, target.z, target.w);
+                } else {
+                    throw new Error("target must be a Vec3 or Quat");
+                }
+
                 constraint.setPositionTarget(q);
                 Ammo.destroy(q);
-            } else if (mode === 'velocity') {
+            } else if (mode === MOTOR_TARGET_VELOCITY) {
                 if (!(target instanceof Vec3))
                     throw new Error("target must be a Vec3");
 
@@ -456,17 +474,24 @@ class SphericalJointImpl extends JointImpl {
             /** @type {import('ammojs3').default.btConeTwistConstraint} */
             const constraint = joint.rigidBodyConstraint;
             constraint.enableMotor(enabled);
-            constraint.setMaxMotorImpulseNormalized(maxImpulse);
 
-            if (mode === 'position') {
-                if (!(target instanceof Vec3))
-                    throw new Error("target must be a Vec3");
+            if (maxImpulse !== undefined)
+                constraint.setMaxMotorImpulseNormalized(maxImpulse);
 
+            if (mode === MOTOR_TARGET_POSITION) {
                 const q = new Ammo.btQuaternion();
-                q.setEulerZYX(target.z, target.y, target.x);
+
+                if (target instanceof Vec3) {
+                    q.setEulerZYX(target.z, target.y, target.x);
+                } else if (target instanceof Quat) {
+                    q.setValue(target.x, target.y, target.z, target.w);
+                } else {
+                    throw new Error("target must be a Vec3 or Quat");
+                }
+
                 constraint.setMotorTargetInConstraintSpace(q);
                 Ammo.destroy(q);
-            } else if (mode === 'velocity') {
+            } else if (mode === MOTOR_TARGET_VELOCITY) {
                 throw new Error("cannot set rigidbody spherical joint motor in velocity mode");
             } else {
                 throw new Error("unsupported motor mode");
@@ -531,30 +556,10 @@ class HingeJointImpl extends JointImpl {
             Ammo.destroy(offset_a2j);
             Ammo.destroy(offset_j2b);
         } else {
-            const axis_A_j = new Ammo.btVector3(axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0);
-            const axis_B_j = new Ammo.btVector3(axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0);
-            const axis_A_q = frameA.getRotation();
-            const axis_B_q = frameB.getRotation();
-            const axis_A_l = Ammo.TopLevelFunctions.prototype.quatRotate_(axis_A_q, axis_A_j);
-            const axis_B_l = Ammo.TopLevelFunctions.prototype.quatRotate_(axis_B_q, axis_B_j);
-
             const constraint =
-                new Ammo.btHingeConstraint(
-                    entityA.physics.rigidBody,
-                    entityB.physics.rigidBody,
-                    frameA.getOrigin(),
-                    frameB.getOrigin(),
-                    axis_A_l,
-                    axis_B_l,
-                    true
-                );
-
-            Ammo.destroy(axis_A_j);
-            Ammo.destroy(axis_B_j);
-            Ammo.destroy(axis_A_q);
-            Ammo.destroy(axis_B_q);
-            Ammo.destroy(axis_A_l);
-            Ammo.destroy(axis_B_l);
+                entityB ?
+                    new Ammo.btHingeConstraint(entityA.physics.rigidBody, entityB.physics.rigidBody, frameA, frameB, true) :
+                    new Ammo.btHingeConstraint(entityA.physics.rigidBody, frameA, true);
 
             joint.rigidBodyConstraint = constraint;
         }
@@ -626,13 +631,47 @@ class HingeJointImpl extends JointImpl {
      * velocity or it can be turned off.
      *
      * @param {JointComponent} joint - The joint to set the motor for
-     * @param {'position'|'velocity'|'off'|null} mode - The motor mode.
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
      * If given `null`, the motor will turn off.
-     * @param {number|Vec3|undefined} target - The position or velocity the motor should target
-     * @param {number} maxImpulse - The maximum impulse the joint motor should apply
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
      */
     setMotor(joint, mode, target, maxImpulse) {
         const enabled = mode && mode !== 'off';
+
+        if (target instanceof Quat) {
+            const real_axis = { x: new Vec3(1, 0, 0), y: new Vec3(0, 1, 0), z: new Vec3(0, 0, 1) }[this.axis(joint)];
+            const target_axis = new Vec3();
+            const target_angle = target.getAxisAngle(target_axis);
+            if (target_angle === 0) {
+                target = 0;
+            } else {
+                const axis_dot = target_axis.dot(real_axis);
+
+                Debug.assert(Math.abs(Math.abs(axis_dot) - 1) < 0.01);
+
+                target = axis_dot * target_angle;
+            }
+        } else if (target instanceof Vec3) {
+            const real_axis = this.axis(joint);
+            const real_angle = target[real_axis];
+
+            switch (real_axis) {
+                case "x":
+                    Debug.assert(Math.abs(target.y) < 0.01 && Math.abs(target.z) < 0.01);
+                    break;
+                case "y":
+                    Debug.assert(Math.abs(target.x) < 0.01 && Math.abs(target.z) < 0.01);
+                    break;
+                case "z":
+                    Debug.assert(Math.abs(target.x) < 0.01 && Math.abs(target.y) < 0.01);
+                    break;
+            }
+
+            target = real_angle;
+        }
 
         if (joint.isForMultibodyLink) {
             const multibodyComponent = joint.entityA.multibody;
@@ -656,15 +695,17 @@ class HingeJointImpl extends JointImpl {
                 return; // there was no constraint and it was not enabled
             }
 
-            constraint.setMaxAppliedImpulse(maxImpulse);
-            if (mode === 'position') {
+            if (maxImpulse !== undefined)
+                constraint.setMaxAppliedImpulse(maxImpulse);
+
+            if (mode === MOTOR_TARGET_POSITION) {
                 if (typeof target !== 'number')
-                    throw new Error("target must be a number");
+                    throw new Error("target must be a number or quat with same axis");
 
                 constraint.setPositionTarget(target);
-            } else if (mode === 'velocity') {
+            } else if (mode === MOTOR_TARGET_VELOCITY) {
                 if (typeof target !== 'number')
-                    throw new Error("target must be a number");
+                    throw new Error("target must be a number or quat with same axis");
 
                 constraint.setVelocityTarget(target);
             } else {
@@ -675,24 +716,26 @@ class HingeJointImpl extends JointImpl {
             /** @type {import('ammojs3').default.btHingeConstraint} */
             const constraint = joint.rigidBodyConstraint;
 
-            if (mode !== 'position') {
+            if (mode !== MOTOR_TARGET_POSITION) {
                 constraint.enableMotor(false);
             }
-            if (mode !== 'velocity') {
+            if (mode !== MOTOR_TARGET_VELOCITY) {
                 // TODO: does the angular motor need to be disabled?
                 constraint.enableAngularMotor(false, 0, maxImpulse);
             }
 
-            if (mode === 'position') {
+            if (maxImpulse !== undefined)
+                constraint.setMaxMotorImpulse(maxImpulse);
+
+            if (mode === MOTOR_TARGET_POSITION) {
                 if (typeof target !== 'number')
-                    throw new Error("target must be a number");
+                    throw new Error("target must be a number or quat with same axis");
 
                 constraint.enableMotor(true);
-                constraint.setMaxMotorImpulse(maxImpulse);
-                constraint.setMotorTarget(target, 10); // TODO: what value for dt?
-            } else if (mode === 'velocity') {
+                constraint.setMotorTarget(target, 1); // TODO: what value for dt?
+            } else if (mode === MOTOR_TARGET_VELOCITY) {
                 if (typeof target !== 'number')
-                    throw new Error("target must be a number");
+                    throw new Error("target must be a number or quat with same axis");
 
                 constraint.enableAngularMotor(true, target, maxImpulse);
             } else {
@@ -836,10 +879,12 @@ class SliderJointImpl extends JointImpl {
      * velocity or it can be turned off.
      *
      * @param {JointComponent} joint - The joint to set the motor for
-     * @param {'position'|'velocity'|'off'|null} mode - The motor mode.
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
      * If given `null`, the motor will turn off.
-     * @param {number|Vec3|undefined} target - The position or velocity the motor should target
-     * @param {number} maxImpulse - The maximum impulse the joint motor should apply
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
      */
     setMotor(joint, mode, target, maxImpulse) {
         const enabled = mode && mode !== 'off';
@@ -852,24 +897,28 @@ class SliderJointImpl extends JointImpl {
 
             if (!enabled) {
                 constraint.setPoweredLinMotor(false);
-            } else if (mode === 'position') {
-                if (typeof target !== 'number')
-                    throw new Error("target must be a number");
-
-                // TODO: what parameters can be set?
-                // can an artificial motor controller be made for this?
-                constraint.setLowerLinLimit(target);
-                constraint.setUpperLinLimit(target);
-            } else if (mode === 'velocity') {
-                if (typeof target !== 'number')
-                    throw new Error("target must be a number");
-
-                constraint.setPoweredLinMotor(true);
-                // TODO: research the difference between max linear motor force and max impulse
-                constraint.setMaxLinMotorForce(maxImpulse);
-                constraint.setTargetLinMotorVelocity(target);
             } else {
-                throw new Error("unsupported motor mode");
+                // TODO: research the difference between max linear motor force and max impulse
+                if (maxImpulse !== undefined)
+                    constraint.setMaxLinMotorForce(maxImpulse);
+
+                if (mode === MOTOR_TARGET_POSITION) {
+                    if (typeof target !== 'number')
+                        throw new Error("target must be a number");
+
+                    // TODO: what parameters can be set?
+                    // can an artificial motor controller be made for this?
+                    constraint.setLowerLinLimit(target);
+                    constraint.setUpperLinLimit(target);
+                } else if (mode === MOTOR_TARGET_VELOCITY) {
+                    if (typeof target !== 'number')
+                        throw new Error("target must be a number");
+
+                    constraint.setPoweredLinMotor(true);
+                    constraint.setTargetLinMotorVelocity(target);
+                } else {
+                    throw new Error("unsupported motor mode");
+                }
             }
         }
     }
@@ -955,10 +1004,12 @@ class FixedJointImpl extends JointImpl {
      * velocity or it can be turned off.
      *
      * @param {JointComponent} joint - The joint to set the motor for
-     * @param {'position'|'velocity'|'off'|null} mode - The motor mode.
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
      * If given `null`, the motor will turn off.
-     * @param {number|Vec3|undefined} target - The position or velocity the motor should target
-     * @param {number} maxImpulse - The maximum impulse the joint motor should apply
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
      */
     setMotor(joint, mode, target, maxImpulse) {
         const enabled = (mode && mode !== 'off');
@@ -996,8 +1047,124 @@ class JointComponentSystem extends ComponentSystem {
         this.implementations = {};
     }
 
+    /**
+     * Called during {@link ComponentSystem#addComponent} to initialize the component data in the
+     * store. This can be overridden by derived Component Systems and either called by the derived
+     * System or replaced entirely.
+     *
+     * @param {import('./component.js').JointComponent} component - The component being initialized.
+     * @param {import('./data.js').JointComponentData} data - The data block used to initialize the component.
+     * @param {Array<string | {name: string, type: string}>} properties - The array of property
+     * descriptors for the component. A descriptor can be either a plain property name, or an
+     * object specifying the name and type.
+     * @ignore
+     */
     initializeComponentData(component, data, properties) {
-        component.initFromData(data);
+        component._initFromData(data);
+        super.initializeComponentData(component, data, properties);
+    }
+
+    /**
+     * Create a clone of component. This creates a copy of all component data variables.
+     *
+     * @param {import('../../entity.js').Entity} entity - The entity to clone the component from.
+     * @param {import('../../entity.js').Entity} clone - The entity to clone the component into.
+     * @returns {import('../component.js').Component} The newly cloned component.
+     * @ignore
+     */
+    cloneComponent(entity, clone) {
+        //TODO: use ComponentSystem.store for data for joints
+
+        /** @type {JointComponentData} */
+        const data = {
+            enabled: entity.joint.enabled,
+
+            motion: {
+                linear: {
+                    x: entity.joint.motion.linear.x,
+                    y: entity.joint.motion.linear.y,
+                    z: entity.joint.motion.linear.z
+                },
+                angular: {
+                    x: entity.joint.motion.angular.x,
+                    y: entity.joint.motion.angular.y,
+                    z: entity.joint.motion.angular.z
+                }
+            },
+
+            limits: {
+                linear: {
+                    x: entity.joint.limits.linear.x,
+                    y: entity.joint.limits.linear.y,
+                    z: entity.joint.limits.linear.z
+                },
+                angular: {
+                    x: entity.joint.limits.angular.x,
+                    y: entity.joint.limits.angular.y,
+                    z: entity.joint.limits.angular.z
+                }
+            },
+
+            springs: {
+                linear: {
+                    x: entity.joint.springs.linear.x,
+                    y: entity.joint.springs.linear.y,
+                    z: entity.joint.springs.linear.z
+                },
+                angular: {
+                    x: entity.joint.springs.angular.x,
+                    y: entity.joint.springs.angular.y,
+                    z: entity.joint.springs.angular.z
+                }
+            },
+
+            stiffness: {
+                linear: {
+                    x: entity.joint.stiffness.linear.x,
+                    y: entity.joint.stiffness.linear.y,
+                    z: entity.joint.stiffness.linear.z
+                },
+                angular: {
+                    x: entity.joint.stiffness.angular.x,
+                    y: entity.joint.stiffness.angular.y,
+                    z: entity.joint.stiffness.angular.z
+                }
+            },
+
+            damping: {
+                linear: {
+                    x: entity.joint.damping.linear.x,
+                    y: entity.joint.damping.linear.y,
+                    z: entity.joint.damping.linear.z
+                },
+                angular: {
+                    x: entity.joint.damping.angular.x,
+                    y: entity.joint.damping.angular.y,
+                    z: entity.joint.damping.angular.z
+                }
+            },
+
+            equilibrium: {
+                linear: {
+                    x: entity.joint.equilibrium.linear.x,
+                    y: entity.joint.equilibrium.linear.y,
+                    z: entity.joint.equilibrium.linear.z
+                },
+                angular: {
+                    x: entity.joint.equilibrium.angular.x,
+                    y: entity.joint.equilibrium.angular.y,
+                    z: entity.joint.equilibrium.angular.z
+                }
+            },
+
+            breakForce: entity.joint.breakForce,
+            enableCollision: entity.joint.enableCollision,
+
+            skipMultiBodyChance: entity.joint.skipMultiBodyChance,
+            enableMultiBodyComponents: entity.joint.enableMultiBodyComponents
+        };
+
+        return super.addComponent(clone, data);
     }
 
     /**
@@ -1091,6 +1258,23 @@ class JointComponentSystem extends ComponentSystem {
     updateOtherParameters(joint) {
         const impl = this._getImplementation(joint);
         impl.updateOtherParameters(joint);
+    }
+
+    /**
+     * Sets the motor for the joint. It can target a certain position or
+     * velocity or it can be turned off.
+     *
+     * @param {JointComponent} joint - The joint to set the motor for
+     * @param {import('./constants.js').JointMotorMode|null} mode - The motor mode.
+     * If given `null`, the motor will turn off.
+     * @param {number|Vec3|Quat|undefined} [target] - The position or velocity
+     * the motor should target.
+     * @param {number|undefined} [maxImpulse] - The maximum impulse the joint
+     * motor should apply
+     */
+    updateMotor(joint, mode, target, maxImpulse) {
+        const impl = this._getImplementation(joint);
+        impl.setMotor(joint, mode, target, maxImpulse);
     }
 }
 

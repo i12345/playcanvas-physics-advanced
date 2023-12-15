@@ -180,9 +180,10 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
                 jointEntity.joint.type = pc.JOINT_TYPE_SPHERICAL;
                 jointEntity.joint.motion.angular.x = pc.MOTION_FREE;
                 jointEntity.joint.motion.angular.z = pc.MOTION_FREE;
+                jointEntity.joint.enableMultiBodyComponents = true;
 
-                jointEntity.joint.componentA = entity;
                 jointEntity.joint.componentB = parent;
+                jointEntity.joint.componentA = entity;
 
                 const render_jointEntity = new pc.Entity();
                 jointEntity.addChild(render_jointEntity);
@@ -235,35 +236,29 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
 
         const chain1 = chain(links, link_radius, link_length, box); //box_attach_node);
 
-        const weight = new pc.Entity("weight");
-        const weight_size_half = new pc.Vec3(0.5, 0.5, 0.5);
-        const weight_render = new pc.Entity();
-        chain1.addChild(weight);
-        weight.addChild(weight_render);
-        weight_render.setLocalScale(weight_size_half);
-        weight_render.addComponent('render', { type: 'box' });
-        weight_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
-        weight.setLocalPosition(weight_size_half.x + (link_length / 2) + link_radius, 0, 0);
-        weight.addComponent('collision', { type: 'box', halfExtents: weight_size_half });
-        weight.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 1 });
-        weight.addComponent('multibody');
+        // const weight = new pc.Entity("weight");
+        // const weight_size_half = new pc.Vec3(0.5, 0.5, 0.5);
+        // const weight_render = new pc.Entity();
+        // chain1.addChild(weight);
+        // weight.addChild(weight_render);
+        // weight_render.setLocalScale(weight_size_half);
+        // weight_render.addComponent('render', { type: 'box' });
+        // weight_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
+        // weight.setLocalPosition(weight_size_half.x + (link_length / 2) + link_radius, 0, 0);
+        // weight.addComponent('collision', { type: 'box', halfExtents: weight_size_half });
+        // weight.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 1 });
+        // weight.addComponent('multibody');
 
-        const weight_joint = new pc.Entity();
-        chain1.addChild(weight_joint);
-        weight_joint.setLocalPosition((link_length / 2) + (link_radius / 2), 0, 0);
+        // const weight_joint = new pc.Entity();
+        // chain1.addChild(weight_joint);
+        // weight_joint.setLocalPosition((link_length / 2) + (link_radius / 2), 0, 0);
 
-        weight_joint.addComponent('joint');
-        weight_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
-        weight_joint.joint.motion.angular.x = pc.MOTION_FREE;
-        weight_joint.joint.motion.angular.z = pc.MOTION_FREE;
-        weight_joint.joint.componentB = chain1;
-        weight_joint.joint.componentA = weight;
-
-        const useMultibody = true;
-        if (useMultibody) {
-            box.addComponent('multibody');
-            box.multibody.makeBase();
-        }
+        // weight_joint.addComponent('joint');
+        // weight_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
+        // weight_joint.joint.motion.angular.x = pc.MOTION_FREE;
+        // weight_joint.joint.motion.angular.z = pc.MOTION_FREE;
+        // weight_joint.joint.componentB = chain1;
+        // weight_joint.joint.componentA = weight;
 
         // Set an update function on the application's update event
         app.on("update", function (dt) {

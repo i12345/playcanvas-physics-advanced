@@ -5,6 +5,7 @@ import { MultiBodyComponent } from "./component.js";
 import { MultiBodyComponentData } from "./data.js";
 
 import { Vec3 } from "../../../core/math/vec3.js";
+import { Debug } from "../../../core/debug.js";
 
 const _schema = ['enabled'];
 
@@ -67,21 +68,6 @@ class MultiBodyComponentSystem extends ComponentSystem {
     }
 
     initializeComponentData(component, data, properties) {
-        const props = [
-            'multibody'
-        ];
-
-        for (const property of props) {
-            if (data.hasOwnProperty(property)) {
-                const value = data[property];
-                if (Array.isArray(value)) {
-                    component[property] = new Vec3(value[0], value[1], value[2]);
-                } else {
-                    component[property] = value;
-                }
-            }
-        }
-
         super.initializeComponentData(component, data, ['enabled']);
     }
 
@@ -134,8 +120,10 @@ class MultiBodyComponentSystem extends ComponentSystem {
      * the multibody.
      */
     createMultiBody(base) {
-        if (!base.physics || !base.physics.enabled)
-            throw new Error("Cannot create a multibody without physics for the base.");
+        if (!base.physics || !base.physics.enabled) {
+            Debug.error("Cannot create a multibody without physics for the base.");
+            return;
+        }
 
         const setup = this._setup[base.getGuid()] = new MultiBodySetup(base, []);
         base.multibody.beforeSetup(setup);
@@ -157,7 +145,7 @@ class MultiBodyComponentSystem extends ComponentSystem {
             false);
 
         multibody.setHasSelfCollision(true);
-        base.multibody.multibody = multibody;
+        base.multibody._multibody = multibody;
 
         const pos_pc = base.getPosition();
         const rot_pc = base.getRotation();

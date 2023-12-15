@@ -1,9 +1,23 @@
 /**
+ * @typedef {(typeof MOTION_FREE) | (typeof MOTION_LIMITED) | (typeof MOTION_LOCKED)} JointMotion
+ */
+
+/**
+ * @typedef {(typeof MOTOR_TARGET_POSITION) | (typeof MOTOR_TARGET_VELOCITY) | (typeof MOTOR_OFF)} JointMotorMode
+ */
+
+/**
  * @typedef {(typeof JOINT_TYPE_6DOF) | (typeof JOINT_TYPE_FIXED) | (typeof JOINT_TYPE_HINGE) | (typeof JOINT_TYPE_SLIDER) | (typeof JOINT_TYPE_SPHERICAL) | (typeof JOINT_TYPE_INVALID)} JointType
  */
 
 /**
- * @typedef {(typeof MOTION_FREE) | (typeof MOTION_LIMITED) | (typeof MOTION_LOCKED)} JointMotion
+ * @template T
+ * @typedef {{ linear: T, angular: T }} LinearAngularPair<T>
+ */
+
+/**
+ * @template T
+ * @typedef {{ x: T, y: T, z: T }} XYZ<T>
  */
 
 /**
@@ -29,6 +43,37 @@ export const MOTION_LIMITED = 'limited';
  * @ignore
  */
 export const MOTION_LOCKED = 'locked';
+
+/**
+ * The joint motor targets a position.
+ *
+ * Supported by:
+ *
+ * **TODO: is this degrees or radians?**
+ *
+ * - hinge (rigid body & multibody) - number or quat with axis matching the joint's axis
+ * - spherical (rigid body & multibody) - vector3 (euler angles [radians or degrees?]) or quat
+ * - slider (rigid body only) - number
+ */
+export const MOTOR_TARGET_POSITION = "position";
+
+/**
+ * The joint motor targets a velocity.
+ *
+ * Supported by:
+ *
+ * **TODO: is this degrees or radians?**
+ *
+ * - hinge (rigid body & multibody) - number or quat with axis matching the joint's axis
+ * - spherical (multibody only) - vector3 (euler angles)
+ * - slider (rigid body only) - number
+ */
+export const MOTOR_TARGET_VELOCITY = "velocity";
+
+/**
+ * The joint motor is turned off.
+ */
+export const MOTOR_OFF = "off";
 
 /**
  * The joint has potentially 6 degrees of freedom

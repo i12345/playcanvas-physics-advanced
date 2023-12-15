@@ -5,10 +5,14 @@ import { Component } from "../component.js";
  * to compose articulated multibodies using bullet physics. This can give much greater precision
  * and control for many entities with joints.
  *
- * The multibody component must be manually enabled at the root entity, and when using multibody
- * components, the joint componentA/entityA should be the child entity and componentB/entityB should
- * be the parent entity. The root entity for a multibody will be the componentB/entityB of at least
- * one joint.
+ * {@link JointComponent} will add {@link MultiBodyComponent}'s automatically.
+ * If {@link JointComponent#enableMultiBodyComponents} is set to true (it is
+ * false by default), then multibody components will also be enabled, letting
+ * multibodies be formed by the joint.
+ *
+ * In a multibody joint system, the joint componentA/entityA should be the
+ * child entity and componentB/entityB should be the parent entity. The root
+ * entity for a multibody will be the componentB/entityB of at least one joint.
  *
  * You should never need to use the MultiBodyComponent constructor. To add a MultiBodyComponent to
  * a {@link Entity}, use {@link Entity#addComponent}:
@@ -16,7 +20,18 @@ import { Component } from "../component.js";
  * To create a multibody chain, do:
  *
  * ```javascript
- * //TODO
+ * entity.addComponent('multibody');
+ * ```
+ *
+ * or
+ *
+ * ```javascript
+ * jointEntity.addComponent('joint');
+ * jointEntity.type = pc.JOINT_TYPE_HINGE;
+ * jointEntity.motion.angular.x = pc.MOTION_FREE;
+ * jointEntity.componentA = componentA;
+ * jointEntity.componentB = componentB;
+ * jointEntity.enableMultiBodyComponents = true;
  * ```
  *
  * Relevant 'Engine-only' examples:
@@ -66,15 +81,16 @@ class MultiBodyComponent extends Component {
          * @private
          */
         this._isBuildingMultibody = false;
-    }
 
-    set multibody(multibody) {
-        this._multibody = multibody;
+        this.entity.on('remove', this._findBase, this);
+        this.entity.on('removehierarchy', this._findBase, this);
+        this.entity.on('insert', this._findBase, this);
+        this.entity.on('inserthierarchy', this._findBase, this);
     }
 
     /** @type {import('ammojs3').default.btMultiBody|null} */
     get multibody() {
-        return this._multibody;
+        return this.isBaseLink ? this._multibody : this.base.multibody;
     }
 
     set link(link) {
@@ -113,8 +129,15 @@ class MultiBodyComponent extends Component {
         return typeof this._linkIndex === 'number';
     }
 
+    /**
+     * Reports if this link can be part of a multibody.
+     *
+     * Equals {@link this.enabled}
+     *
+     * @type {boolean}
+     */
     get couldBeInMultibody() {
-        return this._base !== null;
+        return this.enabled && (this._base !== null);
     }
 
     /**
@@ -166,12 +189,11 @@ class MultiBodyComponent extends Component {
 
     _findBase() {
         this._base = null;
-        let node = this.entity.parent;
+        let node = /** @type {import('../../../scene/graph-node.js').GraphNode|null} */ (/** @type {unknown} */ (this.entity));
         while (node) {
-            if ((/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody?.enabled) {
+            if ((/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody?.enabled)
                 this._base = (/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody;
-                break;
-            }
+            else break;
 
             node = node.parent;
         }
@@ -286,36 +308,6 @@ class MultiBodyComponent extends Component {
             this._base.createBody();
         } else {
             throw new Error("Cannot create body when there is no base");
-        }
-    }
-
-    makeBase() {
-        if (this.multibody)
-            throw new Error("Cannot make this entity base when it already is base.");
-
-        this._prepareChildren(this);
-        this.createBody();
-    }
-
-    /**
-     * Prepares child nodes for a new base to a multibody.
-     *
-     * @private
-     * @param {MultiBodyComponent} newBase - The new base multibody component
-     * @returns {void}
-     */
-    _prepareChildren(newBase) {
-        if (this._multibody)
-            return;
-
-        if (this._base)
-            throw new Error("Cannot overwrite existing base.");
-
-        this._base = newBase;
-        for (const child of this.entity.children) {
-            if (child.multibody) {
-                child.multibody._prepareChildren(newBase);
-            }
         }
     }
 }

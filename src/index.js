@@ -202,7 +202,7 @@ export * from './framework/components/input/events.js';
 export { InputComponent } from './framework/components/input/component.js';
 export { InputComponentSystem } from './framework/components/input/system.js';
 export * from './framework/components/joint/constants.js';
-export { JointComponent, ObservedXYZ, LinearAngularPair, LinearAngularXYZPair } from './framework/components/joint/component.js';
+export { JointComponent, JointMotor } from './framework/components/joint/component.js';
 export { JointComponentSystem } from './framework/components/joint/system.js';
 export { LayoutCalculator } from './framework/components/layout-group/layout-calculator.js';
 export { LayoutChildComponent } from './framework/components/layout-child/component.js';

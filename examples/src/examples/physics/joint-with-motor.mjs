@@ -155,43 +155,59 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         box_render.addComponent('render', { type: 'box' });
         box_render.render.material = createMaterial(new pc.Color(0.5, 0.5, 0.5));
         box.addComponent('collision', { type: 'box', halfExtents: box_size.clone().divScalar(2) });
-        box.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 5 });
+        box.addComponent('physics', { type: pc.RIGIDBODY_TYPE_STATIC });
+        // box.addComponent('physics', { type: pc.RIGIDBODY_TYPE_DYNAMIC, mass: 5 });
 
-        function addLink(/** @type {pc.GraphNode} */ prev, /** @type {number} */ q) {
+        const multibody = true;
+
+        function addLink(/** @type {pc.GraphNode} */ prev, /** @type {number} */ i, /** @type {number} */ n) {
+            const q = i / n;
             const joint_length = 1;
             const joint_margin = 0.25;
 
-            const link1 = new pc.Entity("link1");
-            link1.setLocalPosition(joint_length + joint_margin, 0, 0);
-            prev.addChild(link1);
-            link1.addComponent('collision');
-            link1.addComponent('physics', { type: pc.BODYTYPE_DYNAMIC, mass: 0.1 });
-            link1.collision.type = 'box';
-            link1.collision.halfExtents = new pc.Vec3(joint_length / 2, 0.1, 0.1);
-            const link1_render = new pc.Entity();
-            link1.addChild(link1_render);
-            link1_render.addComponent('render', { type: 'box', material: createMaterial(new pc.Color(q, q, q)) });
-            link1_render.setLocalScale(link1.collision.halfExtents.clone().mulScalar(2));
-            const link1_joint = new pc.Entity();
-            link1_joint.setLocalPosition(-(joint_length / 2) - (joint_margin / 2), 0, 0);
-            link1.addChild(link1_joint);
-            link1_joint.addComponent('joint');
-            link1_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
-            link1_joint.joint.motion.angular.x = pc.MOTION_FREE;
-            link1_joint.joint.motion.angular.z = pc.MOTION_FREE;
-            link1_joint.joint.componentA = link1;
-            link1_joint.joint.componentB = prev;
+            const link = new pc.Entity(`link ${i}`);
+            link.setLocalPosition(joint_length + joint_margin, 0, 0);
+            prev.addChild(link);
+            link.addComponent('collision');
+            link.addComponent('physics', { type: pc.BODYTYPE_DYNAMIC, mass: 0.1 });
+            link.collision.type = 'box';
+            link.collision.halfExtents = new pc.Vec3(joint_length / 2, 0.1, 0.1);
+            const link_render = new pc.Entity();
+            link.addChild(link_render);
+            link_render.addComponent('render', { type: 'box', material: createMaterial(new pc.Color(q, q, q)) });
+            link_render.setLocalScale(link.collision.halfExtents.clone().mulScalar(2));
+            const link_joint = new pc.Entity(`joint ${i}`);
+            link_joint.setLocalPosition(-(joint_length / 2) - (joint_margin / 2), 0, 0);
+            link.addChild(link_joint);
+            link_joint.addComponent('joint');
+
+            // hinge joint is much more stable
+
+            link_joint.joint.type = pc.JOINT_TYPE_HINGE;
+            if ((i % 2) === 0)
+                link_joint.joint.motion.angular.x = pc.MOTION_FREE;
+            else
+                link_joint.joint.motion.angular.z = pc.MOTION_FREE;
+
+            // link_joint.joint.type = pc.JOINT_TYPE_SPHERICAL;
+            // link_joint.joint.motion.angular.x = pc.MOTION_FREE;
+            // link_joint.joint.motion.angular.z = pc.MOTION_FREE;
+
+            link_joint.joint.enableMultiBodyComponents = multibody;
+
+            link_joint.joint.componentB = prev;
+            link_joint.joint.componentA = link;
 
             return {
-                entity: link1,
-                joint: /** @type {pc.JointComponent} */ (link1_joint.joint)
+                entity: link,
+                joint: /** @type {pc.JointComponent} */ (link_joint.joint)
             };
         }
 
         const joints = /** @type {pc.JointComponent[]} */ ([]);
-        const n = 10;
+        const n = 4;
         for (let i = 0, prev = box; i < n; i++) {
-            const link = addLink(prev, i / n);
+            const link = addLink(prev, i, n);
             prev = link.entity;
             joints.push(link.joint);
         }
@@ -220,22 +236,42 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
         // weight_joint.joint.componentB = chain1;
         // weight_joint.joint.componentA = weight;
 
-        const useMultibody = true;
-        if (useMultibody) {
-            box.addComponent('multibody');
-            box.multibody.makeBase();
-        }
-
         let t = 0;
+
+        for (const joint of joints) {
+            joint.motor.targetPosition = 0.1;
+            // joint.damping.angular.x = 1;
+            // joint.limits.angular.x = new pc.Vec2(0, 0);
+            // joint.limits.angular.y = new pc.Vec2(0, 0);
+            // joint.limits.angular.z = new pc.Vec2(0.1, 0.1);
+        }
 
         // Set an update function on the application's update event
         app.on("update", function (dt) {
             t += dt;
 
-            if (t > 1) {
-                for (const joint of joints) {
-                    joint.
-                }
+            console.log(t);
+            switch (Math.floor(t % 8)) {
+                case 0:
+                // case 1:
+                // case 2:
+                // case 3:
+                    for (const joint of joints) {
+                        // joint.damping.angular.x = 1;
+                        // joint.limits.angular.z = new pc.Vec2(0.05, 0.1);
+                        // joint.limits.angular.z = new pc.Vec2(0.05, 0.1);
+                        // joint.motor.targetPosition = new pc.Vec3(0, 0, 0.01);
+                    }
+                    break;
+                case 4:
+                // case 5:
+                // case 6:
+                // case 7:
+                    for (const joint of joints) {
+                        // joint.limits.angular.z = new pc.Vec2(0, 0);
+                        // joint.motor.targetPosition = new pc.Vec3(0, 0, 0);
+                    }
+                    break;
             }
 
             cameraEntity.lookAt(box.getPosition());

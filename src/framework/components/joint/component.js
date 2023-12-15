@@ -3,16 +3,15 @@ import { Debug } from '../../../core/debug.js';
 import { Mat4 } from '../../../core/math/mat4.js';
 import { Quat } from '../../../core/math/quat.js';
 import { Vec2 } from '../../../core/math/vec2.js';
-import { Vec3 } from '../../../core/math/vec3.js';
 
 import { Component } from '../component.js';
 
-import { MOTION_LOCKED, JOINT_TYPE_6DOF } from './constants.js';
+import { MOTION_LOCKED, JOINT_TYPE_6DOF, MOTOR_OFF, MOTOR_TARGET_POSITION, MOTOR_TARGET_VELOCITY } from './constants.js';
 
 /**
  * @template T paired types
  */
-export class LinearAngularPair {
+class LinearAngularPair {
     /**
      * Constructs a new linear angular pair
      * @param {JointComponent} joint - The joint component to trigger updates to
@@ -52,7 +51,7 @@ export class LinearAngularPair {
 /**
  * @template T
  */
-export class ObservedXYZ {
+class ObservedXYZ {
     /**
      * Constructs an observed XYZ vector
      * @param {() => void} update - update callback
@@ -97,26 +96,13 @@ export class ObservedXYZ {
     update() {
         this._update();
     }
-
-    /**
-     * Sets this ObservedXYZ to a given Vec3
-     *
-     * @param {Vec3} src - the Vec3 to set this ObservedXYZ
-     * @returns {void}
-     */
-    copy(src) {
-        this._x = src.x;
-        this._y = src.y;
-        this._z = src.z;
-        this._update();
-    }
 }
 
 /**
  * @template T
  * @augments {LinearAngularPair<ObservedXYZ<T>>}
  */
-export class LinearAngularXYZPair extends LinearAngularPair {
+class LinearAngularXYZPair extends LinearAngularPair {
     /**
      * Constructs a linear angular pair of observed XYZ vectors.
      * @param {JointComponent} joint - joint component for update callbacks
@@ -129,8 +115,141 @@ export class LinearAngularXYZPair extends LinearAngularPair {
     }
 }
 
+class JointMotor {
+    set target(target) {
+        if (this._target === target)
+            return;
+
+        this._target = target;
+        if (target === undefined)
+            this._mode = MOTOR_OFF;
+        this.update();
+    }
+
+    /**
+     * The position or velocity the motor should target.
+     *
+     * If given `undefined`, the motor will turn off.
+     * If given a value, it will update the motor unless the motor is not
+     * turned on.
+     *
+     * Can be `undefined` when the motor is turned off; setting to `undefined`
+     * will turn off the motor.
+     *
+     * @type {number|Vec3|Quat|undefined}
+     */
+    get target() {
+        return this._target;
+    }
+
+    set mode(mode) {
+        if (this._mode === mode)
+            return;
+
+        this._mode = mode;
+        this.update();
+    }
+
+    /**
+     * The motor mode.
+     *
+     * @type {import('./constants.js').JointMotorMode}
+     */
+    get mode() {
+        return this._mode;
+    }
+
+    set maxImpulse(maxImpulse) {
+        if (this._maxImpulse === maxImpulse)
+            return;
+
+        this._maxImpulse = maxImpulse;
+        this.update();
+    }
+
+    get maxImpulse() {
+        return this._maxImpulse;
+    }
+
+    set targetPosition(target) {
+        if (target === undefined) {
+            this._target = undefined;
+            this._mode = MOTOR_OFF;
+        } else {
+            this._target = target;
+            this.mode = MOTOR_TARGET_POSITION;
+        }
+
+        this.update();
+    }
+
+    /**
+     * The target position or `undefined` if the motor is not in position mode.
+     *
+     * @type {number|Vec3|Quat|undefined}
+     */
+    get targetPosition() {
+        if (this._mode === MOTOR_TARGET_POSITION)
+            return this._target;
+        return undefined;
+    }
+
+    set targetVelocity(target) {
+        if (target === undefined) {
+            this._target = undefined;
+            this._mode = MOTOR_OFF;
+        } else {
+            this._target = target;
+            this.mode = MOTOR_TARGET_VELOCITY;
+        }
+
+        this.update();
+    }
+
+    /**
+     * The target position or `undefined` if the motor is not in velocity mode.
+     *
+     * @type {number|Vec3|Quat|undefined}
+     */
+    get targetVelocity() {
+        if (this._mode === MOTOR_TARGET_VELOCITY)
+            return this._target;
+        return undefined;
+    }
+
+    /**
+     * Constructs a joint motor
+     *
+     * @param {() => void} update - update callback
+     */
+    constructor(update) {
+        /** @private */
+        this.update = update;
+
+        /**
+         * @private
+         * @type {import('./constants.js').JointMotorMode}
+         */
+        this._mode = "off";
+
+        /**
+         * @private
+         * @type {number|Vec3|Quat|undefined}
+         */
+        this._target = undefined;
+
+        /**
+         * @private
+         * @type {number|undefined}
+         */
+        this._maxImpulse = undefined;
+    }
+}
+
 /**
  * The JointComponent adds a physics joint constraint linking two physics bodies.
+ *
+ * TODO: add example
  *
  * @augments Component
  * @ignore
@@ -162,6 +281,8 @@ class JointComponent extends Component {
         this._isForMultibodyLink = false;
         /** @type {boolean} */
         this._skipMultiBodyChance = false;
+        /** @type {boolean} */
+        this._enableMultiBodyComponents = false;
 
         /** @type {boolean} */
         this._tmp_skipMultiBodyChance = false;
@@ -181,44 +302,67 @@ class JointComponent extends Component {
         /** @type {boolean} */
         this._enableCollision = true;
 
+        this._motor = new JointMotor(this._updateMotor.bind(this));
         /** @type {LinearAngularXYZPair<import('./constants.js').JointMotion>} */
         this._motion = new LinearAngularXYZPair(this, { x: MOTION_LOCKED, y: MOTION_LOCKED, z: MOTION_LOCKED }, { x: MOTION_LOCKED, y: MOTION_LOCKED, z: MOTION_LOCKED });
         /** @type {LinearAngularXYZPair<Vec2>} */
         this._limits = new LinearAngularXYZPair(this, { x: new Vec2(), y: new Vec2(), z: new Vec2() }, { x: new Vec2(), y: new Vec2(), z: new Vec2() });
         /** @type {LinearAngularXYZPair<boolean>} */
         this._springs = new LinearAngularXYZPair(this, { x: false, y: false, z: false }, { x: false, y: false, z: false });
-        /** @type {LinearAngularPair<Vec3>} */
-        this._stiffness = new LinearAngularPair(this, new Vec3(0, 0, 0), new Vec3(0, 0, 0));
-        /** @type {LinearAngularPair<Vec3>} */
-        this._damping = new LinearAngularPair(this, new Vec3(0.1, 0.1, 0.1), new Vec3(0.1, 0.1, 0.1));
-        /** @type {LinearAngularPair<Vec3>} */
-        this._equilibrium = new LinearAngularPair(this, new Vec3(0, 0, 0), new Vec3(0, 0, 0));
+        /** @type {LinearAngularXYZPair<number>} */
+        this._stiffness = new LinearAngularXYZPair(this, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+        /** @type {LinearAngularXYZPair<number>} */
+        this._damping = new LinearAngularXYZPair(this, { x: 0.1, y: 0.1, z: 0.1 }, { x: 0.1, y: 0.1, z: 0.1 });
+        /** @type {LinearAngularXYZPair<number>} */
+        this._equilibrium = new LinearAngularXYZPair(this, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
         this.on('beforeremove', this._onBeforeRemove, this);
         this.on('remove', this._onRemove, this);
         this.on('set_enabled', this._onSetEnabled, this);
     }
 
+    get motor() {
+        return this._motor;
+    }
+
+    /**
+     * @type {import('./constants.js').LinearAngularPair<import('./constants.js').XYZ<import('./constants.js').JointMotion>>}
+     */
     get motion() {
         return this._motion;
     }
 
+    /**
+     * @type {import('./constants.js').LinearAngularPair<import('./constants.js').XYZ<Vec2>>}
+     */
     get limits() {
         return this._limits;
     }
 
+    /**
+     * @type {import('./constants.js').LinearAngularPair<import('./constants.js').XYZ<boolean>>}
+     */
     get springs() {
         return this._springs;
     }
 
+    /**
+     * @type {import('./constants.js').LinearAngularPair<import('./constants.js').XYZ<number>>}
+     */
     get stiffness() {
         return this._stiffness;
     }
 
+    /**
+     * @type {import('./constants.js').LinearAngularPair<import('./constants.js').XYZ<number>>}
+     */
     get damping() {
         return this._damping;
     }
 
+    /**
+     * @type {import('./constants.js').LinearAngularPair<import('./constants.js').XYZ<number>>}
+     */
     get equilibrium() {
         return this._equilibrium;
     }
@@ -335,6 +479,36 @@ class JointComponent extends Component {
         return this._skipMultiBodyChance;
     }
 
+    set enableMultiBodyComponents(enableMultiBodyComponents) {
+        const enabled = (enableMultiBodyComponents && !this._enableMultiBodyComponents);
+
+        this._enableMultiBodyComponents = enableMultiBodyComponents;
+
+        if (enabled && (((!(this.entityA?.multibody.enabled)) ?? false) || ((!(this.entityB?.multibody.enabled)) ?? false))) {
+            this._destroyConstraint(undefined);
+            if (this._entityA?.multibody)
+                this.entityA.multibody.enabled = true;
+            if (this._entityB?.multibody)
+                this.entityB.multibody.enabled = true;
+            this._createConstraint(undefined);
+        }
+    }
+
+    /**
+     * If this joint should enable {@link MultibodyComponent}'s in
+     * {@link entityA} and {@link entityB} if they weren't already added and
+     * enabled. If this is false, then {@link MultibodyComponent}'s will still
+     * be added to {@link entityA} and {@link entityB} if they weren't already
+     * added, but they must be enabled separately to use multibody joints.
+     *
+     * Defaults to false.
+     *
+     * @type {boolean}
+     */
+    get enableMultiBodyComponents() {
+        return this._enableMultiBodyComponents;
+    }
+
     set entityA(entity) {
         if (entity !== null && !(this._componentA === entity || this._componentA?.isDescendantOf(entity))) {
             this._componentA = entity;
@@ -342,7 +516,7 @@ class JointComponent extends Component {
 
         this._destroyConstraint(undefined);
 
-        const changedEntity = (this._entityA === entity);
+        const changedEntity = (this._entityA !== entity);
         if (changedEntity) {
             this._removeMultiBodyEventHandlers();
         }
@@ -395,7 +569,15 @@ class JointComponent extends Component {
         }
 
         this._destroyConstraint(undefined);
+
         this._entityB = entity;
+
+        if (this._entityB && !(this._entityB.multibody?.enabled ?? false) && !this._skipMultiBodyChance) {
+            if (!this._entityB.multibody)
+                this._entityB.addComponent('multibody', { enabled: false });
+            this._entityB.multibody.enabled ||= this._enableMultiBodyComponents;
+        }
+
         this._createConstraint(undefined);
     }
 
@@ -532,6 +714,17 @@ class JointComponent extends Component {
         this._isSettingConstraints = false;
     }
 
+    /** @private */
+    _updateMotor() {
+        if (!this.enabled || !this.entityA) {
+            return;
+        }
+
+        this._isSettingConstraints = true;
+        this.system.updateMotor(this, this.motor.mode, this.motor.target, this.motor.maxImpulse);
+        this._isSettingConstraints = false;
+    }
+
     /**
      * @private
      * @param {import('../multibody/system.js').MultiBodySetup|undefined} multiBodySetup
@@ -540,17 +733,21 @@ class JointComponent extends Component {
     _createConstraint(multiBodySetup) {
         if (!this.enabled) return;
 
-        const _isForMultibodyLink = !this._skipMultiBodyChance && (this._entityA?.multibody?.couldBeInMultibody ?? false);
+        const _isForMultibodyLink = !this._skipMultiBodyChance &&
+            (this._entityA?.multibody?.couldBeInMultibody ?? false) &&
+            (this._entityB && (this._entityB.multibody?.couldBeInMultibody ?? true));
 
         if (_isForMultibodyLink) {
+            if (this._tmp_skipMultiBodyChance)
+                return;
+
+            if (!(this._entityA.isDescendantOf(this._entityB)))
+                throw new Error("entityA must be descendant of entityB for multibody joints");
+
             if (!multiBodySetup) {
                 // If this joint is making a multibody link, then this method should be called from the multibody's setup event
                 this.entityA.multibody.createBody();
                 return;
-            } else if (this._tmp_skipMultiBodyChance) {
-                return;
-            } else if (!(this._entityA.isDescendantOf(this._entityB))) {
-                throw new Error("entityA must be descendant of entityB for multibody joints");
             }
         }
 
@@ -617,10 +814,79 @@ class JointComponent extends Component {
         this._isForMultibodyLink = false;
     }
 
-    initFromData(data) {
-        // TODO: implement
+    /**
+     * @private
+     * @param {Partial<import('./data.js').JointComponentData>} data
+     */
+    _initFromData(data) {
+        if (data.type)
+            this._type = data.type;
 
-        this._createConstraint(undefined);
+        if (data.motion) {
+            this._motion._linear._x = data.motion.linear.x;
+            this._motion._linear._y = data.motion.linear.y;
+            this._motion._linear._z = data.motion.linear.z;
+            this._motion._angular._x = data.motion.angular.x;
+            this._motion._angular._y = data.motion.angular.y;
+            this._motion._angular._z = data.motion.angular.z;
+        }
+
+        if (data.limits) {
+            this._limits._linear._x = data.limits.linear.x;
+            this._limits._linear._y = data.limits.linear.y;
+            this._limits._linear._z = data.limits.linear.z;
+            this._limits._angular._x = data.limits.angular.x;
+            this._limits._angular._y = data.limits.angular.y;
+            this._limits._angular._z = data.limits.angular.z;
+        }
+
+        if (data.springs) {
+            this._springs._linear._x = data.springs.linear.x;
+            this._springs._linear._y = data.springs.linear.y;
+            this._springs._linear._z = data.springs.linear.z;
+            this._springs._angular._x = data.springs.angular.x;
+            this._springs._angular._y = data.springs.angular.y;
+            this._springs._angular._z = data.springs.angular.z;
+        }
+
+        if (data.stiffness) {
+            this._stiffness._linear.x = data.stiffness.linear.x;
+            this._stiffness._linear.y = data.stiffness.linear.y;
+            this._stiffness._linear.z = data.stiffness.linear.z;
+            this._stiffness._angular.x = data.stiffness.angular.x;
+            this._stiffness._angular.y = data.stiffness.angular.y;
+            this._stiffness._angular.z = data.stiffness.angular.z;
+        }
+
+        if (data.damping) {
+            this._damping._linear.x = data.damping.linear.x;
+            this._damping._linear.y = data.damping.linear.y;
+            this._damping._linear.z = data.damping.linear.z;
+            this._damping._angular.x = data.damping.angular.x;
+            this._damping._angular.y = data.damping.angular.y;
+            this._damping._angular.z = data.damping.angular.z;
+        }
+
+        if (data.equilibrium) {
+            this._equilibrium._linear.x = data.equilibrium.linear.x;
+            this._equilibrium._linear.y = data.equilibrium.linear.y;
+            this._equilibrium._linear.z = data.equilibrium.linear.z;
+            this._equilibrium._angular.x = data.equilibrium.angular.x;
+            this._equilibrium._angular.y = data.equilibrium.angular.y;
+            this._equilibrium._angular.z = data.equilibrium.angular.z;
+        }
+
+        if (data.breakForce !== undefined)
+            this._breakForce = data.breakForce;
+
+        if (data.enableCollision !== undefined)
+            this._enableCollision = data.enableCollision;
+
+        if (data.skipMultiBodyChance !== undefined)
+            this._skipMultiBodyChance = data.skipMultiBodyChance;
+
+        if (data.enableMultiBodyComponents !== undefined)
+            this._enableMultiBodyComponents = data.enableMultiBodyComponents;
     }
 
     onEnable() {
@@ -646,22 +912,28 @@ class JointComponent extends Component {
      * @private
      */
     _addMultiBodyEventHandlers() {
-        if (!this._entityA?.multibody) {
-            this._entityA?.addComponent('multibody');
+        if (!this._entityA) return;
+
+        if (!(this._entityA.multibody?.enabled ?? false) && !this._skipMultiBodyChance) {
+            if (!this._entityA.multibody)
+                this._entityA.addComponent('multibody', { enabled: false });
+            this._entityA.multibody.enabled ||= this._enableMultiBodyComponents;
         }
 
-        this._entityA?.multibody.on('beforeSetup', this._entityA_multibody_beforeSetup, this);
-        this._entityA?.multibody.on('setup', this._createConstraint, this);
-        this._entityA?.multibody.on('unsetup', this._destroyConstraint, this);
+        this._entityA.multibody.on('beforeSetup', this._entityA_multibody_beforeSetup, this);
+        this._entityA.multibody.on('setup', this._createConstraint, this);
+        this._entityA.multibody.on('unsetup', this._destroyConstraint, this);
     }
 
     /**
      * @private
      */
     _removeMultiBodyEventHandlers() {
-        this._entityA?.multibody?.off('beforeSetup', this._entityA_multibody_beforeSetup, this);
-        this._entityA?.multibody?.off('setup', this._createConstraint, this);
-        this._entityA?.multibody?.off('unsetup', this._destroyConstraint, this);
+        if (!this._entityA) return;
+
+        this._entityA.multibody?.off('beforeSetup', this._entityA_multibody_beforeSetup, this);
+        this._entityA.multibody?.off('setup', this._createConstraint, this);
+        this._entityA.multibody?.off('unsetup', this._destroyConstraint, this);
     }
 
     /**
@@ -675,4 +947,4 @@ class JointComponent extends Component {
     }
 }
 
-export { JointComponent };
+export { JointComponent, JointMotor };

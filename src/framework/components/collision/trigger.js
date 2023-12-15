@@ -40,7 +40,7 @@ class Trigger {
     }
 
     /**
-     * @param {import('./data').CollisionComponentData} data
+     * @param {import('./data.js').CollisionComponentData} data
      */
     initialize(data) {
         const entity = this.entity;
