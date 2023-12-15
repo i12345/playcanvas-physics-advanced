@@ -789,6 +789,7 @@ class JointComponent extends Component {
             this._updateAngular();
             this._updateLinear();
             this._updateOther();
+            this._updateMotor();
         }
     }
 

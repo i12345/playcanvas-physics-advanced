@@ -708,7 +708,7 @@ class HingeJointImpl extends JointImpl {
                     throw new Error("target must be a number or quat with same axis");
 
                 constraint.setVelocityTarget(target);
-            } else {
+            } else if (enabled) {
                 throw new Error("unsupported motor mode");
             }
             constraint.finalizeMultiDof();
@@ -721,7 +721,7 @@ class HingeJointImpl extends JointImpl {
             }
             if (mode !== MOTOR_TARGET_VELOCITY) {
                 // TODO: does the angular motor need to be disabled?
-                constraint.enableAngularMotor(false, 0, maxImpulse);
+                constraint.enableAngularMotor(false, 0, maxImpulse ?? 1);
             }
 
             if (maxImpulse !== undefined)
@@ -737,8 +737,8 @@ class HingeJointImpl extends JointImpl {
                 if (typeof target !== 'number')
                     throw new Error("target must be a number or quat with same axis");
 
-                constraint.enableAngularMotor(true, target, maxImpulse);
-            } else {
+                constraint.enableAngularMotor(true, target, maxImpulse ?? 1);
+            } else if (enabled) {
                 throw new Error("unsupported motor mode");
             }
         }
