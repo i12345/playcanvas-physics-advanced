@@ -17,7 +17,7 @@ import { Component } from "../component.js";
  * You should never need to use the MultiBodyComponent constructor. To add a MultiBodyComponent to
  * a {@link Entity}, use {@link Entity#addComponent}:
  *
- * To create a multibody chain, do:
+ * To create and enable a multibody component, do:
  *
  * ```javascript
  * entity.addComponent('multibody');
@@ -86,6 +86,7 @@ class MultiBodyComponent extends Component {
         this.entity.on('removehierarchy', this._findBase, this);
         this.entity.on('insert', this._findBase, this);
         this.entity.on('inserthierarchy', this._findBase, this);
+        this._findBase();
     }
 
     /** @type {import('ammojs3').default.btMultiBody|null} */
@@ -144,6 +145,8 @@ class MultiBodyComponent extends Component {
      * Fired when an entity has the option to become the base or descendant of
      * a multibody.
      *
+     * Only fired when this multibody component is enabled.
+     *
      * For the base, a multibody link will be made regardless of the response
      * to this event.
      *
@@ -197,6 +200,17 @@ class MultiBodyComponent extends Component {
 
             node = node.parent;
         }
+
+        const system = /** @type {import('./system.js').MultiBodyComponentSystem} */ (this.system);
+        for (const descendantComponent of this.entity.findComponents('multibody')) {
+            const descendantMBcomponent = /** @type {MultiBodyComponent} */ (descendantComponent);
+            if (descendantMBcomponent._base !== this._base) {
+                if (descendantMBcomponent.isInMultibody)
+                    system.destroyMultiBody(descendantMBcomponent._base.entity);
+
+                descendantMBcomponent._base = this._base;
+            }
+        }
     }
 
     /**
@@ -235,13 +249,11 @@ class MultiBodyComponent extends Component {
 
         for (const child of this.entity.children) {
             if (child.findComponent) {
-                if (!child.multibody) {
-                    child.addComponent('multibody');
-                    child.multibody.enabled = true;
-                }
-                if (child.multibody._base === this._base) {
+                if (!child.multibody)
+                    child.addComponent('multibody', { enabled: false });
+
+                if (child.multibody._base === this._base)
                     child.multibody.beforeSetup(setup);
-                }
             }
         }
     }

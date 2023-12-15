@@ -128,7 +128,7 @@ class MultiBodyComponentSystem extends ComponentSystem {
         const setup = this._setup[base.getGuid()] = new MultiBodySetup(base, []);
         base.multibody.beforeSetup(setup);
 
-        if (setup.links.length === 0) return;
+        if (setup.links.length === 0 || (setup.links.length === 1 && setup.links[0] === setup.base)) return;
 
         const mass = base.physics.mass;
         /** @type {import('ammojs3').default.btCollisionShape} */
