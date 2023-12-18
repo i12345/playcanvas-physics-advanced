@@ -31,7 +31,7 @@ class EventHandle {
     handler;
 
     /**
-     * @type {string}
+     * @type {PropertyKey}
      * @private
      */
     name;
@@ -63,7 +63,7 @@ class EventHandle {
 
     /**
      * @param {import('./event-handler.js').EventHandler} handler - source object of the event.
-     * @param {string} name - Name of the event.
+     * @param {PropertyKey} name - Name (or key) of the event.
      * @param {import('./event-handler.js').HandleEventCallback} callback - Function that is called when event is fired.
      * @param {object} scope - Object that is used as `this` when event is fired.
      * @param {boolean} [once] - If this is a single event and will be removed after event is fired.
