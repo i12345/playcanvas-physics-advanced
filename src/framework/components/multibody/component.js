@@ -36,7 +36,7 @@ import { Component } from "../component.js";
  *
  * Relevant 'Engine-only' examples:
  *
- * - Joint (not in official playcanvas; see physics > joint example in custom build)
+ * - Joint (not in official playcanvas; see physics > { joint, chain, joint with motor } in examples)
  *
  * @augments Component
  * @category Physics

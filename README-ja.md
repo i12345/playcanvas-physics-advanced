@@ -1,8 +1,26 @@
+Playcanvas Physics Advanced
+====
+
+[![npm version](https://img.shields.io/npm/dt/playcanvas-physics-advanced)](https://www.npmjs.com/package/playcanvas-physics-advanced)
+
+*This is an advanced physics version of the original [PlayCanvas game engine](https://playcanvas.com/).*
+
+On npm: [`playcanvas-physics-advanced`](https://www.npmjs.com/package/playcanvas-physics-advanced). Install with:
+
+```shell
+npm install playcanvas-physics-advanced
+```
+
+Features added/changed from original PlayCanvas:
+
+* [`'physics'` component](./src/framework/components/physics/component.js) used instead of [`'rigidbody'` component](https://developer.playcanvas.com/en/api/pc.RigidBodyComponent.html).
+* [`'multibody'` component](./src/framework/components/multibody/component.js) added to allow multibody articulations for much greater stability of many-jointed bodies.
+* [`'joint'` component](./src/framework/components/joint/component.js) changed significantly from official playcanvas [joint component](https://github.com/playcanvas/engine/blob/main/src/framework/components/joint/component.js)
+* [`EventHandler`](./src/core/event-handler.js) can use any key for events, not only strings; also symbols and numbers.
+* [`Quat.distance()`](./src/core/math/quat.js) measures rotational distance between two quaternions.
+
 <div align="center">
-
 <img width="200" src="https://s3-eu-west-1.amazonaws.com/static.playcanvas.com/platform/images/logo/playcanvas-logo-medium.png"/>
-
-*This is an extended version of the original [PlayCanvas game engine](https://playcanvas.com/).*
 
 # PlayCanvas WebGL Game Engine
 [Docs](https://developer.playcanvas.com) | [Examples](https://playcanvas.github.io) | [Forum](https://forum.playcanvas.com) | [Blog](https://blog.playcanvas.com)

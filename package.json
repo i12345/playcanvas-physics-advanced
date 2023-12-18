@@ -1,6 +1,6 @@
 {
-  "name": "playcanvas-extended",
-  "version": "1.68.2-dev",
+  "name": "playcanvas-physics-advanced",
+  "version": "1.68.3",
   "author": "PlayCanvas <support@playcanvas.com>",
   "contributors": [
     {
@@ -8,7 +8,7 @@
       "email": "isaacv123456789@gmail.com"
     }
   ],
-  "description": "Extended version of PlayCanvas WebGL game engine",
+  "description": "Advanced physics version of PlayCanvas WebGL game engine",
   "keywords": [
     "3D",
     "2D",
@@ -19,7 +19,9 @@
     "engine",
     "HTML5",
     "browser",
-    "typings"
+    "typings",
+    "physics",
+    "game-engine"
   ],
   "license": "MIT",
   "main": "build/playcanvas.js",
@@ -28,11 +30,11 @@
   "sideEffects": false,
   "type": "module",
   "bugs": {
-    "url": "https://github.com/i12345/playcanvas-extended"
+    "url": "https://github.com/i12345/playcanvas-physics-advanced"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/i12345/playcanvas-extended.git"
+    "url": "https://github.com/i12345/playcanvas-physics-advanced.git"
   },
   "eslintConfig": {
     "extends": "@playcanvas/eslint-config",
