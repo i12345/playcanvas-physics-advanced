@@ -801,6 +801,8 @@ class JointComponent extends Component {
         if (this._isForMultibodyLink && !multiBodySetup) {
             // If this joint is making a multibody link, then this method should be called from the multibody's unsetup event
             this._tmp_skipMultiBodyChance = true;
+            // ?
+            // should this be destroyBody() ?
             this.entityA.multibody.createBody();
             this._tmp_skipMultiBodyChance = false;
             return;

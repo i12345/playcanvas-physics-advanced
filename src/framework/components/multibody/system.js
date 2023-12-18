@@ -169,6 +169,7 @@ class MultiBodyComponentSystem extends ComponentSystem {
      * @private
      * @param {import('../../entity.js').Entity} base - The base component for
      * the multibody.
+     * @returns {MultiBodySetup} - The setup used for this multibody
      */
     destroyMultiBody(base) {
         const multibody = base.multibody._multibody;
@@ -178,6 +179,7 @@ class MultiBodyComponentSystem extends ComponentSystem {
         delete this._setup[base.getGuid()];
         this.app.systems.physics.destroyMultiBody(multibody);
         base._multibody = null;
+        return setup;
     }
 
 

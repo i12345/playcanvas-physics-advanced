@@ -82,10 +82,10 @@ class MultiBodyComponent extends Component {
          */
         this._isBuildingMultibody = false;
 
-        this.entity.on('remove', this._findBase, this);
-        this.entity.on('removehierarchy', this._findBase, this);
-        this.entity.on('insert', this._findBase, this);
-        this.entity.on('inserthierarchy', this._findBase, this);
+        this.entity.on('remove', this._entityRemoved, this);
+        this.entity.on('removehierarchy', this._entityRemoved, this);
+        this.entity.on('insert', this._entityInserted, this);
+        this.entity.on('inserthierarchy', this._entityInserted, this);
         this._findBase();
     }
 
@@ -213,6 +213,31 @@ class MultiBodyComponent extends Component {
         }
     }
 
+    /** @private */
+    _entityRemoved() {
+        const system = /** import('./system.js').MultiBodyComponentSystem */ (this.system);
+        if (this.isInMultibody) {
+            if (this._base === this) {
+                const setup = system.destroyMultiBody(this.entity);
+                for (const link of setup.links)
+                    link.multibody._findBase();
+                for (const link of setup.links)
+                    if (!link.isInMultibody)
+                        link.multibody.createBody();
+            } else {
+                this._base.createBody();
+                this._base = null;
+            }
+        }
+    }
+
+    /** @private */
+    _entityInserted() {
+        this._findBase();
+        if (this.enabled)
+            this.createBody();
+    }
+
     /**
      * @private
      * @param {import('./system.js').MultiBodySetup} setup - The setup information
@@ -310,6 +335,14 @@ class MultiBodyComponent extends Component {
      * Creates or re-creates the multibody this component may be part of.
      */
     createBody() {
+        try {
+            if (!this.enabled)
+                return;
+        } catch {
+            // currently this happens when the component is being removed
+            return;
+        }
+
         if (this._base === this) {
             if (this.multibody) {
                 this.system.destroyMultiBody(this.entity);

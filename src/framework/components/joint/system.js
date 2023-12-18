@@ -493,7 +493,7 @@ class SphericalJointImpl extends JointImpl {
                 Ammo.destroy(q);
             } else if (mode === MOTOR_TARGET_VELOCITY) {
                 throw new Error("cannot set rigidbody spherical joint motor in velocity mode");
-            } else {
+            } else if (enabled) {
                 throw new Error("unsupported motor mode");
             }
         }

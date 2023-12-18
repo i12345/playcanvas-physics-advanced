@@ -180,7 +180,9 @@ async function example({ canvas, deviceType, assetPath, ammoPath, glslangPath, t
                 jointEntity.joint.type = pc.JOINT_TYPE_SPHERICAL;
                 jointEntity.joint.motion.angular.x = pc.MOTION_FREE;
                 jointEntity.joint.motion.angular.z = pc.MOTION_FREE;
-                jointEntity.joint.enableMultiBodyComponents = true;
+
+                // TODO: multibody chain is unstable; rigid body chain is stable
+                // jointEntity.joint.enableMultiBodyComponents = true;
 
                 jointEntity.joint.componentB = parent;
                 jointEntity.joint.componentA = entity;
