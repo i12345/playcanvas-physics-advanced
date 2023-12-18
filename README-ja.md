@@ -1,7 +1,7 @@
 Playcanvas Physics Advanced
 ====
 
-[![npm version](https://img.shields.io/npm/dt/playcanvas-physics-advanced)](https://www.npmjs.com/package/playcanvas-physics-advanced)
+[![npm version](https://img.shields.io/npm/v/playcanvas-physics-advanced)](https://www.npmjs.com/package/playcanvas-physics-advanced)
 
 *This is an advanced physics version of the original [PlayCanvas game engine](https://playcanvas.com/).*
 
