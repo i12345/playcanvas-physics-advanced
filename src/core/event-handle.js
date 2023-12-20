@@ -22,16 +22,18 @@ import { Debug } from '../core/debug.js';
  *     evt.off();
  * });
  * events = [ ];
+ *
+ * @template [T=any]
  */
 class EventHandle {
     /**
-     * @type {import('./event-handler.js').EventHandler}
+     * @type {import('./event-handler.js').EventHandler<T>}
      * @private
      */
     handler;
 
     /**
-     * @type {PropertyKey}
+     * @type {keyof T}
      * @private
      */
     name;
@@ -62,8 +64,8 @@ class EventHandle {
     _removed = false;
 
     /**
-     * @param {import('./event-handler.js').EventHandler} handler - source object of the event.
-     * @param {PropertyKey} name - Name (or key) of the event.
+     * @param {import('./event-handler.js').EventHandler<T>} handler - source object of the event.
+     * @param {keyof T} name - Name (or key) of the event.
      * @param {import('./event-handler.js').HandleEventCallback} callback - Function that is called when event is fired.
      * @param {object} scope - Object that is used as `this` when event is fired.
      * @param {boolean} [once] - If this is a single event and will be removed after event is fired.

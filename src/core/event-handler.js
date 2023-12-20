@@ -28,16 +28,18 @@ import { EventHandle } from './event-handle.js';
  * // fire event
  * obj.fire('hello', 'world');
  * ```
+ *
+ * @template [T=any]
  */
 class EventHandler {
     /**
-     * @type {Map<PropertyKey,Array<EventHandle>>}
+     * @type {Map<keyof T,Array<EventHandle>>}
      * @private
      */
     _callbacks = new Map();
 
     /**
-     * @type {Map<PropertyKey,Array<EventHandle>>}
+     * @type {Map<keyof T,Array<EventHandle>>}
      * @private
      */
     _callbackActive = new Map();
@@ -54,7 +56,7 @@ class EventHandler {
     /**
      * Registers a new event handler.
      *
-     * @param {PropertyKey} name - Name of the event to bind the callback to.
+     * @param {keyof T} name - Name of the event to bind the callback to.
      * @param {HandleEventCallback} callback - Function that is called when event is fired. Note
      * the callback is limited to 8 arguments.
      * @param {object} scope - Object to use as 'this' when the event is fired, defaults to
@@ -89,7 +91,7 @@ class EventHandler {
     /**
      * Attach an event handler to an event.
      *
-     * @param {PropertyKey} name - Name of the event to bind the callback to.
+     * @param {keyof T} name - Name of the event to bind the callback to.
      * @param {HandleEventCallback} callback - Function that is called when event is fired. Note
      * the callback is limited to 8 arguments.
      * @param {object} [scope] - Object to use as 'this' when the event is fired, defaults to
@@ -114,7 +116,7 @@ class EventHandler {
     /**
      * Attach an event handler to an event. This handler will be removed after being fired once.
      *
-     * @param {PropertyKey} name - Name of the event to bind the callback to.
+     * @param {keyof T} name - Name of the event to bind the callback to.
      * @param {HandleEventCallback} callback - Function that is called when event is fired. Note
      * the callback is limited to 8 arguments.
      * @param {object} [scope] - Object to use as 'this' when the event is fired, defaults to
@@ -136,7 +138,7 @@ class EventHandler {
      * unbound from the event, if scope is not provided then all events with the callback will be
      * unbound.
      *
-     * @param {PropertyKey} [name] - Name of the event to unbind.
+     * @param {keyof T} [name] - Name of the event to unbind.
      * @param {HandleEventCallback} [callback] - Function to be unbound.
      * @param {object} [scope] - Scope that was used as the this when the event is fired.
      * @returns {EventHandler} Self for chaining.
@@ -216,7 +218,7 @@ class EventHandler {
     /**
      * Fire an event, all additional arguments are passed on to the event listener.
      *
-     * @param {PropertyKey} name - Name of event to fire.
+     * @param {keyof T} name - Name of event to fire.
      * @param {*} [arg1] - First argument that is passed to the event handler.
      * @param {*} [arg2] - Second argument that is passed to the event handler.
      * @param {*} [arg3] - Third argument that is passed to the event handler.
@@ -285,7 +287,7 @@ class EventHandler {
     /**
      * Test if there are any handlers bound to an event name.
      *
-     * @param {PropertyKey} name - The name of the event to test.
+     * @param {keyof T} name - The name of the event to test.
      * @returns {boolean} True if the object has handlers bound to the specified event name.
      * @example
      * obj.on('test', function () { }); // bind an event to 'test'
