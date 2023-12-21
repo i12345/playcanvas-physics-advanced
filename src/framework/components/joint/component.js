@@ -136,7 +136,7 @@ class JointMotor {
      * Can be `undefined` when the motor is turned off; setting to `undefined`
      * will turn off the motor.
      *
-     * @type {number|Vec3|Quat|undefined}
+     * @type {import('./constants.js').JointPosition|undefined}
      */
     get target() {
         return this._target;
@@ -186,7 +186,7 @@ class JointMotor {
     /**
      * The target position or `undefined` if the motor is not in position mode.
      *
-     * @type {number|Vec3|Quat|undefined}
+     * @type {import('./constants.js').JointPosition|undefined}
      */
     get targetPosition() {
         if (this._mode === MOTOR_TARGET_POSITION)
@@ -209,7 +209,7 @@ class JointMotor {
     /**
      * The target position or `undefined` if the motor is not in velocity mode.
      *
-     * @type {number|Vec3|Quat|undefined}
+     * @type {import('./constants.js').JointPosition|undefined}
      */
     get targetVelocity() {
         if (this._mode === MOTOR_TARGET_VELOCITY)
@@ -234,7 +234,7 @@ class JointMotor {
 
         /**
          * @private
-         * @type {number|Vec3|Quat|undefined}
+         * @type {import('./constants.js').JointPosition|undefined}
          */
         this._target = undefined;
 

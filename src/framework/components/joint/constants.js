@@ -3,11 +3,15 @@
  */
 
 /**
+ * @typedef {(typeof JOINT_TYPE_6DOF) | (typeof JOINT_TYPE_FIXED) | (typeof JOINT_TYPE_HINGE) | (typeof JOINT_TYPE_SLIDER) | (typeof JOINT_TYPE_SPHERICAL) | (typeof JOINT_TYPE_INVALID)} JointType
+ */
+
+/**
  * @typedef {(typeof MOTOR_TARGET_POSITION) | (typeof MOTOR_TARGET_VELOCITY) | (typeof MOTOR_OFF)} JointMotorMode
  */
 
 /**
- * @typedef {(typeof JOINT_TYPE_6DOF) | (typeof JOINT_TYPE_FIXED) | (typeof JOINT_TYPE_HINGE) | (typeof JOINT_TYPE_SLIDER) | (typeof JOINT_TYPE_SPHERICAL) | (typeof JOINT_TYPE_INVALID)} JointType
+ * @typedef {number|import('../../../core/math/vec3.js').Vec3|import('../../../core/math/quat.js').Quat} JointPosition
  */
 
 /**
