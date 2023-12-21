@@ -1,17 +1,23 @@
 import { EventHandle } from './event-handle.js';
 
 /**
- * Callback used by {@link EventHandler} functions. Note the callback is limited to 8 arguments.
+ * @typedef {(...args: any[]) => any} HandleEventCallbackUntyped
+ */
+
+/**
+ * Events template object.
  *
- * @callback HandleEventCallback
- * @param {*} [arg1] - First argument that is passed from caller.
- * @param {*} [arg2] - Second argument that is passed from caller.
- * @param {*} [arg3] - Third argument that is passed from caller.
- * @param {*} [arg4] - Fourth argument that is passed from caller.
- * @param {*} [arg5] - Fifth argument that is passed from caller.
- * @param {*} [arg6] - Sixth argument that is passed from caller.
- * @param {*} [arg7] - Seventh argument that is passed from caller.
- * @param {*} [arg8] - Eighth argument that is passed from caller.
+ * Each method in an events template gives the parameters for that event.
+ *
+ * @typedef {Record<PropertyKey, HandleEventCallbackUntyped>} EventsTemplate
+ */
+
+/**
+ * Callback used by {@link EventHandler} functions.
+ *
+ * @template {EventsTemplate} [T=EventsTemplate]
+ * @template {keyof T} [K=keyof T]
+ * @typedef {(...args: Parameters<T[K]>) => void} HandleEventCallback
  */
 
 /**
@@ -29,17 +35,17 @@ import { EventHandle } from './event-handle.js';
  * obj.fire('hello', 'world');
  * ```
  *
- * @template [T=any]
+ * @template {EventsTemplate} [Events=EventsTemplate]
  */
 class EventHandler {
     /**
-     * @type {Map<keyof T,Array<EventHandle>>}
+     * @type {Map<keyof Events,Array<EventHandle<Events>>>}
      * @private
      */
     _callbacks = new Map();
 
     /**
-     * @type {Map<keyof T,Array<EventHandle>>}
+     * @type {Map<keyof Events,Array<EventHandle<Events>>>}
      * @private
      */
     _callbackActive = new Map();
@@ -56,13 +62,13 @@ class EventHandler {
     /**
      * Registers a new event handler.
      *
-     * @param {keyof T} name - Name of the event to bind the callback to.
-     * @param {HandleEventCallback} callback - Function that is called when event is fired. Note
-     * the callback is limited to 8 arguments.
+     * @template {keyof Events} [Event=keyof Events]
+     * @param {Event} name - Name of the event to bind the callback to.
+     * @param {HandleEventCallback} callback - Function that is called when event is fired.
      * @param {object} scope - Object to use as 'this' when the event is fired, defaults to
      * current this.
      * @param {boolean} once - If true, the callback will be unbound after being fired once.
-     * @returns {EventHandle} Created {@link EventHandle}.
+     * @returns {EventHandle<Events, Event>} Created {@link EventHandle}.
      * @ignore
      */
     _addCallback(name, callback, scope, once) {
@@ -83,7 +89,7 @@ class EventHandler {
             }
         }
 
-        const evt = new EventHandle(this, name, callback, scope, once);
+        const evt = /** @type EventHandle<Events, Event> */ (new EventHandle(this, name, callback, scope, once));
         this._callbacks.get(name).push(evt);
         return evt;
     }
@@ -91,12 +97,12 @@ class EventHandler {
     /**
      * Attach an event handler to an event.
      *
-     * @param {keyof T} name - Name of the event to bind the callback to.
-     * @param {HandleEventCallback} callback - Function that is called when event is fired. Note
-     * the callback is limited to 8 arguments.
+     * @template {keyof Events} [Event=keyof Events]
+     * @param {Event} name - Name of the event to bind the callback to.
+     * @param {HandleEventCallback<Events, Event>} callback - Function that is called when event is fired.
      * @param {object} [scope] - Object to use as 'this' when the event is fired, defaults to
      * current this.
-     * @returns {EventHandle} Can be used for removing event in the future.
+     * @returns {EventHandle<Events, Event>} Can be used for removing event in the future.
      * @example
      * obj.on('test', function (a, b) {
      *     console.log(a + b);
@@ -116,12 +122,12 @@ class EventHandler {
     /**
      * Attach an event handler to an event. This handler will be removed after being fired once.
      *
-     * @param {keyof T} name - Name of the event to bind the callback to.
-     * @param {HandleEventCallback} callback - Function that is called when event is fired. Note
-     * the callback is limited to 8 arguments.
+     * @template {keyof Events} [Event=keyof Events]
+     * @param {Event} name - Name of the event to bind the callback to.
+     * @param {HandleEventCallback<Events, Event>} callback - Function that is called when event is fired.
      * @param {object} [scope] - Object to use as 'this' when the event is fired, defaults to
      * current this.
-     * @returns {EventHandle} - can be used for removing event in the future.
+     * @returns {EventHandle<Events, Event>} - can be used for removing event in the future.
      * @example
      * obj.once('test', function (a, b) {
      *     console.log(a + b);
@@ -138,10 +144,11 @@ class EventHandler {
      * unbound from the event, if scope is not provided then all events with the callback will be
      * unbound.
      *
-     * @param {keyof T} [name] - Name of the event to unbind.
-     * @param {HandleEventCallback} [callback] - Function to be unbound.
+     * @template {keyof Events} [Event=keyof Events]
+     * @param {Event} [name] - Name of the event to unbind.
+     * @param {HandleEventCallback<Events, Event>} [callback] - Function to be unbound.
      * @param {object} [scope] - Scope that was used as the this when the event is fired.
-     * @returns {EventHandler} Self for chaining.
+     * @returns {EventHandler<Events, Event>} Self for chaining.
      * @example
      * const handler = function () {
      * };
@@ -218,16 +225,17 @@ class EventHandler {
     /**
      * Fire an event, all additional arguments are passed on to the event listener.
      *
-     * @param {keyof T} name - Name of event to fire.
-     * @param {*} [arg1] - First argument that is passed to the event handler.
-     * @param {*} [arg2] - Second argument that is passed to the event handler.
-     * @param {*} [arg3] - Third argument that is passed to the event handler.
-     * @param {*} [arg4] - Fourth argument that is passed to the event handler.
-     * @param {*} [arg5] - Fifth argument that is passed to the event handler.
-     * @param {*} [arg6] - Sixth argument that is passed to the event handler.
-     * @param {*} [arg7] - Seventh argument that is passed to the event handler.
-     * @param {*} [arg8] - Eighth argument that is passed to the event handler.
-     * @returns {EventHandler} Self for chaining.
+     * @template {keyof Events} [Event=keyof Events]
+     * @param {Event} name - Name of event to fire.
+     * @param {Parameters<Events[Event]>[0]} [arg1] - First argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[1]} [arg2] - Second argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[2]} [arg3] - Third argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[3]} [arg4] - Fourth argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[4]} [arg5] - Fifth argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[5]} [arg6] - Sixth argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[6]} [arg7] - Seventh argument that is passed to the event handler.
+     * @param {Parameters<Events[Event]>[7]} [arg8] - Eighth argument that is passed to the event handler.
+     * @returns {EventHandler<Events>} Self for chaining.
      * @example
      * obj.fire('test', 'This is the message');
      */
@@ -287,7 +295,7 @@ class EventHandler {
     /**
      * Test if there are any handlers bound to an event name.
      *
-     * @param {keyof T} name - The name of the event to test.
+     * @param {keyof Events} name - The name of the event to test.
      * @returns {boolean} True if the object has handlers bound to the specified event name.
      * @example
      * obj.on('test', function () { }); // bind an event to 'test'

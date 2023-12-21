@@ -23,23 +23,24 @@ import { Debug } from '../core/debug.js';
  * });
  * events = [ ];
  *
- * @template [T=any]
+ * @template {import('./event-handler.js').EventsTemplate} [Events=import('./event-handler.js').EventsTemplate]
+ * @template {keyof Events} [Event=keyof Events]
  */
 class EventHandle {
     /**
-     * @type {import('./event-handler.js').EventHandler<T>}
+     * @type {import('./event-handler.js').EventHandler<Events>}
      * @private
      */
     handler;
 
     /**
-     * @type {keyof T}
+     * @type {Event}
      * @private
      */
     name;
 
     /**
-     * @type {import('./event-handler.js').HandleEventCallback}
+     * @type {import('./event-handler.js').HandleEventCallback<Events, Event>}
      * @ignore
      */
     callback;
@@ -64,9 +65,9 @@ class EventHandle {
     _removed = false;
 
     /**
-     * @param {import('./event-handler.js').EventHandler<T>} handler - source object of the event.
-     * @param {keyof T} name - Name (or key) of the event.
-     * @param {import('./event-handler.js').HandleEventCallback} callback - Function that is called when event is fired.
+     * @param {import('./event-handler.js').EventHandler<Events, Event>} handler - source object of the event.
+     * @param {Event} name - Name (or key) of the event.
+     * @param {import('./event-handler.js').HandleEventCallback<Events, Event>} callback - Function that is called when event is fired.
      * @param {object} scope - Object that is used as `this` when event is fired.
      * @param {boolean} [once] - If this is a single event and will be removed after event is fired.
      */
