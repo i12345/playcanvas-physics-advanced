@@ -239,10 +239,43 @@ class MultiBodyComponent extends Component {
 
     /**
      * @private
+     * @param {(mb: MultiBodyComponent) => void} cb - callback per descendant
+     * multibody
+     * @param {boolean} [add] - whether to add multibody components to
+     * descendant entities or not (defaults to true)
+     * @returns {void}
+     */
+    _recurseDescendantMultiBodyEntities(cb, add = true) {
+        const base = this._base;
+
+        /**
+         * Recurse over graph nodes
+         * @param {import('../../../scene/graph-node.js').GraphNode} node - node to traverse
+         */
+        function recurse(node) {
+            const entity = /** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node));
+            if ('findComponent' in node) {
+                if (entity.multibody) {
+                    if (entity.multibody._base === base)
+                        cb(entity.multibody);
+                } else if (add)
+                    entity.addComponent('multibody', { enabled: false });
+            } else {
+                for (const child of node.children)
+                    recurse(child);
+            }
+        }
+
+        for (const child of this.entity.children)
+            recurse(child);
+    }
+
+    /**
+     * @private
      * @param {import('./system.js').MultiBodySetup} setup - The setup information
      */
     setup(setup) {
-        const index = this._linkIndex = setup.indexOf(this.entity);
+        const index = this._linkIndex = setup.indexOf(this.entity) ?? null;
         if (index >= 0) {
             this._link = this.base.multibody.getLink(index);
         } else if (index !== -1) {
@@ -256,11 +289,7 @@ class MultiBodyComponent extends Component {
             this.fire('setup', setup);
         }
 
-        for (const child of this.entity.children) {
-            if (child.multibody && child.multibody._base === this._base) {
-                child.multibody.setup(setup);
-            }
-        }
+        this._recurseDescendantMultiBodyEntities(child => child.setup(setup), false);
     }
 
     /**
@@ -271,15 +300,7 @@ class MultiBodyComponent extends Component {
         if (this.enabled)
             this.fire('beforeSetup', setup);
 
-        for (const child of this.entity.children) {
-            if ('findComponent' in child) {
-                if (!child.multibody)
-                    child.addComponent('multibody', { enabled: false });
-
-                if (child.multibody._base === this._base)
-                    child.multibody.beforeSetup(setup);
-            }
-        }
+        this._recurseDescendantMultiBodyEntities(child => child.beforeSetup(setup), true);
     }
 
     /**
@@ -299,11 +320,7 @@ class MultiBodyComponent extends Component {
             }
         }
 
-        for (const child of this.entity.children) {
-            if (child.multibody && child.multibody._base === this._base) {
-                child.multibody.afterSetup(setup);
-            }
-        }
+        this._recurseDescendantMultiBodyEntities(child => child.afterSetup(setup), false);
     }
 
     /**
@@ -323,11 +340,7 @@ class MultiBodyComponent extends Component {
             this.fire('unsetup', setup);
         }
 
-        for (const child of this.entity.children) {
-            if (child.multibody && child.multibody._base === this._base) {
-                child.multibody.unsetup(setup);
-            }
-        }
+        this._recurseDescendantMultiBodyEntities(child => child.unsetup(setup), false);
     }
 
     /**
