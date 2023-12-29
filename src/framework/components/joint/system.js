@@ -20,8 +20,6 @@ function _defaultInertiaVec() {
     return __defaultInertiaVec;
 }
 
-// TODO: implement JointImpl following the pattern of collision/system > CollisionSystemImpl
-// to support other joint types with custom properties
 class JointImpl {
     /**
      * Makes a new joint between two entities with a mediating joint entity.
@@ -280,7 +278,8 @@ class Generic6DofJointImpl extends JointImpl {
         // TODO: implement
         // https://stackoverflow.com/a/67466146
 
-        throw new Error("motor not support for 6DoF constraint");
+        if (mode !== MOTOR_OFF)
+            throw new Error("motor not support for 6DoF constraint");
     }
 }
 
@@ -820,11 +819,13 @@ class SliderJointImpl extends JointImpl {
         const limit_upper = motion === MOTION_FREE ? 0 : joint.limits.angular[axis].y * math.DEG_TO_RAD;
 
         if (joint.isForMultibodyLink) {
-            // const link = joint.entityA.multibody.link;
-            // link.set_m_jointUpperLimit(upper);
-            // link.set_m_jointLowerLimit(lower);
-            // TODO: this is not currently implemented in bullet
-            throw new Error("angular limits not implemented yet for slider multibody joints");
+            if (motion !== MOTION_LOCKED) {
+                // const link = joint.entityA.multibody.link;
+                // link.set_m_jointUpperLimit(upper);
+                // link.set_m_jointLowerLimit(lower);
+                // TODO: this is not currently implemented in bullet
+                throw new Error("angular limits not implemented yet for slider multibody joints");
+            }
         } else {
             /** @type {import('ammojs3').default.btSliderConstraint} */
             const constraint = joint.rigidBodyConstraint;
