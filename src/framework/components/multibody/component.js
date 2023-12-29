@@ -272,7 +272,7 @@ class MultiBodyComponent extends Component {
             this.fire('beforeSetup', setup);
 
         for (const child of this.entity.children) {
-            if (child.findComponent) {
+            if ('findComponent' in child) {
                 if (!child.multibody)
                     child.addComponent('multibody', { enabled: false });
 
