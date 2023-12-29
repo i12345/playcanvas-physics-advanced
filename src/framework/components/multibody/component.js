@@ -276,17 +276,19 @@ class MultiBodyComponent extends Component {
      */
     setup(setup) {
         const index = this._linkIndex = setup.indexOf(this.entity) ?? null;
-        if (index >= 0) {
-            this._link = this.base.multibody.getLink(index);
-        } else if (index !== -1) {
-            // no link was set up for this entity
-            // -1 would be the base link
-            this._link = null;
-            this._linkIndex = null;
-        }
+        if (index !== null) {
+            if (index >= 0) {
+                this._link = this.base.multibody.getLink(index);
+            } else if (index !== -1) {
+                // no link was set up for this entity
+                // -1 would be the base link
+                this._link = null;
+                this._linkIndex = null;
+            }
 
-        if (this.isInMultibody) {
-            this.fire('setup', setup);
+            if (this.isInMultibody) {
+                this.fire('setup', setup);
+            }
         }
 
         this._recurseDescendantMultiBodyEntities(child => child.setup(setup), false);
