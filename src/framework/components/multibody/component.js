@@ -196,7 +196,6 @@ class MultiBodyComponent extends Component {
         while (node) {
             if ((/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody?.enabled)
                 this._base = (/** @type {import('../../entity.js').Entity} */ (/** @type {unknown} */ (node))).multibody;
-            else break;
 
             node = node.parent;
         }
