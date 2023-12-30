@@ -11,10 +11,11 @@ let _ammoTransform;
  * Creates a trigger object used to create internal physics objects that interact with physics bodies
  * and trigger collision events with no collision response.
  *
+ * @template Shape
  * @ignore
  */
 class Trigger {
-    /** @type {import('./component').CollisionComponent} */
+    /** @type {import('./component').CollisionComponent<Shape>} */
     component;
 
     /**
@@ -23,7 +24,7 @@ class Trigger {
      * @param {import('../../app-base.js').AppBase} app - The running {@link AppBase}.
      * @param {import('../component.js').Component} component - The component for which the trigger
      * will be created.
-     * @param {ComponentData} data - The data for the component.
+     * @param {import('./data.js').CollisionComponentData<Shape>} data - The data for the component.
      */
     constructor(app, component, data) {
         this.entity = component.entity;
@@ -40,7 +41,7 @@ class Trigger {
     }
 
     /**
-     * @param {import('./data.js').CollisionComponentData} data
+     * @param {import('./data.js').CollisionComponentData<Shape>} data
      */
     initialize(data) {
         const entity = this.entity;

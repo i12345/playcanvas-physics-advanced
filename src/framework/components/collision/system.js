@@ -1,26 +1,20 @@
-import { Debug } from '../../../core/debug.js';
+import { GraphNode } from '../../../scene/graph-node.js';
 
 import { Mat4 } from '../../../core/math/mat4.js';
 import { Quat } from '../../../core/math/quat.js';
 import { Vec3 } from '../../../core/math/vec3.js';
 
-import { SEMANTIC_POSITION } from '../../../platform/graphics/constants.js';
-
-import { GraphNode } from '../../../scene/graph-node.js';
-import { Model } from '../../../scene/model.js';
-
 import { Component } from '../component.js';
 import { ComponentSystem } from '../system.js';
+import { AmmoCollisionBackend } from './backends/ammo/backend.js';
 
 import { CollisionComponent } from './component.js';
 import { CollisionComponentData } from './data.js';
-import { Trigger } from './trigger.js';
 
 const mat4 = new Mat4();
 const p1 = new Vec3();
 const p2 = new Vec3();
 const quat = new Quat();
-const tempGraphNode = new GraphNode();
 
 const _schema = [
     'enabled',
@@ -38,672 +32,14 @@ const _schema = [
     'render'
 ];
 
-// Collision system implementations
-class CollisionSystemImpl {
-    /**
-     * @param {CollisionComponentSystem} system
-     */
-    constructor(system) {
-        /** @type {CollisionComponentSystem} */
-        this.system = system;
-    }
-
-    /**
-     * Called before the call to system.super.initializeComponentData is made
-     * @param {import('./component').CollisionComponent} component
-     * @param {import('./data').CollisionComponentData} data
-     */
-    beforeInitialize(component, data) {
-        data.shape = null;
-
-        data.model = new Model();
-        data.model.graph = new GraphNode();
-    }
-
-    /**
-     * Called after the call to system.super.initializeComponentData is made
-     * @param {CollisionComponent} component
-     * @param {CollisionComponentData} data
-     */
-    afterInitialize(component, data) {
-        this.recreatePhysicalShapes(component);
-        component.data.initialized = true;
-    }
-
-    /**
-     * Called when a collision component changes type in order to recreate debug and physical shapes
-     * @param {CollisionComponent} component
-     * @param {CollisionComponentData} data
-     */
-    reset(component, data) {
-        this.beforeInitialize(component, data);
-        this.afterInitialize(component, data);
-    }
-
-    /**
-     * Re-creates physics bodies / triggers
-     * @param {CollisionComponent} component
-     */
-    recreatePhysicalShapes(component) {
-        const entity = component.entity;
-        const data = component.data;
-
-        if (typeof Ammo !== 'undefined') {
-            if (entity.trigger) {
-                entity.trigger.destroy();
-                delete entity.trigger;
-            }
-
-            if (data.shape) {
-                if (component._compoundParent) {
-                    this.system._removeCompoundChild(component._compoundParent, data.shape);
-
-                    if (component._compoundParent.entity.physics)
-                        component._compoundParent.entity.physics.activate();
-                }
-
-                this.destroyShape(data);
-            }
-
-            data.shape = this.createPhysicalShape(component.entity, data);
-
-            const firstCompoundChild = !component._compoundParent;
-
-            if (data.type === 'compound' && (!component._compoundParent || component === component._compoundParent)) {
-                component._compoundParent = component;
-
-                entity.forEach(this._addEachDescendant, component);
-            } else if (data.type !== 'compound') {
-                if (component._compoundParent && component === component._compoundParent) {
-                    entity.forEach(this.system.implementations.compound._updateEachDescendant, component);
-                }
-
-                if (!component.physics) {
-                    component._compoundParent = null;
-                    let parent = entity.parent;
-                    while (parent) {
-                        /** @type {import('../../entity').Entity} */
-                        // @ts-ignore
-                        const parentEntity = parent;
-                        if (parentEntity.collision && parentEntity.collision.type === 'compound') {
-                            component._compoundParent = parentEntity.collision;
-                            break;
-                        }
-                        parent = parent.parent;
-                    }
-                }
-            }
-
-            if (component._compoundParent) {
-                if (component !== component._compoundParent) {
-                    if (firstCompoundChild && component._compoundParent.shape.getNumChildShapes() === 0) {
-                        this.system.recreatePhysicalShapes(component._compoundParent);
-                    } else {
-                        this.system.updateCompoundChildTransform(entity);
-
-                        if (component._compoundParent.entity.physics)
-                            component._compoundParent.entity.physics.activate();
-                    }
-                }
-            }
-
-            if (entity.physics) {
-                entity.physics.disableSimulation();
-                entity.physics.createBody();
-
-                if (entity.enabled && entity.physics.enabled) {
-                    entity.physics.enableSimulation();
-                }
-            } else if (!component._compoundParent) {
-                if (!entity.trigger) {
-                    entity.trigger = new Trigger(this.system.app, component, data);
-                } else {
-                    entity.trigger.initialize(data);
-                }
-            }
-        }
-    }
-
-    /**
-     * Creates a physical shape for the collision. This consists
-     * of the actual shape that will be used for the rigid bodies / triggers of
-     * the collision.
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btCollisionShape}
-     */
-    createPhysicalShape(entity, data) {
-        return undefined;
-    }
-
-    /**
-     * @param {CollisionComponent} component
-     * @param {Vec3} position
-     * @param {Quat} rotation
-     * @param {Vec3} scale
-     */
-    updateTransform(component, position, rotation, scale) {
-        if (component.entity.trigger) {
-            component.entity.trigger.updateTransform();
-        }
-    }
-
-    destroyShape(data) {
-        if (data.shape) {
-            Ammo.destroy(data.shape);
-            data.shape = null;
-        }
-    }
-
-    /**
-     * @param {import('../../entity.js').Entity} entity
-     * @param {CollisionComponent} component
-     */
-    beforeRemove(entity, component) {
-        if (component.data.shape) {
-            if (component._compoundParent && !component._compoundParent.entity._destroying) {
-                this.system._removeCompoundChild(component._compoundParent, component.data.shape);
-
-                if (component._compoundParent.entity.physics)
-                    component._compoundParent.entity.physics.activate();
-            }
-
-            component._compoundParent = null;
-
-            this.destroyShape(component.data);
-        }
-    }
-
-    /**
-     * Called when the collision is removed
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     */
-    remove(entity, data) {
-        if (entity.physics && entity.physics.body) {
-            entity.physics.disableSimulation();
-        }
-
-        if (entity.trigger) {
-            entity.trigger.destroy();
-            delete entity.trigger;
-        }
-    }
-
-    /**
-     * Called when the collision is cloned to another entity
-     * @param {import('../../entity').Entity} entity
-     * @param {import('../../entity').Entity} clone
-     * @returns {CollisionComponent}
-     */
-    clone(entity, clone) {
-        const src = this.system.store[entity.getGuid()];
-
-        const data = {
-            enabled: src.data.enabled,
-            type: src.data.type,
-            halfExtents: [src.data.halfExtents.x, src.data.halfExtents.y, src.data.halfExtents.z],
-            linearOffset: [src.data.linearOffset.x, src.data.linearOffset.y, src.data.linearOffset.z],
-            angularOffset: [src.data.angularOffset.x, src.data.angularOffset.y, src.data.angularOffset.z, src.data.angularOffset.w],
-            radius: src.data.radius,
-            axis: src.data.axis,
-            height: src.data.height,
-            asset: src.data.asset,
-            renderAsset: src.data.renderAsset,
-            model: src.data.model,
-            render: src.data.render
-        };
-
-        // @ts-ignore
-        return this.system.addComponent(clone, data);
-    }
-}
-
-// Box Collision System
-class CollisionBoxSystemImpl extends CollisionSystemImpl {
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btBoxShape}
-     */
-    createPhysicalShape(entity, data) {
-        if (typeof Ammo !== 'undefined') {
-            const he = data.halfExtents;
-            const ammoHe = new Ammo.btVector3(he ? he.x : 0.5, he ? he.y : 0.5, he ? he.z : 0.5);
-            const shape = new Ammo.btBoxShape(ammoHe);
-            Ammo.destroy(ammoHe);
-            return shape;
-        }
-        return undefined;
-    }
-}
-
-// Sphere Collision System
-class CollisionSphereSystemImpl extends CollisionSystemImpl {
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btSphereShape}
-     */
-    createPhysicalShape(entity, data) {
-        if (typeof Ammo !== 'undefined') {
-            return new Ammo.btSphereShape(data.radius);
-        }
-        return undefined;
-    }
-}
-
-// Capsule Collision System
-class CollisionCapsuleSystemImpl extends CollisionSystemImpl {
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btCapsuleShape}
-     */
-    createPhysicalShape(entity, data) {
-        const axis = data.axis ?? 1;
-        const radius = data.radius ?? 0.5;
-        const height = Math.max((data.height ?? 2) - 2 * radius, 0);
-
-        let shape = null;
-
-        if (typeof Ammo !== 'undefined') {
-            switch (axis) {
-                case 0:
-                    shape = new Ammo.btCapsuleShapeX(radius, height);
-                    break;
-                case 1:
-                    shape = new Ammo.btCapsuleShape(radius, height);
-                    break;
-                case 2:
-                    shape = new Ammo.btCapsuleShapeZ(radius, height);
-                    break;
-            }
-        }
-
-        return shape;
-    }
-}
-
-// Cylinder Collision System
-class CollisionCylinderSystemImpl extends CollisionSystemImpl {
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btCylinderShape}
-     */
-    createPhysicalShape(entity, data) {
-        const axis = data.axis ?? 1;
-        const radius = data.radius ?? 0.5;
-        const height = data.height ?? 1;
-
-        let halfExtents = null;
-        let shape = null;
-
-        if (typeof Ammo !== 'undefined') {
-            switch (axis) {
-                case 0:
-                    halfExtents = new Ammo.btVector3(height * 0.5, radius, radius);
-                    shape = new Ammo.btCylinderShapeX(halfExtents);
-                    break;
-                case 1:
-                    halfExtents = new Ammo.btVector3(radius, height * 0.5, radius);
-                    shape = new Ammo.btCylinderShape(halfExtents);
-                    break;
-                case 2:
-                    halfExtents = new Ammo.btVector3(radius, radius, height * 0.5);
-                    shape = new Ammo.btCylinderShapeZ(halfExtents);
-                    break;
-            }
-        }
-
-        if (halfExtents)
-            Ammo.destroy(halfExtents);
-
-        return shape;
-    }
-}
-
-// Cone Collision System
-class CollisionConeSystemImpl extends CollisionSystemImpl {
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btConeShape}
-     */
-    createPhysicalShape(entity, data) {
-        const axis = data.axis ?? 1;
-        const radius = data.radius ?? 0.5;
-        const height = data.height ?? 1;
-
-        let shape = null;
-
-        if (typeof Ammo !== 'undefined') {
-            switch (axis) {
-                case 0:
-                    shape = new Ammo.btConeShapeX(radius, height);
-                    break;
-                case 1:
-                    shape = new Ammo.btConeShape(radius, height);
-                    break;
-                case 2:
-                    shape = new Ammo.btConeShapeZ(radius, height);
-                    break;
-            }
-        }
-
-        return shape;
-    }
-}
-
-// Mesh Collision System
-class CollisionMeshSystemImpl extends CollisionSystemImpl {
-    // override for the mesh implementation because the asset model needs
-    // special handling
-    beforeInitialize(component, data) {}
-
-    /**
-     * @param {import('../../../scene/mesh').Mesh} mesh
-     * @param {import('../../../scene/graph-node').GraphNode} node
-     * @param {import('ammojs3').default.btCompoundShape} shape
-     */
-    createAmmoMesh(mesh, node, shape) {
-        let triMesh;
-
-        if (this.system._triMeshCache[mesh.id]) {
-            triMesh = this.system._triMeshCache[mesh.id];
-        } else {
-            const vb = mesh.vertexBuffer;
-
-            const format = vb.getFormat();
-            let stride;
-            let positions;
-            for (let i = 0; i < format.elements.length; i++) {
-                const element = format.elements[i];
-                if (element.name === SEMANTIC_POSITION) {
-                    positions = new Float32Array(vb.lock(), element.offset);
-                    stride = element.stride / 4;
-                    break;
-                }
-            }
-
-            const indices = [];
-            mesh.getIndices(indices);
-            const numTriangles = mesh.primitive[0].count / 3;
-
-            const v1 = new Ammo.btVector3();
-            const v2 = new Ammo.btVector3();
-            const v3 = new Ammo.btVector3();
-            let i1, i2, i3;
-
-            const base = mesh.primitive[0].base;
-            triMesh = new Ammo.btTriangleMesh();
-            this.system._triMeshCache[mesh.id] = triMesh;
-
-            for (let i = 0; i < numTriangles; i++) {
-                i1 = indices[base + i * 3] * stride;
-                i2 = indices[base + i * 3 + 1] * stride;
-                i3 = indices[base + i * 3 + 2] * stride;
-                v1.setValue(positions[i1], positions[i1 + 1], positions[i1 + 2]);
-                v2.setValue(positions[i2], positions[i2 + 1], positions[i2 + 2]);
-                v3.setValue(positions[i3], positions[i3 + 1], positions[i3 + 2]);
-                triMesh.addTriangle(v1, v2, v3, true);
-            }
-
-            Ammo.destroy(v1);
-            Ammo.destroy(v2);
-            Ammo.destroy(v3);
-        }
-
-        const useQuantizedAabbCompression = true;
-        const triMeshShape = new Ammo.btBvhTriangleMeshShape(triMesh, useQuantizedAabbCompression);
-
-        const scaling = this.system._getNodeScaling(node);
-        triMeshShape.setLocalScaling(scaling);
-        Ammo.destroy(scaling);
-
-        const transform = this.system._getNodeTransform(node);
-        shape.addChildShape(transform, triMeshShape);
-        Ammo.destroy(transform);
-    }
-
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btCompoundShape}
-     */
-    createPhysicalShape(entity, data) {
-        if (typeof Ammo === 'undefined') return undefined;
-
-        if (data.model || data.render) {
-
-            const shape = new Ammo.btCompoundShape();
-
-            if (data.model) {
-                const meshInstances = data.model.meshInstances;
-                for (let i = 0; i < meshInstances.length; i++) {
-                    this.createAmmoMesh(meshInstances[i].mesh, meshInstances[i].node, shape);
-                }
-            } else if (data.render) {
-                const meshes = data.render.meshes;
-                for (let i = 0; i < meshes.length; i++) {
-                    this.createAmmoMesh(meshes[i], tempGraphNode, shape);
-                }
-            }
-
-            const entityTransform = entity.getWorldTransform();
-            const scale = entityTransform.getScale();
-            const vec = new Ammo.btVector3(scale.x, scale.y, scale.z);
-            shape.setLocalScaling(vec);
-            Ammo.destroy(vec);
-
-            return shape;
-        }
-
-        return undefined;
-    }
-
-    /**
-     * @param {CollisionComponent} component
-     */
-    recreatePhysicalShapes(component) {
-        const data = component.data;
-
-        if (data.renderAsset || data.asset) {
-            if (component.enabled && component.entity.enabled) {
-                this.loadAsset(
-                    component,
-                    data.renderAsset || data.asset,
-                    data.renderAsset ? 'render' : 'model'
-                );
-                return;
-            }
-        }
-
-        this.doRecreatePhysicalShape(component);
-    }
-
-    /**
-     * @param {CollisionComponent} component
-     * @param {*} id
-     * @param {*} property
-     */
-    loadAsset(component, id, property) {
-        const data = component.data;
-        const assets = this.system.app.assets;
-        const previousPropertyValue = data[property];
-
-        const onAssetFullyReady = (asset) => {
-            if (data[property] !== previousPropertyValue) {
-                // the asset has changed since we started loading it, so ignore this callback
-                return;
-            }
-            data[property] = asset.resource;
-            this.doRecreatePhysicalShape(component);
-        };
-
-        const loadAndHandleAsset = (asset) => {
-            asset.ready((asset) => {
-                if (asset.data.containerAsset) {
-                    const containerAsset = assets.get(asset.data.containerAsset);
-                    if (containerAsset.loaded) {
-                        onAssetFullyReady(asset);
-                    } else {
-                        containerAsset.ready(() => {
-                            onAssetFullyReady(asset);
-                        });
-                        assets.load(containerAsset);
-                    }
-                } else {
-                    onAssetFullyReady(asset);
-                }
-            });
-
-            assets.load(asset);
-        };
-
-        const asset = assets.get(id);
-        if (asset) {
-            loadAndHandleAsset(asset);
-        } else {
-            assets.once('add:' + id, loadAndHandleAsset);
-        }
-    }
-
-    /**
-     * @param {CollisionComponent} component
-     */
-    doRecreatePhysicalShape(component) {
-        const entity = component.entity;
-        const data = component.data;
-
-        if (data.model || data.render) {
-            this.destroyShape(data);
-
-            data.shape = this.createPhysicalShape(entity, data);
-
-            if (entity.physics) {
-                entity.physics.disableSimulation();
-                entity.physics.createBody();
-
-                if (entity.enabled && entity.physics.enabled) {
-                    entity.physics.enableSimulation();
-                }
-            } else {
-                if (!entity.trigger) {
-                    entity.trigger = new Trigger(this.system.app, component, data);
-                } else {
-                    entity.trigger.initialize(data);
-                }
-            }
-        } else {
-            this.beforeRemove(entity, component);
-            this.remove(entity, data);
-        }
-    }
-
-    /**
-     * @param {CollisionComponent} component
-     * @param {Vec3} position
-     * @param {Quat} rotation
-     * @param {Vec3} scale
-     */
-    updateTransform(component, position, rotation, scale) {
-        if (component.shape) {
-            const entityTransform = component.entity.getWorldTransform();
-            const worldScale = entityTransform.getScale();
-
-            // if the scale changed then recreate the shape
-            const previousScale = component.shape.getLocalScaling();
-            if (worldScale.x !== previousScale.x() ||
-                worldScale.y !== previousScale.y() ||
-                worldScale.z !== previousScale.z()) {
-                this.doRecreatePhysicalShape(component);
-            }
-        }
-
-        super.updateTransform(component, position, rotation, scale);
-    }
-
-    /**
-     * @param {CollisionComponentData} data
-     */
-    destroyShape(data) {
-        if (!data.shape)
-            return;
-
-        const numShapes = data.shape.getNumChildShapes();
-        for (let i = 0; i < numShapes; i++) {
-            const shape = data.shape.getChildShape(i);
-            Ammo.destroy(shape);
-        }
-
-        Ammo.destroy(data.shape);
-        data.shape = null;
-    }
-}
-
-// Compound Collision System
-class CollisionCompoundSystemImpl extends CollisionSystemImpl {
-    /**
-     * @param {import('../../entity').Entity} entity
-     * @param {CollisionComponentData} data
-     * @returns {import('ammojs3').default.btCompoundShape}
-     */
-    createPhysicalShape(entity, data) {
-        if (typeof Ammo !== 'undefined') {
-            return new Ammo.btCompoundShape();
-        }
-        return undefined;
-    }
-
-    /**
-     * @param {import('../../entity').Entity} entity
-     */
-    _addEachDescendant(entity) {
-        if (!entity.collision || entity.physics)
-            return;
-
-        entity.collision._compoundParent = this;
-
-        if (entity !== this.entity) {
-            entity.collision.system.recreatePhysicalShapes(entity.collision);
-        }
-    }
-
-    /**
-     * @param {import('../../entity').Entity} entity
-     */
-    _updateEachDescendant(entity) {
-        if (!entity.collision)
-            return;
-
-        if (entity.collision._compoundParent !== this)
-            return;
-
-        entity.collision._compoundParent = null;
-
-        if (entity !== this.entity && !entity.physics) {
-            entity.collision.system.recreatePhysicalShapes(entity.collision);
-        }
-    }
-
-    /**
-     * @param {import('../../entity').Entity} entity
-     */
-    _updateEachDescendantTransform(entity) {
-        if (!entity.collision || entity.collision._compoundParent !== this.collision._compoundParent)
-            return;
-
-        this.collision.system.updateCompoundChildTransform(entity);
-    }
-}
-
 /**
  * Manages creation of {@link CollisionComponent}s.
  *
  * @augments ComponentSystem
  * @category Physics
+ *
+ * @template [Shape=any] - backend shape object
+ * @template {CollisionSystemBackend<Shape>} [Backend=CollisionSystemBackend<Shape>] - collision backend system
  */
 class CollisionComponentSystem extends ComponentSystem {
     /**
@@ -722,12 +58,26 @@ class CollisionComponentSystem extends ComponentSystem {
 
         this.schema = _schema;
 
-        this.implementations = { };
+        /** @type {Backend} */
+        this._backend = /** @type {Backend} */ (/** @type {unknown} */ (new AmmoCollisionBackend()));
+        this._backendUsed = false;
 
-        this._triMeshCache = { };
+        /** @type {ReturnType<Backend["makeTypeImplementations"]>} */
+        this._backendImplementations = /** @type {ReturnType<Backend["makeTypeImplementations"]>} */ (null);
 
         this.on('beforeremove', this.onBeforeRemove, this);
         this.on('remove', this.onRemove, this);
+    }
+
+    set backend(backend) {
+        if (this._backendUsed)
+            throw new Error("backend must be set before first use");
+
+        this._backend = backend;
+    }
+
+    get backend() {
+        return this._backend;
     }
 
     /**
@@ -754,6 +104,7 @@ class CollisionComponentSystem extends ComponentSystem {
         ];
 
         // duplicate the input data because we are modifying it
+        /** @type {CollisionComponentData} */
         const data = {};
         for (let i = 0, len = properties.length; i < len; i++) {
             const property = properties[i];
@@ -803,7 +154,8 @@ class CollisionComponentSystem extends ComponentSystem {
             }
         }
 
-        const impl = this._createImplementation(data.type);
+        this._useBackend();
+        const impl = this._backendImplementations[/** @type {import('./constants.js').CollisionType} */ (data.type)];
         impl.beforeInitialize(component, data);
 
         super.initializeComponentData(component, data, properties);
@@ -812,52 +164,27 @@ class CollisionComponentSystem extends ComponentSystem {
     }
 
     /**
-     * Creates an implementation based on the collision type and caches it
-     * in an internal implementations structure, before returning it.
-     * @param {CollisionComponentData["type"]} type
-     * @returns {CollisionSystemImpl}
+     * @private
+     * @returns {Backend}
      */
-    _createImplementation(type) {
-        if (this.implementations[type] === undefined) {
-            let impl;
-            switch (type) {
-                case 'box':
-                    impl = new CollisionBoxSystemImpl(this);
-                    break;
-                case 'sphere':
-                    impl = new CollisionSphereSystemImpl(this);
-                    break;
-                case 'capsule':
-                    impl = new CollisionCapsuleSystemImpl(this);
-                    break;
-                case 'cylinder':
-                    impl = new CollisionCylinderSystemImpl(this);
-                    break;
-                case 'cone':
-                    impl = new CollisionConeSystemImpl(this);
-                    break;
-                case 'mesh':
-                    impl = new CollisionMeshSystemImpl(this);
-                    break;
-                case 'compound':
-                    impl = new CollisionCompoundSystemImpl(this);
-                    break;
-                default:
-                    Debug.error(`_createImplementation: Invalid collision system type: ${type}`);
-            }
-            this.implementations[type] = impl;
+    _useBackend() {
+        if (!this._backendUsed) {
+            if (!this.backend.isLoaded)
+                throw new Error("backend not loaded");
+            this._backendUsed = true;
+            this._backendImplementations = /** @type {typeof this._backendImplementations} */ (this.backend.makeTypeImplementations(this));
         }
 
-        return this.implementations[type];
+        return this._backend;
     }
 
     /**
-     * Gets an existing implementation for the specified entity
-     * @param {import('../../entity').Entity} entity
-     * @returns {CollisionSystemImpl}
+     * Gets an existing implementation for the specified component
+     * @param {import('./component.js').CollisionComponent} component
+     * @returns {import('./backends/interface.js').CollisionObjectImpl<Shape, Backend>}
      */
-    _getImplementation(entity) {
-        return this.implementations[entity.collision.data.type];
+    _getImplementation(component) {
+        return /** @type {import('./backends/interface.js').CollisionObjectImpl<Shape, Backend>} */ (this._backendImplementations[/** @type {CollisionComponentData} */ (component.data).type]);
     }
 
     /**
@@ -866,7 +193,7 @@ class CollisionComponentSystem extends ComponentSystem {
      * @returns {Component}
      */
     cloneComponent(entity, clone) {
-        return this._getImplementation(entity).clone(entity, clone);
+        return this._getImplementation(entity.collision).clone(entity, clone);
     }
 
     /**
@@ -874,7 +201,7 @@ class CollisionComponentSystem extends ComponentSystem {
      * @param {CollisionComponent} component
      */
     onBeforeRemove(entity, component) {
-        this.implementations[component.data.type].beforeRemove(entity, component);
+        this._getImplementation(component).beforeRemove(entity, component);
         component.onBeforeRemove();
     }
 
@@ -883,7 +210,7 @@ class CollisionComponentSystem extends ComponentSystem {
      * @param {CollisionComponentData} data
      */
     onRemove(entity, data) {
-        this.implementations[data.type].remove(entity, data);
+        this._backendImplementations[data.type].remove(entity, data);
     }
 
     /**
@@ -927,19 +254,19 @@ class CollisionComponentSystem extends ComponentSystem {
      * @param {Vec3} scale
      */
     onTransformChanged(component, position, rotation, scale) {
-        this.implementations[component.data.type].updateTransform(component, position, rotation, scale);
+        this._getImplementation(component).updateTransform(component, position, rotation, scale);
     }
 
     /**
      * Destroys the previous collision type and creates a new one based on the new type provided
      * @param {CollisionComponent} component
-     * @param {*} previousType
-     * @param {*} newType
+     * @param {import('./constants.js').CollisionType} previousType
+     * @param {import('./constants.js').CollisionType} newType
      */
     changeType(component, previousType, newType) {
-        this.implementations[previousType].beforeRemove(component.entity, component);
-        this.implementations[previousType].remove(component.entity, component.data);
-        this._createImplementation(newType).reset(component, component.data);
+        this._backendImplementations[previousType].beforeRemove(component.entity, component);
+        this._backendImplementations[previousType].remove(component.entity, component.data);
+        this._backendImplementations[newType].reset(component, component.data);
     }
 
     /**
@@ -947,7 +274,7 @@ class CollisionComponentSystem extends ComponentSystem {
      * @param {CollisionComponent} component
      */
     recreatePhysicalShapes(component) {
-        this.implementations[component.data.type].recreatePhysicalShapes(component);
+        this._getImplementation(component).recreatePhysicalShapes(component);
     }
 
     /**
@@ -1028,11 +355,7 @@ class CollisionComponentSystem extends ComponentSystem {
     }
 
     destroy() {
-        for (const key in this._triMeshCache) {
-            Ammo.destroy(this._triMeshCache[key]);
-        }
-
-        this._triMeshCache = null;
+        this.backend.destroy();
 
         super.destroy();
     }

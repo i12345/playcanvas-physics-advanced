@@ -281,6 +281,14 @@ class PhysicsComponent extends Component {
         return this._multibodyLinkCollider;
     }
 
+    /**
+     * legacy reference to this.rigidBody ?? this.multibodyLinkCollider
+     * @type {import('ammojs3').default.btRigidBody|import('ammojs3').default.btMultiBodyLinkCollider|null}
+     */
+    get body() {
+        return this.collisionObject;
+    }
+
     get collisionObject() {
         return this._rigidBody ?? this._multibodyLinkCollider;
     }

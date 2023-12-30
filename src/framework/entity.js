@@ -212,6 +212,16 @@ class Entity extends GraphNode {
     sprite;
 
     /**
+     * Gets the {@link Trigger} attached to this entity.
+     *
+     * This component is made by {@link CollisionComponentSystem} when there is no {@link PhysicsComponent}.
+     *
+     * @type {import('./components/collision/trigger.js').Trigger|undefined}
+     * @readonly
+     */
+    trigger;
+
+    /**
      * Component storage.
      *
      * @type {Object<string, import('./components/component.js').Component>}
