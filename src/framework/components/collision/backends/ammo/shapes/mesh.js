@@ -1,8 +1,7 @@
-import { SEMANTIC_POSITION } from '../../../../../platform/graphics/constants.js';
-import { GraphNode } from '../../../../../scene/graph-node.js';
-import { Trigger } from '../../trigger.js';
-import { AmmoCollisionObject } from './base.js';
-import { AmmoTrigger } from './trigger.js';
+import { SEMANTIC_POSITION } from '../../../../../../platform/graphics/constants.js';
+import { GraphNode } from '../../../../../../scene/graph-node.js';
+import { AmmoCollisionObject } from '../collision-object.js';
+import { AmmoTrigger } from '../trigger.js';
 
 const tempGraphNode = new GraphNode();
 
@@ -10,7 +9,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     /**
      * Constructs new ammo mesh collision object
      *
-     * @param {import('../../system.js').CollisionComponentSystem<import('./base.js').AmmoShape>} system - collision system
+     * @param {import('../../../system.js').CollisionComponentSystem<import('../collision-object.js').AmmoShape>} system - collision system
      */
     constructor(system) {
         super(system);
@@ -30,8 +29,8 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../../../../scene/mesh.js').Mesh} mesh
-     * @param {import('../../../../../scene/graph-node.js').GraphNode} node
+     * @param {import('../../../../../../scene/mesh.js').Mesh} mesh
+     * @param {import('../../../../../../scene/graph-node.js').GraphNode} node
      * @param {import('ammojs3').default.btCompoundShape} shape
      */
     createAmmoMesh(mesh, node, shape) {
@@ -95,8 +94,8 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../../../entity.js').Entity} entity
-     * @param {import('../../data.js').CollisionComponentData} data
+     * @param {import('../../../../../entity.js').Entity} entity
+     * @param {import('../../../data.js').CollisionComponentData} data
      * @returns {import('ammojs3').default.btCompoundShape}
      */
     createPhysicalShape(entity, data) {
@@ -129,7 +128,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../component.js').CollisionComponent} component
+     * @param {import('../../../component.js').CollisionComponent} component
      */
     recreatePhysicalShapes(component) {
         const data = component.data;
@@ -149,7 +148,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../component.js').CollisionComponent} component
+     * @param {import('../../../component.js').CollisionComponent} component
      * @param {*} id
      * @param {*} property
      */
@@ -196,7 +195,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../component.js').CollisionComponent} component
+     * @param {import('../../../component.js').CollisionComponent} component
      */
     doRecreatePhysicalShape(component) {
         const entity = component.entity;
@@ -228,10 +227,10 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../component.js').CollisionComponent} component
-     * @param {import('../../../../../core/math/vec3.js').Vec3} position
-     * @param {import('../../../../../core/math/quat.js').Quat} rotation
-     * @param {import('../../../../../core/math/vec3.js').Vec3} scale
+     * @param {import('../../../component.js').CollisionComponent} component
+     * @param {import('../../../../../../core/math/vec3.js').Vec3} position
+     * @param {import('../../../../../../core/math/quat.js').Quat} rotation
+     * @param {import('../../../../../../core/math/vec3.js').Vec3} scale
      */
     updateTransform(component, position, rotation, scale) {
         if (component.shape) {
@@ -251,7 +250,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../data.js').CollisionComponentData<import('./base.js').AmmoShape>} data
+     * @param {import('../../../data.js').CollisionComponentData<import('../collision-object.js').AmmoShape>} data
      */
     destroyData(data) {
         if (!data.shape)

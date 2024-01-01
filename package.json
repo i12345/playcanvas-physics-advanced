@@ -15,6 +15,7 @@
     "VR",
     "WebGL",
     "WebGL2",
+    "WebGPU",
     "game",
     "engine",
     "HTML5",
@@ -166,8 +167,5 @@
     "test:coverage": "c8 npm test",
     "test:karma": "karma start tests/karma.conf.cjs -- --single-run --release",
     "test:types": "tsc --pretty false build/playcanvas.d.ts"
-  },
-  "dependencies": {
-    "ammojs3": "^0.0.10"
   }
 }

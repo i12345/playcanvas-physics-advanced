@@ -14,9 +14,9 @@ class AmmoTrigger extends Trigger {
      * Create a new Trigger instance.
      *
      * @param {import('../../../../app-base.js').AppBase} app - The running {@link AppBase}.
-     * @param {import('../../component.js').CollisionComponent<import('./base.js').AmmoShape>} component -
+     * @param {import('../../component.js').CollisionComponent<import('./collision-object.js').AmmoShape>} component -
      * The component for which the trigger will be created.
-     * @param {import('../../data.js').CollisionComponentData<import('./base.js').AmmoShape>} data - The
+     * @param {import('../../data.js').CollisionComponentData<import('./collision-object.js').AmmoShape>} data - The
      * data for the component.
      */
     // eslint-disable-next-line no-useless-constructor
@@ -25,7 +25,7 @@ class AmmoTrigger extends Trigger {
     }
 
     /**
-     * @param {import('../../data.js').CollisionComponentData<import('./base.js').AmmoShape>} data
+     * @param {import('../../data.js').CollisionComponentData<import('./collision-object.js').AmmoShape>} data
      */
     initialize(data) {
         if (typeof Ammo !== 'undefined' && !_ammoVec1) {

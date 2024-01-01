@@ -1,15 +1,9 @@
-import { AmmoSphereCollisionObject } from "./sphere.js";
-import { AmmoBoxCollisionObject } from "./box.js";
-import { AmmoCapsuleCollisionObject } from "./capsule.js";
-import { AmmoCylinderCollisionObject } from "./cylinder.js";
-import { AmmoConeCollisionObject } from "./cone.js";
-import { AmmoMeshCollisionObject } from "./mesh.js";
-import { AmmoCompoundCollisionObject } from "./compound.js";
+import { AmmoSphereCollisionObject, AmmoBoxCollisionObject, AmmoCapsuleCollisionObject, AmmoCylinderCollisionObject, AmmoConeCollisionObject, AmmoMeshCollisionObject, AmmoCompoundCollisionObject } from "./shapes/index.js";
 import { CollisionSystemBackend } from "../interface.js";
 import { AmmoTrigger } from "./trigger.js";
 
 /**
- * @augments CollisionSystemBackend<import("./base.js").AmmoShape>
+ * @augments CollisionSystemBackend<import("./collision-object.js").AmmoShape>
  */
 class AmmoCollisionSystemBackend extends CollisionSystemBackend {
     constructor() {
@@ -19,8 +13,8 @@ class AmmoCollisionSystemBackend extends CollisionSystemBackend {
     /**
      * Makes implementations to interface with backend objects.
      *
-     * @param {import('../../system.js').CollisionComponentSystem<import("./base.js").AmmoShape>} system - collision component system
-     * @returns {Record<import('../../constants.js').CollisionType,import('./base.js').AmmoCollisionObject>}
+     * @param {import('../../system.js').CollisionComponentSystem<import("./collision-object.js").AmmoShape>} system - collision component system
+     * @returns {Record<import('../../constants.js').CollisionType,import('./collision-object.js').AmmoCollisionObject>}
      */
     makeTypeImplementations(system) {
         return {

@@ -1,9 +1,9 @@
-import { AmmoCollisionObject } from './base.js';
+import { AmmoCollisionObject } from '../collision-object.js';
 
 class AmmoCylinderCollisionObject extends AmmoCollisionObject {
     /**
-     * @param {import('../../../../entity.js').Entity} entity
-     * @param {import('../../data.js').CollisionComponentData} data
+     * @param {import('../../../../../entity.js').Entity} entity
+     * @param {import('../../../data.js').CollisionComponentData} data
      * @returns {import('ammojs3').default.btCylinderShape}
      */
     createPhysicalShape(entity, data) {

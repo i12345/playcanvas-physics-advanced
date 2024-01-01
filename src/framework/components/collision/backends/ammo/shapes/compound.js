@@ -1,9 +1,9 @@
-import { AmmoCollisionObject } from './base.js';
+import { AmmoCollisionObject } from '../collision-object.js';
 
 class AmmoCompoundCollisionObject extends AmmoCollisionObject {
     /**
-     * @param {import('../../../../entity.js').Entity} entity
-     * @param {import('../../data.js').CollisionComponentData} data
+     * @param {import('../../../../../entity.js').Entity} entity
+     * @param {import('../../../data.js').CollisionComponentData} data
      * @returns {import('ammojs3').default.btCompoundShape}
      */
     createPhysicalShape(entity, data) {
@@ -11,7 +11,7 @@ class AmmoCompoundCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../../../entity.js').Entity} entity
+     * @param {import('../../../../../entity.js').Entity} entity
      */
     _addEachDescendant(entity) {
         if (!entity.collision || entity.physics)
@@ -25,7 +25,7 @@ class AmmoCompoundCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../../../entity.js').Entity} entity
+     * @param {import('../../../../../entity.js').Entity} entity
      */
     _updateEachDescendant(entity) {
         if (!entity.collision)
@@ -42,7 +42,7 @@ class AmmoCompoundCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../../../entity.js').Entity} entity
+     * @param {import('../../../../../entity.js').Entity} entity
      */
     _updateEachDescendantTransform(entity) {
         if (!entity.collision || entity.collision._compoundParent !== this.collision._compoundParent)
