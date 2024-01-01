@@ -1,30 +1,12 @@
-import { Debug } from '../../../core/debug.js';
-
 import { Quat } from '../../../core/math/quat.js';
 import { Vec3 } from '../../../core/math/vec3.js';
 
 import {
-    BODYFLAG_KINEMATIC_OBJECT, BODYTYPE_STATIC,
+    BODYTYPE_STATIC, BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC,
     BODYGROUP_DYNAMIC, BODYGROUP_KINEMATIC, BODYGROUP_STATIC,
-    BODYMASK_ALL, BODYMASK_NOT_STATIC,
-    BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_DEACTIVATION, BODYSTATE_DISABLE_SIMULATION,
-    BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC
+    BODYMASK_ALL, BODYMASK_NOT_STATIC
 } from './constants.js';
 import { Component } from '../component.js';
-
-// Shared math variable to avoid excessive allocation
-/** @type {import('ammojs3').default.btTransform} */
-let _ammoTransform;
-/** @type {import('ammojs3').default.btVector3} */
-let _ammoVec1;
-/** @type {import('ammojs3').default.btVector3} */
-let _ammoVec2;
-/** @type {import('ammojs3').default.btQuaternion} */
-let _ammoQuat;
-
-const _quat1 = new Quat();
-const _quat2 = new Quat();
-const _vec3 = new Vec3();
 
 /**
  * The physics component, when combined with a {@link CollisionComponent}, allows your entities
@@ -62,74 +44,54 @@ const _vec3 = new Vec3();
  *
  * @augments Component
  * @category Physics
+ * @abstract
  */
 class PhysicsComponent extends Component {
-    /** @private */
+    /** @protected */
     _angularDamping = 0;
 
-    /** @private */
+    /** @protected */
     _angularFactor = new Vec3(1, 1, 1);
 
-    /** @private */
-    _angularVelocity = new Vec3();
-
-    /**
-     * @private
-     * @type {import('ammojs3').default.btRigidBody|null}
-     */
-    _rigidBody = null;
-
-    /**
-     * @private
-     * @type {import('ammojs3').default.btMultiBodyLinkCollider|null}
-     */
-    _multibodyLinkCollider = null;
-
-    /** @private */
+    /** @protected */
     _friction = 0.5;
 
-    /** @private */
+    /** @protected */
     _group = BODYGROUP_STATIC;
 
-    /** @private */
+    /** @protected */
     _linearDamping = 0;
 
-    /** @private */
+    /** @protected */
     _linearFactor = new Vec3(1, 1, 1);
 
-    /** @private */
-    _linearVelocity = new Vec3();
-
-    /** @private */
+    /** @protected */
     _mask = BODYMASK_NOT_STATIC;
 
-    /** @private */
+    /** @protected */
     _mass = 1;
 
-    /** @private */
+    /** @protected */
     _restitution = 0;
 
-    /** @private */
+    /** @protected */
     _rollingFriction = 0;
 
-    /** @private */
+    /** @protected */
     _spinningFriction = 0;
 
-    /** @private */
+    /** @protected */
     _contactStiffness = 1e30; // BT_LARGE_FLOAT when double precision enabled
 
-    /** @private */
+    /** @protected */
     _contactDamping = 0.1;
 
-    /** @private */
+    /** @protected */
     _simulationEnabled = false;
 
-    /** @private */
-    /** @type {typeof BODYTYPE_STATIC | typeof BODYTYPE_DYNAMIC | typeof BODYTYPE_KINEMATIC} */
+    /** @protected */
+    /** @type {import('./constants.js').PhysicsBodyType} */
     _type = BODYTYPE_STATIC;
-
-    /** @type {import('./system').PhysicsComponentSystem} */
-    // system;
 
     /**
      * Create a new PhysicsComponent instance.
@@ -146,14 +108,14 @@ class PhysicsComponent extends Component {
      * Fired when a contact occurs between two physics bodies.
      *
      * @event PhysicsComponent#contact
-     * @param {import('./system').ContactResult} result - Details of the contact between the two physics bodies.
+     * @param {import('./system.js').ContactResult} result - Details of the contact between the two physics bodies.
      */
 
     /**
      * Fired when two physics bodies start touching.
      *
      * @event PhysicsComponent#collisionstart
-     * @param {import('./system').ContactResult} result - Details of the contact between the two physics bodies.
+     * @param {import('./system.js').ContactResult} result - Details of the contact between the two physics bodies.
      */
 
     /**
@@ -198,9 +160,7 @@ class PhysicsComponent extends Component {
         if (this._angularDamping !== damping) {
             this._angularDamping = damping;
 
-            if (this._rigidBody) {
-                this._rigidBody.setDamping(this._linearDamping, damping);
-            }
+            this._updateAngularDamping();
         }
     }
 
@@ -218,9 +178,8 @@ class PhysicsComponent extends Component {
         if (!this._angularFactor.equals(factor)) {
             this._angularFactor.copy(factor);
 
-            if (this._rigidBody && this._type === BODYTYPE_DYNAMIC) {
-                _ammoVec1.setValue(factor.x, factor.y, factor.z);
-                this._rigidBody.setAngularFactor(_ammoVec1);
+            if (this._type === BODYTYPE_DYNAMIC) {
+                this._updateAngularFactor();
             }
         }
     }
@@ -233,64 +192,14 @@ class PhysicsComponent extends Component {
      * Defines the rotational speed of the body around each world axis.
      *
      * @type {Vec3}
+     * @abstract
      */
     set angularVelocity(velocity) {
-        if (this._rigidBody && this._type === BODYTYPE_DYNAMIC) {
-            this._rigidBody.activate();
-
-            _ammoVec1.setValue(velocity.x, velocity.y, velocity.z);
-            this._rigidBody.setAngularVelocity(_ammoVec1);
-
-            this._angularVelocity.copy(velocity);
-        }
+        throw new Error("not implemented");
     }
 
     get angularVelocity() {
-        if (this._rigidBody && this._type === BODYTYPE_DYNAMIC) {
-            const velocity = this._rigidBody.getAngularVelocity();
-            this._angularVelocity.set(velocity.x(), velocity.y(), velocity.z());
-        }
-        return this._angularVelocity;
-    }
-
-    set rigidBody(rigidBody) {
-        if (this._rigidBody !== rigidBody) {
-            this._rigidBody = rigidBody;
-
-            if (rigidBody && this._simulationEnabled) {
-                rigidBody.activate();
-            }
-        }
-    }
-
-    get rigidBody() {
-        return this._rigidBody;
-    }
-
-    set multibodyLinkCollider(multibodyLinkCollider) {
-        if (this._multibodyLinkCollider !== multibodyLinkCollider) {
-            this._multibodyLinkCollider = multibodyLinkCollider;
-
-            if (multibodyLinkCollider && this._simulationEnabled) {
-                multibodyLinkCollider.activate();
-            }
-        }
-    }
-
-    get multibodyLinkCollider() {
-        return this._multibodyLinkCollider;
-    }
-
-    /**
-     * legacy reference to this.rigidBody ?? this.multibodyLinkCollider
-     * @type {import('ammojs3').default.btRigidBody|import('ammojs3').default.btMultiBodyLinkCollider|null}
-     */
-    get body() {
-        return this.collisionObject;
-    }
-
-    get collisionObject() {
-        return this._rigidBody ?? this._multibodyLinkCollider;
+        return Vec3.ZERO;
     }
 
     /**
@@ -303,9 +212,7 @@ class PhysicsComponent extends Component {
         if (this._friction !== friction) {
             this._friction = friction;
 
-            if (this._rigidBody) {
-                this._rigidBody.setFriction(friction);
-            }
+            this._updateFriction();
         }
     }
 
@@ -344,10 +251,7 @@ class PhysicsComponent extends Component {
         if (this._linearDamping !== damping) {
             this._linearDamping = damping;
 
-            if (this._rigidBody) {
-                this._rigidBody.setDamping(damping, this._angularDamping);
-            }
-            // TODO: consider if multibody links have something like this
+            this._updateLinearDamping();
         }
     }
 
@@ -365,9 +269,8 @@ class PhysicsComponent extends Component {
         if (!this._linearFactor.equals(factor)) {
             this._linearFactor.copy(factor);
 
-            if (this._rigidBody && this._type === BODYTYPE_DYNAMIC) {
-                _ammoVec1.setValue(factor.x, factor.y, factor.z);
-                this._rigidBody.setLinearFactor(_ammoVec1);
+            if (this._type === BODYTYPE_DYNAMIC) {
+                this._updateLinearFactor();
             }
         }
     }
@@ -380,24 +283,14 @@ class PhysicsComponent extends Component {
      * Defines the speed of the body in a given direction.
      *
      * @type {Vec3}
+     * @abstract
      */
     set linearVelocity(velocity) {
-        if (this._rigidBody && this._type === BODYTYPE_DYNAMIC) {
-            this._rigidBody.activate();
-
-            _ammoVec1.setValue(velocity.x, velocity.y, velocity.z);
-            this._rigidBody.setLinearVelocity(_ammoVec1);
-
-            this._linearVelocity.copy(velocity);
-        }
+        throw new Error("not implemented");
     }
 
     get linearVelocity() {
-        if (this._rigidBody && this._type === BODYTYPE_DYNAMIC) {
-            const velocity = this._rigidBody.getLinearVelocity();
-            this._linearVelocity.set(velocity.x(), velocity.y(), velocity.z());
-        }
-        return this._linearVelocity;
+        return Vec3.ZERO;
     }
 
     /**
@@ -432,32 +325,7 @@ class PhysicsComponent extends Component {
         if (this._mass !== mass) {
             this._mass = mass;
 
-            if (this.collisionObject && this._type === BODYTYPE_DYNAMIC) {
-                const enabled = this.enabled && this.entity.enabled;
-                if (enabled) {
-                    this.disableSimulation();
-                }
-
-                // calculateLocalInertia writes local inertia to ammoVec1 here...
-                this.collisionObject.getCollisionShape().calculateLocalInertia(mass, _ammoVec1);
-                // ...and then writes the calculated local inertia to the body
-                if (this._rigidBody) {
-                    this._rigidBody.setMassProps(mass, _ammoVec1);
-                    this._rigidBody.updateInertiaTensor();
-                } else if (this._multibodyLinkCollider) {
-                    if (this.entity.multibody.linkIndex === -1) {
-                        this.entity.multibody.multibody.setBaseMass(mass);
-                        this.entity.multibody.multibody.setBaseInertia(_ammoVec1);
-                    } else {
-                        this.entity.multibody.link.set_m_mass(mass);
-                        this.entity.multibody.link.set_m_inertiaLocal(_ammoVec1);
-                    }
-                }
-
-                if (enabled) {
-                    this.enableSimulation();
-                }
-            }
+            this._updateMass();
         }
     }
 
@@ -477,11 +345,7 @@ class PhysicsComponent extends Component {
         if (this._restitution !== restitution) {
             this._restitution = restitution;
 
-            if (this._rigidBody) {
-                this._rigidBody.setRestitution(restitution);
-            } else if (this._multibodyLinkCollider) {
-                this._multibodyLinkCollider.setRestitution(restitution);
-            }
+            this._updateRestitution();
         }
     }
 
@@ -498,11 +362,7 @@ class PhysicsComponent extends Component {
         if (this._rollingFriction !== friction) {
             this._rollingFriction = friction;
 
-            if (this._rigidBody) {
-                this._rigidBody.setRollingFriction(friction);
-            } else if (this._multibodyLinkCollider) {
-                this._multibodyLinkCollider.setRollingFriction(friction);
-            }
+            this._updateRollingFriction();
         }
     }
 
@@ -519,11 +379,7 @@ class PhysicsComponent extends Component {
         if (this._spinningFriction !== friction) {
             this._spinningFriction = friction;
 
-            if (this._rigidBody) {
-                this._rigidBody.setSpinningFriction(friction);
-            } else if (this._multibodyLinkCollider) {
-                this._multibodyLinkCollider.setSpinningFriction(friction);
-            }
+            this._updateSpinningFriction();
         }
     }
 
@@ -540,11 +396,7 @@ class PhysicsComponent extends Component {
         if (this._contactStiffness !== stiffness) {
             this._contactStiffness = stiffness;
 
-            if (this._rigidBody) {
-                this._rigidBody.setContactStiffnessAndDamping(stiffness, this._contactDamping);
-            } else if (this._multibodyLinkCollider) {
-                this._multibodyLinkCollider.setContactStiffnessAndDamping(stiffness, this._contactDamping);
-            }
+            this._updateContactStiffness();
         }
     }
 
@@ -561,17 +413,102 @@ class PhysicsComponent extends Component {
         if (this._contactDamping !== damping) {
             this._contactDamping = damping;
 
-            if (this._rigidBody) {
-                this._rigidBody.setContactStiffnessAndDamping(this._contactStiffness, damping);
-            } else if (this._multibodyLinkCollider) {
-                this._multibodyLinkCollider.setContactStiffnessAndDamping(this._contactStiffness, damping);
-            }
+            this._updateContactDamping();
         }
     }
 
     get contactDamping() {
         return this._contactDamping;
     }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateAngularDamping() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateAngularFactor() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateFriction() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateLinearDamping() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateLinearFactor() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateMass() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateRestitution() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateRollingFriction() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateSpinningFriction() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateContactStiffness() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _updateContactDamping() {
+        throw new Error("not implemented");
+    }
+
 
     /**
      * The physics body type determines how the body is simulated. Can be:
@@ -618,176 +555,63 @@ class PhysicsComponent extends Component {
     }
 
     /**
+     * Whether a body is made or not.
+     *
+     * @type {boolean}
+     * @abstract
+     */
+    get hasBody() {
+        return false;
+    }
+
+    /**
      * If the Entity has a Collision shape attached then create a physics body using this shape. This
      * method destroys the existing body.
      *
-     * @private
+     * @abstract
      */
     createBody() {
-        const entity = this.entity;
-        let shape;
-
-        if (entity.collision) {
-            shape = entity.collision.shape;
-
-            // if a trigger was already created from the collision system
-            // destroy it
-            if (entity.trigger) {
-                entity.trigger.destroy();
-                delete entity.trigger;
-            }
-        }
-
-        if (shape) {
-            if (this.collisionObject)
-                this.system.onRemove(entity, this);
-
-            const mass = this._type === BODYTYPE_DYNAMIC ? this._mass : 0;
-
-            this._getEntityTransform(_ammoTransform);
-
-            if (this.entity.multibody?.isInMultibody) {
-                /** @type {import('ammojs3').default.btMultiBodyLinkCollider} */
-                const collider = this.system.createMultiBodyLinkCollider(mass, shape, _ammoTransform, this.entity.multibody);
-                this._multibodyLinkCollider = collider;
-            } else {
-                /** @type {import('ammojs3').default.btRigidBody} */
-                const body = this.system.createRigidBody(mass, shape, _ammoTransform);
-
-                body.setDamping(this._linearDamping, this._angularDamping);
-
-                if (this._type === BODYTYPE_DYNAMIC) {
-                    const linearFactor = this._linearFactor;
-                    _ammoVec1.setValue(linearFactor.x, linearFactor.y, linearFactor.z);
-                    body.setLinearFactor(_ammoVec1);
-
-                    const angularFactor = this._angularFactor;
-                    _ammoVec1.setValue(angularFactor.x, angularFactor.y, angularFactor.z);
-                    body.setAngularFactor(_ammoVec1);
-                }
-
-                this._rigidBody = body;
-            }
-
-            const obj = this.collisionObject;
-            obj.setRestitution(this._restitution);
-            obj.setFriction(this._friction);
-            obj.setRollingFriction(this._rollingFriction);
-            obj.setSpinningFriction(this._spinningFriction);
-            obj.setContactStiffnessAndDamping(this._contactStiffness, this._contactDamping);
-            obj.entity = entity;
-
-            if (this._type === BODYTYPE_KINEMATIC) {
-                obj.setCollisionFlags(obj.getCollisionFlags() | BODYFLAG_KINEMATIC_OBJECT);
-                obj.setActivationState(BODYSTATE_DISABLE_DEACTIVATION);
-            }
-
-            if (this.enabled && entity.enabled) {
-                this.enableSimulation();
-            }
-        }
+        throw new Error("not implemented");
     }
 
     /**
      * Returns true if the physics body is currently actively being simulated. I.e. Not 'sleeping'.
      *
      * @returns {boolean} True if the body is active.
+     * @abstract
      */
     isActive() {
-        return this.collisionObject?.isActive() ?? false;
+        throw new Error("not implemented");
     }
 
     /**
      * Forcibly activate the physics body simulation. Only affects physics bodies of type
      * {@link BODYTYPE_DYNAMIC}.
+     *
+     * @abstract
      */
     activate() {
-        if (this.collisionObject) {
-            this.collisionObject.activate();
-        }
+        throw new Error("not implemented");
     }
 
     /**
      * Add a body to the simulation.
      *
      * @ignore
+     * @abstract
      */
     enableSimulation() {
-        const entity = this.entity;
-        if (entity.collision && entity.collision.enabled && !this._simulationEnabled) {
-            const obj = this.collisionObject;
-            if (obj) {
-                if (this._rigidBody) {
-                    this.system.addRigidBody(this._rigidBody, this._group, this._mask);
-                } else if (this._multibodyLinkCollider) {
-                    this.system.addMultiBodyLinkCollider(this._multibodyLinkCollider, this._group, this._mask);
-                }
-
-                switch (this._type) {
-                    case BODYTYPE_DYNAMIC:
-                        this.system._dynamic.push(this);
-                        obj.forceActivationState(BODYSTATE_ACTIVE_TAG);
-                        this.syncEntityToBody();
-                        break;
-                    case BODYTYPE_KINEMATIC:
-                        this.system._kinematic.push(this);
-                        obj.forceActivationState(BODYSTATE_DISABLE_DEACTIVATION);
-                        break;
-                    case BODYTYPE_STATIC:
-                        obj.forceActivationState(BODYSTATE_ACTIVE_TAG);
-                        this.syncEntityToBody();
-                        break;
-                }
-
-                if (entity.collision.type === 'compound') {
-                    this.system._compounds.push(entity.collision);
-                }
-
-                obj.activate();
-
-                this._simulationEnabled = true;
-            }
-        }
+        throw new Error("not implemented");
     }
 
     /**
      * Remove a body from the simulation.
      *
      * @ignore
+     * @abstract
      */
     disableSimulation() {
-        const obj = this.collisionObject;
-        if (obj && this._simulationEnabled) {
-            /** @type {import('./system').PhysicsComponentSystem} */
-            const system = this.system;
-
-            let idx = system._compounds.indexOf(this.entity.collision);
-            if (idx > -1) {
-                system._compounds.splice(idx, 1);
-            }
-
-            idx = system._dynamic.indexOf(this);
-            if (idx > -1) {
-                system._dynamic.splice(idx, 1);
-            }
-
-            idx = system._kinematic.indexOf(this);
-            if (idx > -1) {
-                system._kinematic.splice(idx, 1);
-            }
-
-            if (this._rigidBody) {
-                system.removeRigidBody(obj);
-            } else if (this._multibodyLinkCollider) {
-                system.removeMultiBodyLinkCollider(obj);
-            }
-
-            // set activation state to disable simulation to avoid body.isActive() to return
-            // true even if it's not in the dynamics world
-            obj.forceActivationState(BODYSTATE_DISABLE_SIMULATION);
-
-            this._simulationEnabled = false;
-        }
+        throw new Error("not implemented");
     }
 
     /**
@@ -833,38 +657,11 @@ class PhysicsComponent extends Component {
      *
      * // Apply the force
      * this.entity.physics.applyForce(force, relativePos);
+     *
+     * @abstract
      */
     applyForce(x, y, z, px, py, pz) {
-        const obj = this.collisionObject;
-        if (obj) {
-            obj.activate();
-
-            if (x instanceof Vec3) {
-                _ammoVec1.setValue(x.x, x.y, x.z);
-            } else {
-                _ammoVec1.setValue(x, y, z);
-            }
-
-            if (y instanceof Vec3) {
-                _ammoVec2.setValue(y.x, y.y, y.z);
-            } else if (px !== undefined) {
-                _ammoVec2.setValue(px, py, pz);
-            } else {
-                _ammoVec2.setValue(0, 0, 0);
-            }
-
-            if (this._rigidBody) {
-                this._rigidBody.applyForce(_ammoVec1, _ammoVec2);
-            } else {
-                if (this._multibodyLinkCollider) {
-                    if (this.entity.multibody.linkIndex === -1) {
-                        this.entity.multibody.base.multibody.addBaseForce(_ammoVec1);
-                    } else {
-                        this.entity.multibody.base.multibody.addLinkForce(this.multibodyLinkCollider.m_link, _ammoVec1);
-                    }
-                }
-            }
-        }
+        throw new Error("not implemented");
     }
 
     /**
@@ -882,28 +679,11 @@ class PhysicsComponent extends Component {
      * @example
      * // Apply via numbers
      * entity.physics.applyTorque(0, 10, 0);
+     *
+     * @abstract
      */
     applyTorque(x, y, z) {
-        const obj = this.collisionObject;
-        if (obj) {
-            obj.activate();
-
-            if (x instanceof Vec3) {
-                _ammoVec1.setValue(x.x, x.y, x.z);
-            } else {
-                _ammoVec1.setValue(x, y, z);
-            }
-
-            if (this._rigidBody) {
-                this._rigidBody.applyTorque(_ammoVec1);
-            } else {
-                if (this.entity.multibody.linkIndex === -1) {
-                    this.entity.multibody.base.multibody.addBaseTorque(_ammoVec1);
-                } else {
-                    this.entity.multibody.base.multibody.addLinkTorque(this.multibodyLinkCollider.m_link, _ammoVec1);
-                }
-            }
-        }
+        throw new Error("not implemented");
     }
 
     /**
@@ -940,32 +720,11 @@ class PhysicsComponent extends Component {
      * // Apply an impulse along the world-space positive y-axis at 1 unit down the positive
      * // z-axis of the entity's local-space.
      * entity.physics.applyImpulse(0, 10, 0, 0, 0, 1);
+     *
+     * @abstract
      */
     applyImpulse(x, y, z, px, py, pz) {
-        const obj = this.collisionObject;
-        if (obj) {
-            obj.activate();
-
-            if (x instanceof Vec3) {
-                _ammoVec1.setValue(x.x, x.y, x.z);
-            } else {
-                _ammoVec1.setValue(x, y, z);
-            }
-
-            if (y instanceof Vec3) {
-                _ammoVec2.setValue(y.x, y.y, y.z);
-            } else if (px !== undefined) {
-                _ammoVec2.setValue(px, py, pz);
-            } else {
-                _ammoVec2.setValue(0, 0, 0);
-            }
-
-            if (this._rigidBody) {
-                this._rigidBody.applyImpulse(_ammoVec1, _ammoVec2);
-            } else {
-                throw new Error("Cannot apply impulse to multibody link.");
-            }
-        }
+        throw new Error("not implemented");
     }
 
     /**
@@ -984,24 +743,11 @@ class PhysicsComponent extends Component {
      * @example
      * // Apply via numbers
      * entity.physics.applyTorqueImpulse(0, 10, 0);
+     *
+     * @abstract
      */
     applyTorqueImpulse(x, y, z) {
-        const obj = this.collisionObject;
-        if (obj) {
-            obj.activate();
-
-            if (x instanceof Vec3) {
-                _ammoVec1.setValue(x.x, x.y, x.z);
-            } else {
-                _ammoVec1.setValue(x, y, z);
-            }
-
-            if (this._rigidBody) {
-                this._rigidBody.applyTorqueImpulse(_ammoVec1);
-            } else {
-                throw new Error("Cannot apply torque impulse to multibody link.");
-            }
-        }
+        throw new Error("not implemented");
     }
 
     /**
@@ -1032,128 +778,36 @@ class PhysicsComponent extends Component {
     }
 
     /**
-     * Writes an entity transform into an Ammo.btTransform but ignoring scale.
-     *
-     * @param {import('ammojs3').default.btTransform} transform - The ammo transform to write the entity transform to.
-     * @private
-     */
-    _getEntityTransform(transform) {
-        const entity = this.entity;
-
-        const component = entity.collision;
-        if (component) {
-            const bodyPos = component.getShapePosition();
-            const bodyRot = component.getShapeRotation();
-            _ammoVec1.setValue(bodyPos.x, bodyPos.y, bodyPos.z);
-            _ammoQuat.setValue(bodyRot.x, bodyRot.y, bodyRot.z, bodyRot.w);
-        } else {
-            const pos = entity.getPosition();
-            const rot = entity.getRotation();
-            _ammoVec1.setValue(pos.x, pos.y, pos.z);
-            _ammoQuat.setValue(rot.x, rot.y, rot.z, rot.w);
-        }
-
-        transform.setOrigin(_ammoVec1);
-        transform.setRotation(_ammoQuat);
-    }
-
-    /**
      * Set the rigid body transform to be the same as the Entity transform. This must be called
      * after any Entity transformation functions (e.g. {@link Entity#setPosition}) are called in
      * order to update the rigid body to match the Entity.
      *
-     * @private
+     * @protected
+     * @abstract
      */
     syncEntityToBody() {
-        const obj = this.collisionObject;
-        if (obj) {
-            this._getEntityTransform(_ammoTransform);
-
-            if (this._multibodyLinkCollider) {
-                if (this.entity.multibody.linkIndex === -1) {
-                    // this.entity.multibody.multibody.setBaseWorldTransform(_ammoTransform);
-                } else {
-                    // TODO: update joint pos to match
-                }
-            } else if (this._rigidBody) {
-                if (this._type === BODYTYPE_KINEMATIC) {
-                    const motionState = this._rigidBody.getMotionState();
-                    if (motionState) {
-                        motionState.setWorldTransform(_ammoTransform);
-                    }
-                }
-            }
-
-            obj.setWorldTransform(_ammoTransform);
-
-            obj.activate();
-        }
+        throw new Error("not implemented");
     }
 
     /**
      * Sets an entity's transform to match that of the world transformation matrix of a dynamic
      * physics body's motion state.
      *
-     * @private
+     * @protected
+     * @abstract
      */
     _updateDynamic() {
-        const body = this.collisionObject;
-        const entity = this.entity;
-
-        // If a dynamic body is frozen, we can assume its motion state transform is
-        // the same is the entity world transform
-        if (body.isActive() || entity._wasDirty) {
-            if (entity._wasDirty) {
-                // Warn the user about setting transform instead of using teleport function
-                Debug.warn('Cannot set rigid body transform from entity. Use entity.physics#teleport instead.');
-            }
-
-            let objTransform = _ammoTransform;
-            if (this._rigidBody) {
-                this._rigidBody.getMotionState().getWorldTransform(objTransform);
-            } else if (this._multibodyLinkCollider) {
-                objTransform = this._multibodyLinkCollider.getWorldTransform();
-                // this comes by ref so there is no need to destroy it
-            }
-
-            const p = objTransform.getOrigin();
-            const q = objTransform.getRotation();
-
-            const component = entity.collision;
-            if (component && component._hasOffset) {
-                const lo = component.data.linearOffset;
-                const ao = component.data.angularOffset;
-
-                // Un-rotate the angular offset and then use the new rotation to
-                // un-translate the linear offset in local space
-                // Order of operations matter here
-                const invertedAo = _quat2.copy(ao).invert();
-                const entityRot = _quat1.set(q.x(), q.y(), q.z(), q.w()).mul(invertedAo);
-
-                entityRot.transformVector(lo, _vec3);
-                entity.setPosition(p.x() - _vec3.x, p.y() - _vec3.y, p.z() - _vec3.z);
-                entity.setRotation(entityRot);
-            } else {
-                entity.setPosition(p.x(), p.y(), p.z());
-                entity.setRotation(q.x(), q.y(), q.z(), q.w());
-            }
-
-            entity._wasDirty = false;
-        }
+        throw new Error("not implemented");
     }
 
     /**
      * Writes the entity's world transformation matrix into the motion state of a kinematic body.
      *
-     * @private
+     * @protected
+     * @abstract
      */
     _updateKinematic() {
-        this._getEntityTransform(_ammoTransform);
-        if (this._rigidBody) {
-            this._rigidBody.getMotionState().setWorldTransform(_ammoTransform);
-        } else {
-            this._multibodyLinkCollider.setWorldTransform(_ammoTransform);
-        }
+        throw new Error("not implemented");
     }
 
     /**
@@ -1206,7 +860,7 @@ class PhysicsComponent extends Component {
 
     /** @ignore */
     onEnable() {
-        if (!this.collisionObject) {
+        if (!this.hasBody) {
             this.createBody();
         }
 

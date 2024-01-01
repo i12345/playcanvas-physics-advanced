@@ -1,4 +1,8 @@
 /**
+ * @typedef {typeof BODYTYPE_STATIC | typeof BODYTYPE_KINEMATIC | typeof BODYTYPE_DYNAMIC} PhysicsBodyType
+ */
+
+/**
  * Physics body has infinite mass and cannot move.
  *
  * @type {string}
