@@ -1,5 +1,9 @@
+import { Vec3 } from "../../../../../core/math/vec3.js";
+import { Debug } from "../../../../../core/debug.js";
+import { RaycastResult } from "../../types.js";
 import { PhysicsSystemBackend } from "../interface.js";
 import { AmmoPhysicsComponent } from "./component.js";
+import { BODYFLAG_NORESPONSE_OBJECT } from "../../constants.js";
 
 /** @type {import('ammojs3').default.btVector3} */
 let ammoRayStart;
@@ -7,7 +11,7 @@ let ammoRayStart;
 let ammoRayEnd;
 
 /**
- * @augments PhysicsSystemBackend<AmmoPhysicsComponent>
+ * @augments PhysicsSystemBackend
  */
 class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
     /**
@@ -447,8 +451,8 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
      * Stores a collision between the entity and other in the contacts map and returns true if it
      * is a new collision.
      *
-     * @param {import('../../entity.js').Entity} entity - The entity.
-     * @param {import('../../entity.js').Entity} other - The entity that collides with the first
+     * @param {import('../../../../entity.js').Entity} entity - The entity.
+     * @param {import('../../../../entity.js').Entity} other - The entity that collides with the first
      * entity.
      * @returns {boolean} True if this is a new collision, false otherwise.
      * @private
@@ -457,23 +461,23 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         let isNewCollision = false;
         const guid = entity.getGuid();
 
-        this.collisions[guid] = this.collisions[guid] || { others: [], entity: entity };
+        this.system.collisions[guid] = this.system.collisions[guid] || { others: [], entity: entity };
 
-        if (this.collisions[guid].others.indexOf(other) < 0) {
-            this.collisions[guid].others.push(other);
+        if (this.system.collisions[guid].others.indexOf(other) < 0) {
+            this.system.collisions[guid].others.push(other);
             isNewCollision = true;
         }
 
-        this.frameCollisions[guid] = this.frameCollisions[guid] || { others: [], entity: entity };
-        this.frameCollisions[guid].others.push(other);
+        this.system.frameCollisions[guid] = this.system.frameCollisions[guid] || { others: [], entity: entity };
+        this.system.frameCollisions[guid].others.push(other);
 
         return isNewCollision;
     }
 
     /**
      * @private
-     * @param {*} contactPoint 
-     * @returns 
+     * @param {import('ammojs3').default.btManifoldPoint} contactPoint 
+     * @returns {import('../../types.js').ContactPoint}
      */
     _createContactPointFromAmmo(contactPoint) {
         const localPointA = contactPoint.get_m_localPointA();
@@ -492,6 +496,11 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         return contact;
     }
 
+    /**
+     * @private
+     * @param {import('ammojs3').default.btManifoldPoint} contactPoint 
+     * @returns {import('../../types.js').ContactPoint}
+     */
     _createReverseContactPointFromAmmo(contactPoint) {
         const localPointA = contactPoint.get_m_localPointA();
         const localPointB = contactPoint.get_m_localPointB();
@@ -509,8 +518,15 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         return contact;
     }
 
+    /**
+     * @private
+     * @param {import('../../../../entity.js').Entity} a 
+     * @param {import('../../../../entity.js').Entity} b 
+     * @param {import('../../types.js').ContactPoint} contactPoint 
+     * @returns {import('../../types.js').SingleContactResult}
+     */
     _createSingleContactResult(a, b, contactPoint) {
-        const result = this.singleContactResultPool.allocate();
+        const result = this.system.singleContactResultPool.allocate();
 
         result.a = a;
         result.b = b;
@@ -524,8 +540,14 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         return result;
     }
 
+    /**
+     * 
+     * @param {import('../../../../entity.js').Entity} other 
+     * @param {import('../../types.js').ContactPoint[]} contacts 
+     * @returns 
+     */
     _createContactResult(other, contacts) {
-        const result = this.contactResultPool.allocate();
+        const result = this.system.contactResultPool.allocate();
         result.other = other;
         result.contacts = contacts;
         return result;
@@ -538,10 +560,13 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
      * @private
      */
     _cleanOldCollisions() {
-        for (const guid in this.collisions) {
-            if (this.collisions.hasOwnProperty(guid)) {
-                const frameCollision = this.frameCollisions[guid];
-                const collision = this.collisions[guid];
+        const collisions = this.system.collisions;
+        const frameCollisions = this.system.frameCollisions;
+
+        for (const guid in collisions) {
+            if (collisions.hasOwnProperty(guid)) {
+                const frameCollision = frameCollisions[guid];
+                const collision = collisions[guid];
                 const entity = collision.entity;
                 const entityCollision = entity.collision;
                 const entityPhysics = entity.physics;
@@ -576,7 +601,7 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
                 }
 
                 if (others.length === 0) {
-                    delete this.collisions[guid];
+                    delete collisions[guid];
                 }
             }
         }
@@ -585,7 +610,7 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
     /**
      * Returns true if the entity has a contact event attached and false otherwise.
      *
-     * @param {import('../../entity.js').Entity} entity - Entity to test.
+     * @param {import('../../../../entity.js').Entity} entity - Entity to test.
      * @returns {boolean} True if the entity has a contact and false otherwise.
      * @private
      */
@@ -596,7 +621,7 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         }
 
         const p = entity.physics;
-        return p && (p.hasEvent('collisionstart') || p.hasEvent('collisionend') || p.hasEvent('contact'));
+        return (p && (p.hasEvent('collisionstart') || p.hasEvent('collisionend') || p.hasEvent('contact'))) ?? false;
     }
 
     /**
@@ -614,7 +639,9 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         const dispatcher = dynamicsWorld.getDispatcher();
         const numManifolds = dispatcher.getNumManifolds();
 
-        this.frameCollisions = {};
+        const system = this.system;
+
+        system.frameCollisions = {};
 
         // loop through the all contacts and fire events
         for (let i = 0; i < numManifolds; i++) {
@@ -692,7 +719,7 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
                 } else {
                     const e0Events = this._hasContactEvent(e0);
                     const e1Events = this._hasContactEvent(e1);
-                    const globalEvents = this.hasEvent('contact');
+                    const globalEvents = system.hasEvent('contact');
 
                     if (globalEvents || e0Events || e1Events) {
                         for (let j = 0; j < numContacts; j++) {
@@ -708,7 +735,7 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
                             if (globalEvents) {
                                 // fire global contact event for every contact
                                 const result = this._createSingleContactResult(e0, e1, contactPoint);
-                                this.fire('contact', result);
+                                system.fire('contact', result);
                             }
                         }
 
@@ -758,9 +785,9 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
         this._cleanOldCollisions();
 
         // Reset contact pools
-        this.contactPointPool.freeAll();
-        this.contactResultPool.freeAll();
-        this.singleContactResultPool.freeAll();
+        this.system.contactPointPool.freeAll();
+        this.system.contactResultPool.freeAll();
+        this.system.singleContactResultPool.freeAll();
     }
 }
 

@@ -301,7 +301,7 @@ class AmmoPhysicsComponent extends PhysicsComponent {
 
         if (shape) {
             if (this.body)
-                this.system.onRemove(entity, this);
+                this.system.backend.onRemove(entity, this);
 
             const mass = this._type === BODYTYPE_DYNAMIC ? this._mass : 0;
 
@@ -309,11 +309,11 @@ class AmmoPhysicsComponent extends PhysicsComponent {
 
             if (this.entity.multibody?.isInMultibody) {
                 /** @type {import('ammojs3').default.btMultiBodyLinkCollider} */
-                const collider = this.system.createMultiBodyLinkCollider(mass, shape, _ammoTransform, this.entity.multibody);
+                const collider = this.system.backend.createMultiBodyLinkCollider(mass, shape, _ammoTransform, this.entity.multibody);
                 this._multibodyLinkCollider = collider;
             } else {
                 /** @type {import('ammojs3').default.btRigidBody} */
-                const body = this.system.createRigidBody(mass, shape, _ammoTransform);
+                const body = this.system.backend.createRigidBody(mass, shape, _ammoTransform);
 
                 body.setDamping(this._linearDamping, this._angularDamping);
 
@@ -379,9 +379,9 @@ class AmmoPhysicsComponent extends PhysicsComponent {
             const obj = this.body;
             if (obj) {
                 if (this._rigidBody) {
-                    this.system.addRigidBody(this._rigidBody, this._group, this._mask);
+                    this.system.backend.addRigidBody(this._rigidBody, this._group, this._mask);
                 } else if (this._multibodyLinkCollider) {
-                    this.system.addMultiBodyLinkCollider(this._multibodyLinkCollider, this._group, this._mask);
+                    this.system.backend.addMultiBodyLinkCollider(this._multibodyLinkCollider, this._group, this._mask);
                 }
 
                 switch (this._type) {
@@ -438,9 +438,9 @@ class AmmoPhysicsComponent extends PhysicsComponent {
             }
 
             if (this._rigidBody) {
-                system.removeRigidBody(obj);
+                system.backend.removeRigidBody(obj);
             } else if (this._multibodyLinkCollider) {
-                system.removeMultiBodyLinkCollider(obj);
+                system.backend.removeMultiBodyLinkCollider(obj);
             }
 
             // set activation state to disable simulation to avoid body.isActive() to return

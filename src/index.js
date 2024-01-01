@@ -223,9 +223,10 @@ export { PostEffectQueue } from './framework/components/camera/post-effect-queue
 export { RenderComponent } from './framework/components/render/component.js';
 export { RenderComponentSystem } from './framework/components/render/system.js';
 export * from './framework/components/physics/constants.js';
+export * from './framework/components/physics/types.js';
 export { PhysicsComponent } from './framework/components/physics/component.js';
 export * from './framework/components/physics/backends/index.js';
-export { PhysicsComponentSystem, ContactPoint, ContactResult, RaycastResult, SingleContactResult } from './framework/components/physics/system.js';
+export { PhysicsComponentSystem } from './framework/components/physics/system.js';
 export { SceneRegistry } from './framework/scene-registry.js';
 export { SceneRegistryItem } from './framework/scene-registry-item.js';
 export * from './framework/components/screen/constants.js';

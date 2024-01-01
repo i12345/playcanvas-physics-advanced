@@ -9,238 +9,7 @@ import { ComponentSystem } from '../system.js';
 import { PhysicsComponent } from './component.js';
 import { PhysicsComponentData } from './data.js';
 import { AmmoPhysicsSystemBackend } from './backends/ammo/backend.js';
-
-/**
- * Object holding the result of a successful raycast hit.
- *
- * @category Physics
- */
-class RaycastResult {
-    /**
-     * Create a new RaycastResult instance.
-     *
-     * @param {import('../../entity.js').Entity} entity - The entity that was hit.
-     * @param {Vec3} point - The point at which the ray hit the entity in world space.
-     * @param {Vec3} normal - The normal vector of the surface where the ray hit in world space.
-     * @param {number} hitFraction - The normalized distance (between 0 and 1) at which the ray hit
-     * occurred from the starting point.
-     * @hideconstructor
-     */
-    constructor(entity, point, normal, hitFraction) {
-        /**
-         * The entity that was hit.
-         *
-         * @type {import('../../entity.js').Entity}
-         */
-        this.entity = entity;
-
-        /**
-         * The point at which the ray hit the entity in world space.
-         *
-         * @type {Vec3}
-         */
-        this.point = point;
-
-        /**
-         * The normal vector of the surface where the ray hit in world space.
-         *
-         * @type {Vec3}
-         */
-        this.normal = normal;
-
-        /**
-         * The normalized distance (between 0 and 1) at which the ray hit occurred from the
-         * starting point.
-         *
-         * @type {number}
-         */
-        this.hitFraction = hitFraction;
-    }
-}
-
-/**
- * Object holding the result of a contact between two rigid bodies.
- *
- * @category Physics
- */
-class SingleContactResult {
-    /**
-     * Create a new SingleContactResult instance.
-     *
-     * @param {import('../../entity.js').Entity} a - The first entity involved in the contact.
-     * @param {import('../../entity.js').Entity} b - The second entity involved in the contact.
-     * @param {ContactPoint} contactPoint - The contact point between the two entities.
-     * @hideconstructor
-     */
-    constructor(a, b, contactPoint) {
-        if (arguments.length === 0) {
-            /**
-             * The first entity involved in the contact.
-             *
-             * @type {import('../../entity.js').Entity}
-             */
-            this.a = null;
-
-            /**
-             * The second entity involved in the contact.
-             *
-             * @type {import('../../entity.js').Entity}
-             */
-            this.b = null;
-
-            /**
-             * The total accumulated impulse applied by the constraint solver during the last
-             * sub-step. Describes how hard two bodies collided.
-             *
-             * @type {number}
-             */
-            this.impulse = 0;
-
-            /**
-             * The point on Entity A where the contact occurred, relative to A.
-             *
-             * @type {Vec3}
-             */
-            this.localPointA = new Vec3();
-
-            /**
-             * The point on Entity B where the contact occurred, relative to B.
-             *
-             * @type {Vec3}
-             */
-            this.localPointB = new Vec3();
-
-            /**
-             * The point on Entity A where the contact occurred, in world space.
-             *
-             * @type {Vec3}
-             */
-            this.pointA = new Vec3();
-
-            /**
-             * The point on Entity B where the contact occurred, in world space.
-             *
-             * @type {Vec3}
-             */
-            this.pointB = new Vec3();
-
-            /**
-             * The normal vector of the contact on Entity B, in world space.
-             *
-             * @type {Vec3}
-             */
-            this.normal = new Vec3();
-        } else {
-            this.a = a;
-            this.b = b;
-            this.impulse = contactPoint.impulse;
-            this.localPointA = contactPoint.localPoint;
-            this.localPointB = contactPoint.localPointOther;
-            this.pointA = contactPoint.point;
-            this.pointB = contactPoint.pointOther;
-            this.normal = contactPoint.normal;
-        }
-    }
-}
-
-/**
- * Object holding the result of a contact between two Entities.
- *
- * @category Physics
- */
-class ContactPoint {
-    /**
-     * Create a new ContactPoint instance.
-     *
-     * @param {Vec3} [localPoint] - The point on the entity where the contact occurred, relative to
-     * the entity.
-     * @param {Vec3} [localPointOther] - The point on the other entity where the contact occurred,
-     * relative to the other entity.
-     * @param {Vec3} [point] - The point on the entity where the contact occurred, in world space.
-     * @param {Vec3} [pointOther] - The point on the other entity where the contact occurred, in
-     * world space.
-     * @param {Vec3} [normal] - The normal vector of the contact on the other entity, in world
-     * space.
-     * @param {number} [impulse] - The total accumulated impulse applied by the constraint solver
-     * during the last sub-step. Describes how hard two objects collide. Defaults to 0.
-     * @hideconstructor
-     */
-    constructor(localPoint = new Vec3(), localPointOther = new Vec3(), point = new Vec3(), pointOther = new Vec3(), normal = new Vec3(), impulse = 0) {
-        /**
-         * The point on the entity where the contact occurred, relative to the entity.
-         *
-         * @type {Vec3}
-         */
-        this.localPoint = localPoint;
-
-        /**
-         * The point on the other entity where the contact occurred, relative to the other entity.
-         *
-         * @type {Vec3}
-         */
-        this.localPointOther = localPointOther;
-
-        /**
-         * The point on the entity where the contact occurred, in world space.
-         *
-         * @type {Vec3}
-         */
-        this.point = point;
-
-        /**
-         * The point on the other entity where the contact occurred, in world space.
-         *
-         * @type {Vec3}
-         */
-        this.pointOther = pointOther;
-
-        /**
-         * The normal vector of the contact on the other entity, in world space.
-         *
-         * @type {Vec3}
-         */
-        this.normal = normal;
-
-        /**
-         * The total accumulated impulse applied by the constraint solver during the last sub-step.
-         * Describes how hard two objects collide.
-         *
-         * @type {number}
-         */
-        this.impulse = impulse;
-    }
-}
-
-/**
- * Object holding the result of a contact between two Entities.
- *
- * @category Physics
- */
-class ContactResult {
-    /**
-     * Create a new ContactResult instance.
-     *
-     * @param {import('../../entity.js').Entity} other - The entity that was involved in the
-     * contact with this entity.
-     * @param {ContactPoint[]} contacts - An array of ContactPoints with the other entity.
-     * @hideconstructor
-     */
-    constructor(other, contacts) {
-        /**
-         * The entity that was involved in the contact with this entity.
-         *
-         * @type {import('../../entity.js').Entity}
-         */
-        this.other = other;
-
-        /**
-         * An array of ContactPoints with the other entity.
-         *
-         * @type {ContactPoint[]}
-         */
-        this.contacts = contacts;
-    }
-}
+import { ContactPoint, ContactResult, SingleContactResult } from './types.js';
 
 const _schema = ['enabled'];
 
@@ -252,9 +21,6 @@ const _schema = ['enabled'];
  *
  * @augments ComponentSystem
  * @category Physics
- *
- * @template {PhysicsComponent} [ComponentT=PhysicsComponent]
- * @template {import('./backends/interface.js').PhysicsSystemBackend} [Backend=import('./backends/interface.js').PhysicsSystemBackend<ComponentT>]
  */
 class PhysicsComponentSystem extends ComponentSystem {
     /**
@@ -266,34 +32,34 @@ class PhysicsComponentSystem extends ComponentSystem {
     gravity = new Vec3(0, -9.81, 0);
 
     /**
-     * @type {ComponentT[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _dynamic = [];
 
     /**
-     * @type {ComponentT[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _kinematic = [];
 
     /**
-     * @type {ComponentT[]}
+     * @type {PhysicsComponent[]}
      * @private
      */
     _triggers = [];
 
     /**
-     * @type {ComponentT[]}
+     * @type {import('../collision/component.js').CollisionComponent[]}
      * @private
      */
     _compounds = [];
 
     /**
-     * @type {Backend}
+     * @type {import('./backends/interface.js').PhysicsSystemBackend}
      * @private
      */
-    _backend = /** @type {Backend} */ (/** @type {unknown} */ (null));
+    _backend = /** @type {import('./backends/interface.js').PhysicsSystemBackend} */ (/** @type {unknown} */ (null));
 
     /**
      * Create a new PhysicsComponentSystem.
@@ -343,7 +109,7 @@ class PhysicsComponentSystem extends ComponentSystem {
     onLibraryLoaded() {
         try {
             if (this._backend === null)
-                this._backend = /** @type {Backend} */ (/** @type {unknown} */ (new AmmoPhysicsSystemBackend(this)));
+                this._backend = /** @type {import('./backends/interface.js').PhysicsSystemBackend} */ (/** @type {unknown} */ (new AmmoPhysicsSystemBackend(this)));
 
             this._setupBackend();
 
@@ -427,7 +193,7 @@ class PhysicsComponentSystem extends ComponentSystem {
      * Removes a {@link PhysicsComponent} from an entity.
      *
      * @param {import('../../entity').Entity} entity - The entity to remove
-     * @param {ComponentT} component - The {@link PhysicsComponent} to remove from the entity
+     * @param {PhysicsComponent} component - The {@link PhysicsComponent} to remove from the entity
      */
     onRemove(entity, component) {
         this._backend.onRemove(entity, component);
@@ -448,7 +214,7 @@ class PhysicsComponentSystem extends ComponentSystem {
      * @param {Function} [options.filterCallback] - Custom function to use to filter entities.
      * Must return true to proceed with result. Takes one argument: the entity to evaluate.
      *
-     * @returns {RaycastResult|null} The result of the raycasting or null if there was no hit.
+     * @returns {import('./types.js').RaycastResult|null} The result of the raycasting or null if there was no hit.
      */
     raycastFirst(start, end, options = {}) {
         return this.backend.raycastFirst(start, end, options);
@@ -471,7 +237,7 @@ class PhysicsComponentSystem extends ComponentSystem {
      * @param {Function} [options.filterCallback] - Custom function to use to filter entities.
      * Must return true to proceed with result. Takes the entity to evaluate as argument.
      *
-     * @returns {RaycastResult[]} An array of raycast hit results (0 length if there were no hits).
+     * @returns {import('./types.js').RaycastResult[]} An array of raycast hit results (0 length if there were no hits).
      *
      * @example
      * // Return all results of a raycast between 0, 2, 2 and 0, -2, -2
@@ -553,4 +319,4 @@ class PhysicsComponentSystem extends ComponentSystem {
 
 Component._buildAccessors(PhysicsComponent.prototype, _schema);
 
-export { ContactPoint, ContactResult, RaycastResult, PhysicsComponentSystem, SingleContactResult };
+export { PhysicsComponentSystem };
