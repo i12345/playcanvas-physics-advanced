@@ -49,8 +49,9 @@ class PhysicsSystemBackend {
      * @param {number} [options.filterCollisionMask] - Collision mask to apply to the raycast.
      * @param {any[]} [options.filterTags] - Tags filters. Defined the same way as a {@link Tags#has}
      * query but within an array.
-     * @param {Function} [options.filterCallback] - Custom function to use to filter entities.
-     * Must return true to proceed with result. Takes one argument: the entity to evaluate.
+     * @param {(entity: import('../../../entity.js').Entity) => boolean} [options.filterCallback] -
+     * Custom function to use to filter entities. Must return true to proceed
+     * with result. Takes the entity to evaluate as argument.
      *
      * @returns {import('../types.js').RaycastResult|null} The result of the raycasting or null if there was no hit.
      */
@@ -72,8 +73,9 @@ class PhysicsSystemBackend {
      * @param {number} [options.filterCollisionMask] - Collision mask to apply to the raycast.
      * @param {any[]} [options.filterTags] - Tags filters. Defined the same way as a {@link Tags#has}
      * query but within an array.
-     * @param {Function} [options.filterCallback] - Custom function to use to filter entities.
-     * Must return true to proceed with result. Takes the entity to evaluate as argument.
+     * @param {(entity: import('../../../entity.js').Entity) => boolean} [options.filterCallback] -
+     * Custom function to use to filter entities. Must return true to proceed
+     * with result. Takes the entity to evaluate as argument.
      *
      * @returns {import('../types.js').RaycastResult[]} An array of raycast hit results (0 length if there were no hits).
      *

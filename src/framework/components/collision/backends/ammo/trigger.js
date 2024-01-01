@@ -1,4 +1,5 @@
-import { BODYFLAG_NORESPONSE_OBJECT, BODYMASK_NOT_STATIC, BODYGROUP_TRIGGER, BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_SIMULATION } from '../../../physics/constants.js';
+import { BODYMASK_NOT_STATIC, BODYGROUP_TRIGGER } from '../../../physics/constants.js';
+import { AMMO_BODYFLAG_NORESPONSE_OBJECT, AMMO_BODYSTATE_ACTIVE_TAG, AMMO_BODYSTATE_DISABLE_SIMULATION } from "../../../physics/backends/ammo/constants.js";
 import { Trigger } from "../../trigger.js";
 
 /** @type {import('ammojs3').default.btVector3} */
@@ -68,7 +69,7 @@ class AmmoTrigger extends Trigger {
             body.setLinearFactor(_ammoVec1);
             body.setAngularFactor(_ammoVec1);
 
-            body.setCollisionFlags(body.getCollisionFlags() | BODYFLAG_NORESPONSE_OBJECT);
+            body.setCollisionFlags(body.getCollisionFlags() | AMMO_BODYFLAG_NORESPONSE_OBJECT);
             body.entity = entity;
 
             this.body = body;
@@ -126,7 +127,7 @@ class AmmoTrigger extends Trigger {
 
         // set the body's activation state to active so that it is
         // simulated properly again
-        body.forceActivationState(BODYSTATE_ACTIVE_TAG);
+        body.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
 
         super.enable();
     }
@@ -139,7 +140,7 @@ class AmmoTrigger extends Trigger {
 
         // set the body's activation state to disable simulation so
         // that it properly deactivates after we remove it from the physics world
-        body.forceActivationState(BODYSTATE_DISABLE_SIMULATION);
+        body.forceActivationState(AMMO_BODYSTATE_DISABLE_SIMULATION);
 
         super.disable();
     }

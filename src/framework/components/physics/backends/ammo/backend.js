@@ -3,7 +3,7 @@ import { Debug } from "../../../../../core/debug.js";
 import { RaycastResult } from "../../types.js";
 import { PhysicsSystemBackend } from "../interface.js";
 import { AmmoPhysicsComponent } from "./component.js";
-import { BODYFLAG_NORESPONSE_OBJECT } from "../../constants.js";
+import { AMMO_BODYFLAG_NORESPONSE_OBJECT } from "./constants.js";
 
 /** @type {import('ammojs3').default.btVector3} */
 let ammoRayStart;
@@ -296,8 +296,9 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
      * @param {number} [options.filterCollisionMask] - Collision mask to apply to the raycast.
      * @param {any[]} [options.filterTags] - Tags filters. Defined the same way as a {@link Tags#has}
      * query but within an array.
-     * @param {Function} [options.filterCallback] - Custom function to use to filter entities.
-     * Must return true to proceed with result. Takes one argument: the entity to evaluate.
+     * @param {(entity: import('../../../../entity.js').Entity) => boolean} [options.filterCallback] -
+     * Custom function to use to filter entities. Must return true to proceed
+     * with result. Takes the entity to evaluate as argument.
      *
      * @returns {RaycastResult|null} The result of the raycasting or null if there was no hit.
      */
@@ -359,8 +360,9 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
      * @param {number} [options.filterCollisionMask] - Collision mask to apply to the raycast.
      * @param {any[]} [options.filterTags] - Tags filters. Defined the same way as a {@link Tags#has}
      * query but within an array.
-     * @param {Function} [options.filterCallback] - Custom function to use to filter entities.
-     * Must return true to proceed with result. Takes the entity to evaluate as argument.
+     * @param {(entity: import('../../../../entity.js').Entity) => boolean} [options.filterCallback] -
+     * Custom function to use to filter entities. Must return true to proceed
+     * with result. Takes the entity to evaluate as argument.
      *
      * @returns {RaycastResult[]} An array of raycast hit results (0 length if there were no hits).
      *
@@ -673,8 +675,8 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
 
             if (numContacts > 0) {
                 // don't fire contact events for triggers
-                if ((flags0 & BODYFLAG_NORESPONSE_OBJECT) ||
-                    (flags1 & BODYFLAG_NORESPONSE_OBJECT)) {
+                if ((flags0 & AMMO_BODYFLAG_NORESPONSE_OBJECT) ||
+                    (flags1 & AMMO_BODYFLAG_NORESPONSE_OBJECT)) {
 
                     const e0Events = e0.collision && (e0.collision.hasEvent('triggerenter') || e0.collision.hasEvent('triggerleave'));
                     const e1Events = e1.collision && (e1.collision.hasEvent('triggerenter') || e1.collision.hasEvent('triggerleave'));
@@ -684,14 +686,14 @@ class AmmoPhysicsSystemBackend extends PhysicsSystemBackend {
                     // fire triggerenter events for triggers
                     if (e0Events) {
                         newCollision = this._storeCollision(e0, e1);
-                        if (newCollision && !(flags1 & BODYFLAG_NORESPONSE_OBJECT)) {
+                        if (newCollision && !(flags1 & AMMO_BODYFLAG_NORESPONSE_OBJECT)) {
                             e0.collision.fire('triggerenter', e1);
                         }
                     }
 
                     if (e1Events) {
                         newCollision = this._storeCollision(e1, e0);
-                        if (newCollision && !(flags0 & BODYFLAG_NORESPONSE_OBJECT)) {
+                        if (newCollision && !(flags0 & AMMO_BODYFLAG_NORESPONSE_OBJECT)) {
                             e1.collision.fire('triggerenter', e0);
                         }
                     }

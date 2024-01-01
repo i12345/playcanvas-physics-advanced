@@ -3,11 +3,8 @@ import { Debug } from '../../../../../core/debug.js';
 import { Quat } from '../../../../../core/math/quat.js';
 import { Vec3 } from '../../../../../core/math/vec3.js';
 
-import {
-    BODYFLAG_KINEMATIC_OBJECT, BODYTYPE_STATIC,
-    BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_DEACTIVATION, BODYSTATE_DISABLE_SIMULATION,
-    BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC
-} from '../../constants.js';
+import { BODYTYPE_STATIC, BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC } from '../../constants.js';
+import { AMMO_BODYFLAG_KINEMATIC_OBJECT, AMMO_BODYSTATE_ACTIVE_TAG, AMMO_BODYSTATE_DISABLE_DEACTIVATION, AMMO_BODYSTATE_DISABLE_SIMULATION } from "./constants.js";
 import { PhysicsComponent } from '../../component.js';
 
 // Shared math variable to avoid excessive allocation
@@ -339,8 +336,8 @@ class AmmoPhysicsComponent extends PhysicsComponent {
             obj.entity = entity;
 
             if (this._type === BODYTYPE_KINEMATIC) {
-                obj.setCollisionFlags(obj.getCollisionFlags() | BODYFLAG_KINEMATIC_OBJECT);
-                obj.setActivationState(BODYSTATE_DISABLE_DEACTIVATION);
+                obj.setCollisionFlags(obj.getCollisionFlags() | AMMO_BODYFLAG_KINEMATIC_OBJECT);
+                obj.setActivationState(AMMO_BODYSTATE_DISABLE_DEACTIVATION);
             }
 
             if (this.enabled && entity.enabled) {
@@ -387,15 +384,15 @@ class AmmoPhysicsComponent extends PhysicsComponent {
                 switch (this._type) {
                     case BODYTYPE_DYNAMIC:
                         this.system._dynamic.push(this);
-                        obj.forceActivationState(BODYSTATE_ACTIVE_TAG);
+                        obj.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
                         this.syncEntityToBody();
                         break;
                     case BODYTYPE_KINEMATIC:
                         this.system._kinematic.push(this);
-                        obj.forceActivationState(BODYSTATE_DISABLE_DEACTIVATION);
+                        obj.forceActivationState(AMMO_BODYSTATE_DISABLE_DEACTIVATION);
                         break;
                     case BODYTYPE_STATIC:
-                        obj.forceActivationState(BODYSTATE_ACTIVE_TAG);
+                        obj.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
                         this.syncEntityToBody();
                         break;
                 }
@@ -445,7 +442,7 @@ class AmmoPhysicsComponent extends PhysicsComponent {
 
             // set activation state to disable simulation to avoid body.isActive() to return
             // true even if it's not in the dynamics world
-            obj.forceActivationState(BODYSTATE_DISABLE_SIMULATION);
+            obj.forceActivationState(AMMO_BODYSTATE_DISABLE_SIMULATION);
 
             this._simulationEnabled = false;
         }

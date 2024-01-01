@@ -110,11 +110,11 @@ import { CameraComponent } from '../framework/components/camera/component.js';
 import { LightComponent } from '../framework/components/light/component.js';
 import { ModelComponent } from '../framework/components/model/component.js';
 import { RenderComponent } from '../framework/components/render/component.js';
+import { BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC, BODYTYPE_STATIC } from '../framework/components/physics/constants.js';
 import {
-    BODYFLAG_KINEMATIC_OBJECT, BODYFLAG_NORESPONSE_OBJECT, BODYFLAG_STATIC_OBJECT,
-    BODYSTATE_ACTIVE_TAG, BODYSTATE_DISABLE_DEACTIVATION, BODYSTATE_DISABLE_SIMULATION, BODYSTATE_ISLAND_SLEEPING, BODYSTATE_WANTS_DEACTIVATION,
-    BODYTYPE_DYNAMIC, BODYTYPE_KINEMATIC, BODYTYPE_STATIC
-} from '../framework/components/physics/constants.js';
+    AMMO_BODYFLAG_KINEMATIC_OBJECT, AMMO_BODYFLAG_NORESPONSE_OBJECT, AMMO_BODYFLAG_STATIC_OBJECT,
+    AMMO_BODYSTATE_ACTIVE_TAG, AMMO_BODYSTATE_DISABLE_DEACTIVATION, AMMO_BODYSTATE_DISABLE_SIMULATION, AMMO_BODYSTATE_ISLAND_SLEEPING, AMMO_BODYSTATE_WANTS_DEACTIVATION
+} from "../framework/components/physics/backends/ammo/constants.js";
 import { PhysicsComponent } from '../framework/components/physics/component.js';
 import { PhysicsComponentSystem } from '../framework/components/physics/system.js';
 import { basisInitialize } from '../framework/handlers/basis.js';
@@ -1256,14 +1256,14 @@ Object.defineProperty(MouseEvent.prototype, 'wheel', {
 export const RIGIDBODY_TYPE_STATIC = BODYTYPE_STATIC;
 export const RIGIDBODY_TYPE_DYNAMIC = BODYTYPE_DYNAMIC;
 export const RIGIDBODY_TYPE_KINEMATIC = BODYTYPE_KINEMATIC;
-export const RIGIDBODY_CF_STATIC_OBJECT = BODYFLAG_STATIC_OBJECT;
-export const RIGIDBODY_CF_KINEMATIC_OBJECT = BODYFLAG_KINEMATIC_OBJECT;
-export const RIGIDBODY_CF_NORESPONSE_OBJECT = BODYFLAG_NORESPONSE_OBJECT;
-export const RIGIDBODY_ACTIVE_TAG = BODYSTATE_ACTIVE_TAG;
-export const RIGIDBODY_ISLAND_SLEEPING = BODYSTATE_ISLAND_SLEEPING;
-export const RIGIDBODY_WANTS_DEACTIVATION = BODYSTATE_WANTS_DEACTIVATION;
-export const RIGIDBODY_DISABLE_DEACTIVATION = BODYSTATE_DISABLE_DEACTIVATION;
-export const RIGIDBODY_DISABLE_SIMULATION = BODYSTATE_DISABLE_SIMULATION;
+export const RIGIDBODY_CF_STATIC_OBJECT = AMMO_BODYFLAG_STATIC_OBJECT;
+export const RIGIDBODY_CF_KINEMATIC_OBJECT = AMMO_BODYFLAG_KINEMATIC_OBJECT;
+export const RIGIDBODY_CF_NORESPONSE_OBJECT = AMMO_BODYFLAG_NORESPONSE_OBJECT;
+export const RIGIDBODY_ACTIVE_TAG = AMMO_BODYSTATE_ACTIVE_TAG;
+export const RIGIDBODY_ISLAND_SLEEPING = AMMO_BODYSTATE_ISLAND_SLEEPING;
+export const RIGIDBODY_WANTS_DEACTIVATION = AMMO_BODYSTATE_WANTS_DEACTIVATION;
+export const RIGIDBODY_DISABLE_DEACTIVATION = AMMO_BODYSTATE_DISABLE_DEACTIVATION;
+export const RIGIDBODY_DISABLE_SIMULATION = AMMO_BODYSTATE_DISABLE_SIMULATION;
 
 AppBase.prototype.isFullscreen = function () {
     Debug.deprecated('pc.AppBase#isFullscreen is deprecated. Use the Fullscreen API directly.');
