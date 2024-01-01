@@ -169,8 +169,6 @@ class CollisionComponentSystem extends ComponentSystem {
      */
     _useBackend() {
         if (!this._backendUsed) {
-            if (!this.backend.isLoaded)
-                throw new Error("backend not loaded");
             this._backendUsed = true;
             this._backendImplementations = /** @type {typeof this._backendImplementations} */ (this.backend.makeTypeImplementations(this));
         }

@@ -6,13 +6,14 @@ import { AmmoConeCollisionObject } from "./cone.js";
 import { AmmoMeshCollisionObject } from "./mesh.js";
 import { AmmoCompoundCollisionObject } from "./compound.js";
 import { CollisionSystemBackend } from "../interface.js";
+import { AmmoTrigger } from "./trigger.js";
 
 /**
  * @augments CollisionSystemBackend<import("./base.js").AmmoShape>
  */
 class AmmoCollisionSystemBackend extends CollisionSystemBackend {
-    get isLoaded() {
-        return typeof Ammo !== 'undefined';
+    constructor() {
+        super(AmmoTrigger);
     }
 
     /**

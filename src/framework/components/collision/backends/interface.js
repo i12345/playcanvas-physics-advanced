@@ -57,78 +57,76 @@ class CollisionObjectImpl {
         const entity = component.entity;
         const data = component.data;
 
-        if (this.system.backend.isLoaded) {
-            if (entity.trigger) {
-                entity.trigger.destroy();
-                delete entity.trigger;
+        if (entity.trigger) {
+            entity.trigger.destroy();
+            delete entity.trigger;
+        }
+
+        if (data.shape) {
+            if (component._compoundParent) {
+                this.system._removeCompoundChild(component._compoundParent, data.shape);
+
+                if (component._compoundParent.entity.physics)
+                    component._compoundParent.entity.physics.activate();
             }
 
-            if (data.shape) {
-                if (component._compoundParent) {
-                    this.system._removeCompoundChild(component._compoundParent, data.shape);
+            this.destroyData(data);
+        }
+
+        data.shape = this.createPhysicalShape(component.entity, data);
+
+        const firstCompoundChild = !component._compoundParent;
+
+        if (data.type === 'compound' && (!component._compoundParent || component === component._compoundParent)) {
+            component._compoundParent = component;
+
+            entity.forEach(this._addEachDescendant, component);
+        } else if (data.type !== 'compound') {
+            if (component._compoundParent && component === component._compoundParent) {
+                entity.forEach(this.system.implementations.compound._updateEachDescendant, component);
+            }
+
+            if (!component.physics) {
+                component._compoundParent = null;
+                let parent = entity.parent;
+                while (parent) {
+                    /** @type {import('../../../entity.js').Entity} */
+                    // @ts-ignore
+                    const parentEntity = parent;
+                    if (parentEntity.collision && parentEntity.collision.type === 'compound') {
+                        component._compoundParent = parentEntity.collision;
+                        break;
+                    }
+                    parent = parent.parent;
+                }
+            }
+        }
+
+        if (component._compoundParent) {
+            if (component !== component._compoundParent) {
+                if (firstCompoundChild && component._compoundParent.shape.getNumChildShapes() === 0) {
+                    this.system.recreatePhysicalShapes(component._compoundParent);
+                } else {
+                    this.system.updateCompoundChildTransform(entity);
 
                     if (component._compoundParent.entity.physics)
                         component._compoundParent.entity.physics.activate();
                 }
-
-                this.destroyData(data);
             }
+        }
 
-            data.shape = this.createPhysicalShape(component.entity, data);
+        if (entity.physics) {
+            entity.physics.disableSimulation();
+            entity.physics.createBody();
 
-            const firstCompoundChild = !component._compoundParent;
-
-            if (data.type === 'compound' && (!component._compoundParent || component === component._compoundParent)) {
-                component._compoundParent = component;
-
-                entity.forEach(this._addEachDescendant, component);
-            } else if (data.type !== 'compound') {
-                if (component._compoundParent && component === component._compoundParent) {
-                    entity.forEach(this.system.implementations.compound._updateEachDescendant, component);
-                }
-
-                if (!component.physics) {
-                    component._compoundParent = null;
-                    let parent = entity.parent;
-                    while (parent) {
-                        /** @type {import('../../../entity.js').Entity} */
-                        // @ts-ignore
-                        const parentEntity = parent;
-                        if (parentEntity.collision && parentEntity.collision.type === 'compound') {
-                            component._compoundParent = parentEntity.collision;
-                            break;
-                        }
-                        parent = parent.parent;
-                    }
-                }
+            if (entity.enabled && entity.physics.enabled) {
+                entity.physics.enableSimulation();
             }
-
-            if (component._compoundParent) {
-                if (component !== component._compoundParent) {
-                    if (firstCompoundChild && component._compoundParent.shape.getNumChildShapes() === 0) {
-                        this.system.recreatePhysicalShapes(component._compoundParent);
-                    } else {
-                        this.system.updateCompoundChildTransform(entity);
-
-                        if (component._compoundParent.entity.physics)
-                            component._compoundParent.entity.physics.activate();
-                    }
-                }
-            }
-
-            if (entity.physics) {
-                entity.physics.disableSimulation();
-                entity.physics.createBody();
-
-                if (entity.enabled && entity.physics.enabled) {
-                    entity.physics.enableSimulation();
-                }
-            } else if (!component._compoundParent) {
-                if (!entity.trigger) {
-                    entity.trigger = new Trigger(this.system.app, component, data);
-                } else {
-                    entity.trigger.initialize(data);
-                }
+        } else if (!component._compoundParent) {
+            if (!entity.trigger) {
+                entity.trigger = new this.system.backend.Trigger(this.system.app, component, data);
+            } else {
+                entity.trigger.initialize(data);
             }
         }
     }
@@ -246,9 +244,18 @@ class CollisionObjectImpl {
  * @template [Shape=any] collision shape backend
  */
 class CollisionSystemBackend {
-    /** @type {boolean} */
-    get isLoaded() {
-        throw new Error("not implemented");
+    /**
+     * Constructs collision system backend.
+     *
+     * @param {Function & { new(app: import('../../../app-base.js').AppBase, component: import('../component.js').CollisionComponent<Shape>, data: import('../data.js').CollisionComponentData<Shape>): Trigger }} Trigger component constructor
+     */
+    constructor(Trigger) {
+        /**
+         * Trigger class implementation.
+         *
+         * @type {Function & { new(app: import('../../../app-base.js').AppBase, component: import('../component.js').CollisionComponent<Shape>, data: import('../data.js').CollisionComponentData<Shape>): Trigger }} trigger component constructor
+         */
+        this.Trigger = Trigger;
     }
 
     destroy() {

@@ -17,6 +17,15 @@ export const BODYTYPE_STATIC = 'static';
 export const BODYTYPE_DYNAMIC = 'dynamic';
 
 /**
+ * Physics body used just for making a trigger.
+ *
+ * Automatically created when 
+ *
+ * @type {string}
+ */
+export const BODYTYPE_TRIGGER = "trigger";
+
+/**
  * Physics body has infinite mass and does not respond to forces but can still be moved by setting
  * their velocity or position.
  *
@@ -25,6 +34,7 @@ export const BODYTYPE_DYNAMIC = 'dynamic';
 export const BODYTYPE_KINEMATIC = 'kinematic';
 
 // Collision flags
+//TODO: consider moving these to ammo/ backend
 export const BODYFLAG_STATIC_OBJECT = 1;
 export const BODYFLAG_KINEMATIC_OBJECT = 2;
 export const BODYFLAG_NORESPONSE_OBJECT = 4;

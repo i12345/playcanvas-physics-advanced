@@ -1,5 +1,6 @@
 export * from './base.js';
 export * from './backend.js';
+export * from './trigger.js';
 export * from "./sphere.js";
 export * from "./box.js";
 export * from "./capsule.js";

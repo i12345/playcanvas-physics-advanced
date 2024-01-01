@@ -2,6 +2,7 @@ import { SEMANTIC_POSITION } from '../../../../../platform/graphics/constants.js
 import { GraphNode } from '../../../../../scene/graph-node.js';
 import { Trigger } from '../../trigger.js';
 import { AmmoCollisionObject } from './base.js';
+import { AmmoTrigger } from './trigger.js';
 
 const tempGraphNode = new GraphNode();
 
@@ -215,7 +216,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
                 }
             } else {
                 if (!entity.trigger) {
-                    entity.trigger = new Trigger(this.system.app, component, data);
+                    entity.trigger = new AmmoTrigger(this.system.app, component, data);
                 } else {
                     entity.trigger.initialize(data);
                 }
