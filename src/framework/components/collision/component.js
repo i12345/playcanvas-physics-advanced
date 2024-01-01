@@ -4,7 +4,6 @@ import { Vec3 } from '../../../core/math/vec3.js';
 import { Asset } from '../../asset/asset.js';
 
 import { Component } from '../component.js';
-import { CollisionSystemBackend } from './backends/interface.js';
 
 const _vec3 = new Vec3();
 const _quat = new Quat();
@@ -60,7 +59,7 @@ const _quat = new Quat();
  * @category Physics
  *
  * @template [Shape=any]
- * @template {CollisionSystemBackend<Shape>} [Backend=CollisionSystemBackend<Shape>]
+ * @template {import('./backends/interface.js').CollisionSystemBackend<Shape>} [Backend=import('./backends/interface.js').CollisionSystemBackend<Shape>]
  */
 class CollisionComponent extends Component {
     /** @type {import('./system').CollisionComponentSystem<Shape, Backend>} */
@@ -108,6 +107,9 @@ class CollisionComponent extends Component {
         this.on('set_renderAsset', this.onSetRenderAsset, this);
         this.on('set_model', this.onSetModel, this);
         this.on('set_render', this.onSetRender, this);
+
+        /** @type {Shape} */
+        this.shape = null;
     }
 
     /**
@@ -467,7 +469,7 @@ class CollisionComponent extends Component {
         return rot;
     }
 
-    /** @private */
+    /** @protected */
     onEnable() {
         if (this.data.type === 'mesh' && (this.data.asset || this.data.renderAsset) && this.data.initialized) {
             const asset = this.system.app.assets.get(this.data.asset || this.data.renderAsset);
