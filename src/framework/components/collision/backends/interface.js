@@ -144,7 +144,7 @@ class CollisionObjectImpl {
     }
 
     /**
-     * @param {import('../component.js').CollisionComponent} component
+     * @param {import('../component.js').CollisionComponent<Shape, Backend>} component
      * @param {import('../../../../core/math/vec3.js').Vec3} position
      * @param {import('../../../../core/math/quat.js').Quat} rotation
      * @param {import('../../../../core/math/vec3.js').Vec3} scale
@@ -169,10 +169,13 @@ class CollisionObjectImpl {
         throw new Error("not implemented");
     }
 
+    /**
+     * @param {import('../data.js').CollisionComponentData<Shape>} data - collision component data to destoy
+     */
     destroyData(data) {
         if (data.shape) {
             this.destroyShape(data.shape);
-            data.shape = null;
+            data.shape = /** @type {Shape} */ (null);
         }
     }
 

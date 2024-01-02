@@ -278,71 +278,56 @@ class AmmoPhysicsComponent extends PhysicsComponent {
     }
 
     /**
-     * If the Entity has a Collision shape attached then create a physics body using this shape. This
-     * method destroys the existing body.
+     * Destroys the existing body and creates new physics body
+     *
+     * @param {*} shape - shape from collision component
+     * @protected
      */
-    createBody() {
-        const entity = this.entity;
-        let shape;
+    _createBodyBackend(shape) {
+        const system = /** @type {import('../../system.js').PhysicsComponentSystem} */ (this.system);
+        const backend = /** @type {import('./backend.js').AmmoPhysicsSystemBackend} */ (system.backend);
 
-        if (entity.collision) {
-            shape = entity.collision.shape;
+        if (this.body)
+            backend.onRemove(this.entity, this);
 
-            // if a trigger was already created from the collision system
-            // destroy it
-            if (entity.trigger) {
-                entity.trigger.destroy();
-                delete entity.trigger;
+        const mass = this._type === BODYTYPE_DYNAMIC ? this._mass : 0;
+
+        this._getEntityTransform(_ammoTransform);
+
+        if (this.entity.multibody?.isInMultibody) {
+            /** @type {import('ammojs3').default.btMultiBodyLinkCollider} */
+            const collider = backend.createMultiBodyLinkCollider(mass, shape, _ammoTransform, this.entity.multibody);
+            this._multibodyLinkCollider = collider;
+        } else {
+            /** @type {import('ammojs3').default.btRigidBody} */
+            const body = backend.createRigidBody(mass, shape, _ammoTransform);
+
+            body.setDamping(this._linearDamping, this._angularDamping);
+
+            if (this._type === BODYTYPE_DYNAMIC) {
+                const linearFactor = this._linearFactor;
+                _ammoVec1.setValue(linearFactor.x, linearFactor.y, linearFactor.z);
+                body.setLinearFactor(_ammoVec1);
+
+                const angularFactor = this._angularFactor;
+                _ammoVec1.setValue(angularFactor.x, angularFactor.y, angularFactor.z);
+                body.setAngularFactor(_ammoVec1);
             }
+
+            this._rigidBody = body;
         }
 
-        if (shape) {
-            if (this.body)
-                this.system.backend.onRemove(entity, this);
+        const obj = /** @type {NonNullable<typeof this.body>} */ (this.body);
+        obj.setRestitution(this._restitution);
+        obj.setFriction(this._friction);
+        obj.setRollingFriction(this._rollingFriction);
+        obj.setSpinningFriction(this._spinningFriction);
+        obj.setContactStiffnessAndDamping(this._contactStiffness, this._contactDamping);
+        obj.entity = this.entity;
 
-            const mass = this._type === BODYTYPE_DYNAMIC ? this._mass : 0;
-
-            this._getEntityTransform(_ammoTransform);
-
-            if (this.entity.multibody?.isInMultibody) {
-                /** @type {import('ammojs3').default.btMultiBodyLinkCollider} */
-                const collider = this.system.backend.createMultiBodyLinkCollider(mass, shape, _ammoTransform, this.entity.multibody);
-                this._multibodyLinkCollider = collider;
-            } else {
-                /** @type {import('ammojs3').default.btRigidBody} */
-                const body = this.system.backend.createRigidBody(mass, shape, _ammoTransform);
-
-                body.setDamping(this._linearDamping, this._angularDamping);
-
-                if (this._type === BODYTYPE_DYNAMIC) {
-                    const linearFactor = this._linearFactor;
-                    _ammoVec1.setValue(linearFactor.x, linearFactor.y, linearFactor.z);
-                    body.setLinearFactor(_ammoVec1);
-
-                    const angularFactor = this._angularFactor;
-                    _ammoVec1.setValue(angularFactor.x, angularFactor.y, angularFactor.z);
-                    body.setAngularFactor(_ammoVec1);
-                }
-
-                this._rigidBody = body;
-            }
-
-            const obj = this.body;
-            obj.setRestitution(this._restitution);
-            obj.setFriction(this._friction);
-            obj.setRollingFriction(this._rollingFriction);
-            obj.setSpinningFriction(this._spinningFriction);
-            obj.setContactStiffnessAndDamping(this._contactStiffness, this._contactDamping);
-            obj.entity = entity;
-
-            if (this._type === BODYTYPE_KINEMATIC) {
-                obj.setCollisionFlags(obj.getCollisionFlags() | AMMO_BODYFLAG_KINEMATIC_OBJECT);
-                obj.setActivationState(AMMO_BODYSTATE_DISABLE_DEACTIVATION);
-            }
-
-            if (this.enabled && entity.enabled) {
-                this.enableSimulation();
-            }
+        if (this._type === BODYTYPE_KINEMATIC) {
+            obj.setCollisionFlags(obj.getCollisionFlags() | AMMO_BODYFLAG_KINEMATIC_OBJECT);
+            obj.setActivationState(AMMO_BODYSTATE_DISABLE_DEACTIVATION);
         }
     }
 
@@ -368,84 +353,77 @@ class AmmoPhysicsComponent extends PhysicsComponent {
     /**
      * Add a body to the simulation.
      *
-     * @ignore
+     * @protected
      */
-    enableSimulation() {
-        const entity = this.entity;
-        if (entity.collision && entity.collision.enabled && !this._simulationEnabled) {
-            const obj = this.body;
-            if (obj) {
-                if (this._rigidBody) {
-                    this.system.backend.addRigidBody(this._rigidBody, this._group, this._mask);
-                } else if (this._multibodyLinkCollider) {
-                    this.system.backend.addMultiBodyLinkCollider(this._multibodyLinkCollider, this._group, this._mask);
-                }
+    _enableSimulationBackend() {
+        const obj = this.body;
+        const system = /** @type {import('../../system.js').PhysicsComponentSystem} */ (this.system);
+        const backend = /** @type {import('./backend.js').AmmoPhysicsSystemBackend} */ (system.backend);
 
-                switch (this._type) {
-                    case BODYTYPE_DYNAMIC:
-                        this.system._dynamic.push(this);
-                        obj.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
-                        this.syncEntityToBody();
-                        break;
-                    case BODYTYPE_KINEMATIC:
-                        this.system._kinematic.push(this);
-                        obj.forceActivationState(AMMO_BODYSTATE_DISABLE_DEACTIVATION);
-                        break;
-                    case BODYTYPE_STATIC:
-                        obj.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
-                        this.syncEntityToBody();
-                        break;
-                }
-
-                if (entity.collision.type === 'compound') {
-                    this.system._compounds.push(entity.collision);
-                }
-
-                obj.activate();
-
-                this._simulationEnabled = true;
-            }
+        if (this._rigidBody) {
+            backend.addRigidBody(this._rigidBody, this._group, this._mask);
+        } else if (this._multibodyLinkCollider) {
+            backend.addMultiBodyLinkCollider(this._multibodyLinkCollider, this._group, this._mask);
         }
+
+        switch (this._type) {
+            case BODYTYPE_DYNAMIC:
+                system._dynamic.push(this);
+                obj.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
+                this.syncEntityToBody();
+                break;
+            case BODYTYPE_KINEMATIC:
+                system._kinematic.push(this);
+                obj.forceActivationState(AMMO_BODYSTATE_DISABLE_DEACTIVATION);
+                break;
+            case BODYTYPE_STATIC:
+                obj.forceActivationState(AMMO_BODYSTATE_ACTIVE_TAG);
+                this.syncEntityToBody();
+                break;
+        }
+
+        if (this.entity.collision.type === 'compound') {
+            system._compounds.push(this.entity.collision);
+        }
+
+        obj.activate();
     }
 
     /**
      * Remove a body from the simulation.
      *
-     * @ignore
+     * @protected
      */
-    disableSimulation() {
+    _disableSimulationBackend() {
         const obj = this.body;
-        if (obj && this._simulationEnabled) {
-            /** @type {import('./system').PhysicsComponentSystem} */
-            const system = this.system;
 
-            let idx = system._compounds.indexOf(this.entity.collision);
-            if (idx > -1) {
-                system._compounds.splice(idx, 1);
-            }
+        const system = /** @type {import('../../system').PhysicsComponentSystem} */ (this.system);
+        const backend = /** @type {import('./backend.js').AmmoPhysicsSystemBackend} */ (system.backend);
 
-            idx = system._dynamic.indexOf(this);
-            if (idx > -1) {
-                system._dynamic.splice(idx, 1);
-            }
-
-            idx = system._kinematic.indexOf(this);
-            if (idx > -1) {
-                system._kinematic.splice(idx, 1);
-            }
-
-            if (this._rigidBody) {
-                system.backend.removeRigidBody(obj);
-            } else if (this._multibodyLinkCollider) {
-                system.backend.removeMultiBodyLinkCollider(obj);
-            }
-
-            // set activation state to disable simulation to avoid body.isActive() to return
-            // true even if it's not in the dynamics world
-            obj.forceActivationState(AMMO_BODYSTATE_DISABLE_SIMULATION);
-
-            this._simulationEnabled = false;
+        let idx = system._compounds.indexOf(this.entity.collision);
+        if (idx > -1) {
+            system._compounds.splice(idx, 1);
         }
+
+        idx = system._dynamic.indexOf(this);
+        if (idx > -1) {
+            system._dynamic.splice(idx, 1);
+        }
+
+        idx = system._kinematic.indexOf(this);
+        if (idx > -1) {
+            system._kinematic.splice(idx, 1);
+        }
+
+        if (this._rigidBody) {
+            backend.removeRigidBody(obj);
+        } else if (this._multibodyLinkCollider) {
+            backend.removeMultiBodyLinkCollider(obj);
+        }
+
+        // set activation state to disable simulation to avoid body.isActive() to return
+        // true even if it's not in the dynamics world
+        obj.forceActivationState(AMMO_BODYSTATE_DISABLE_SIMULATION);
     }
 
     /**

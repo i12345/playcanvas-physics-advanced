@@ -127,6 +127,16 @@ class PhysicsComponentSystem extends ComponentSystem {
      * @param {SingleContactResult} result - Details of the contact between the two bodies.
      */
 
+    /**
+     * Initializes component data.
+     *
+     * @param {import('./component.js').PhysicsComponent} component - physics component to initialize
+     * @param {import('./data.js').PhysicsComponentData} data - data to initialize component with
+     * @param {Array<string | {name: string, type: string}>} properties - The array of property
+     * descriptors for the component. A descriptor can be either a plain property name, or an
+     * object specifying the name and type.
+     * @ignore
+     */
     initializeComponentData(component, data, properties) {
         const props = [
             'mass',

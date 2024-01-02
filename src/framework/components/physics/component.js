@@ -108,14 +108,14 @@ class PhysicsComponent extends Component {
      * Fired when a contact occurs between two physics bodies.
      *
      * @event PhysicsComponent#contact
-     * @param {import('./system.js').ContactResult} result - Details of the contact between the two physics bodies.
+     * @param {import('./types.js').ContactResult} result - Details of the contact between the two physics bodies.
      */
 
     /**
      * Fired when two physics bodies start touching.
      *
      * @event PhysicsComponent#collisionstart
-     * @param {import('./system.js').ContactResult} result - Details of the contact between the two physics bodies.
+     * @param {import('./types.js').ContactResult} result - Details of the contact between the two physics bodies.
      */
 
     /**
@@ -138,18 +138,6 @@ class PhysicsComponent extends Component {
      * @event PhysicsComponent#triggerleave
      * @param {import('../../entity.js').Entity} other - The {@link Entity} with trigger volume that this physics body exited.
      */
-
-    /** @ignore */
-    static onLibraryLoaded() {
-        // Lazily create shared variable
-
-        if (typeof Ammo !== 'undefined') {
-            _ammoTransform = new Ammo.btTransform();
-            _ammoVec1 = new Ammo.btVector3();
-            _ammoVec2 = new Ammo.btVector3();
-            _ammoQuat = new Ammo.btQuaternion();
-        }
-    }
 
     /**
      * Controls the rate at which a body loses angular velocity over time.
@@ -565,13 +553,43 @@ class PhysicsComponent extends Component {
     }
 
     /**
+     * Destroys the existing body and creates new physics body
+     *
+     * @param {*} shape - shape from collision component
+     * @abstract
+     * @protected
+     */
+    _createBodyBackend(shape) {
+        throw new Error("not implemented");
+    }
+
+    /**
      * If the Entity has a Collision shape attached then create a physics body using this shape. This
      * method destroys the existing body.
-     *
-     * @abstract
      */
     createBody() {
-        throw new Error("not implemented");
+        const entity = this.entity;
+        let shape;
+
+        if (entity.collision) {
+            // if a trigger was already created from the collision system
+            // destroy it
+            if (entity.trigger) {
+                entity.trigger.destroy();
+                delete entity.trigger;
+            }
+
+            entity.collision.updateShape();
+            shape = entity.collision.shape;
+        }
+
+        if (shape) {
+            this._createBodyBackend(shape);
+
+            if (this.enabled && entity.enabled) {
+                this.enableSimulation();
+            }
+        }
     }
 
     /**
@@ -595,23 +613,47 @@ class PhysicsComponent extends Component {
     }
 
     /**
+     * @protected
+     * @abstract
+     */
+    _enableSimulationBackend() {
+        throw new Error("not implemented");
+    }
+
+    /**
+     * @protected
+     * @abstract
+     */
+    _disableSimulationBackend() {
+        throw new Error("not implemented");
+    }
+
+    /**
      * Add a body to the simulation.
      *
      * @ignore
-     * @abstract
      */
     enableSimulation() {
-        throw new Error("not implemented");
+        const entity = this.entity;
+        if (entity.collision && entity.collision.enabled && !this._simulationEnabled) {
+            if (!this.hasBody)
+                this.createBody();
+
+            this._enableSimulationBackend();
+            this._simulationEnabled = true;
+        }
     }
 
     /**
      * Remove a body from the simulation.
      *
      * @ignore
-     * @abstract
      */
     disableSimulation() {
-        throw new Error("not implemented");
+        if (this._simulationEnabled && this.hasBody) {
+            this._disableSimulationBackend();
+            this._simulationEnabled = false;
+        }
     }
 
     /**
@@ -860,10 +902,6 @@ class PhysicsComponent extends Component {
 
     /** @ignore */
     onEnable() {
-        if (!this.hasBody) {
-            this.createBody();
-        }
-
         this.enableSimulation();
     }
 

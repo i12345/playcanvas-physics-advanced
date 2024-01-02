@@ -227,7 +227,7 @@ class AmmoMeshCollisionObject extends AmmoCollisionObject {
     }
 
     /**
-     * @param {import('../../../component.js').CollisionComponent} component
+     * @param {import('../../../component.js').CollisionComponent<import('../../../../collision/backends/ammo/collision-object.js').AmmoShape>} component
      * @param {import('../../../../../../core/math/vec3.js').Vec3} position
      * @param {import('../../../../../../core/math/quat.js').Quat} rotation
      * @param {import('../../../../../../core/math/vec3.js').Vec3} scale

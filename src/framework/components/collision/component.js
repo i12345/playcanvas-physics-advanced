@@ -55,6 +55,7 @@ const _quat = new Quat();
  * an asset id. Defaults to null. If not set then the asset property will be checked instead.
  * @property {import('../../../scene/model.js').Model} model The model that is added to the scene
  * graph for the mesh collision volume.
+ * @property {Shape} shape Backend shape object
  * @augments Component
  * @category Physics
  *
@@ -85,7 +86,7 @@ class CollisionComponent extends Component {
      * attached to.
      */
     constructor(system, entity) {
-        super(system, entity);
+        super(/** @type {import('../system.js').ComponentSystem} */ (/** @type {unknown} */ (system)), entity);
 
         /**
          * @private
@@ -107,23 +108,20 @@ class CollisionComponent extends Component {
         this.on('set_renderAsset', this.onSetRenderAsset, this);
         this.on('set_model', this.onSetModel, this);
         this.on('set_render', this.onSetRender, this);
-
-        /** @type {Shape} */
-        this.shape = null;
     }
 
     /**
      * The 'contact' event is fired when a contact occurs between two physics bodies.
      *
      * @event CollisionComponent#contact
-     * @param {import('../physics/system').ContactResult} result - Details of the contact between the two physics bodies.
+     * @param {import('../physics/types.js').ContactResult} result - Details of the contact between the two physics bodies.
      */
 
     /**
      * Fired when two physics bodies start touching.
      *
      * @event CollisionComponent#collisionstart
-     * @param {import('../physics/system').ContactResult} result - Details of the contact between the two Entities.
+     * @param {import('../physics/types.js').ContactResult} result - Details of the contact between the two Entities.
      */
 
     /**
@@ -168,7 +166,7 @@ class CollisionComponent extends Component {
     onSetHalfExtents(name, oldValue, newValue) {
         const t = this.data.type;
         if (this.data.initialized && t === 'box') {
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+            this.updateShape();
         }
     }
 
@@ -182,7 +180,7 @@ class CollisionComponent extends Component {
         this._hasOffset = !this.data.linearOffset.equals(Vec3.ZERO) || !this.data.angularOffset.equals(Quat.IDENTITY);
 
         if (this.data.initialized) {
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+            this.updateShape();
         }
     }
 
@@ -195,7 +193,7 @@ class CollisionComponent extends Component {
     onSetRadius(name, oldValue, newValue) {
         const t = this.data.type;
         if (this.data.initialized && (t === 'sphere' || t === 'capsule' || t === 'cylinder' || t === 'cone')) {
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+            this.updateShape();
         }
     }
 
@@ -208,7 +206,7 @@ class CollisionComponent extends Component {
     onSetHeight(name, oldValue, newValue) {
         const t = this.data.type;
         if (this.data.initialized && (t === 'capsule' || t === 'cylinder' || t === 'cone')) {
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+            this.updateShape();
         }
     }
 
@@ -221,7 +219,7 @@ class CollisionComponent extends Component {
     onSetAxis(name, oldValue, newValue) {
         const t = this.data.type;
         if (this.data.initialized && (t === 'capsule' || t === 'cylinder' || t === 'cone')) {
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+            this.updateShape();
         }
     }
 
@@ -261,7 +259,8 @@ class CollisionComponent extends Component {
                 // so that it's going to be removed from the simulation
                 this.data.model = null;
             }
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+
+            this.updateShape();
         }
     }
 
@@ -301,7 +300,8 @@ class CollisionComponent extends Component {
                 // so that it's going to be removed from the simulation
                 this.data.render = null;
             }
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+
+            this.updateShape();
         }
     }
 
@@ -387,7 +387,7 @@ class CollisionComponent extends Component {
             return;
 
         if (this._compoundParent) {
-            (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+            this.updateShape();
         } else if (!this.entity.physics) {
             let ancestor = this.entity.parent;
             while (ancestor) {
@@ -399,9 +399,9 @@ class CollisionComponent extends Component {
                     // @ts-ignore
                     const compoundShape = ancestorEntity.collision.shape;
                     if (compoundShape.getNumChildShapes() === 0) {
-                        (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(ancestorEntity.collision);
+                        ancestorEntity.collision.updateShape();
                     } else {
-                        (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+                        this.updateShape();
                     }
                     break;
                 }
@@ -469,6 +469,11 @@ class CollisionComponent extends Component {
         return rot;
     }
 
+    updateShape() {
+        const system = /** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system));
+        system.recreatePhysicalShapes(this);
+    }
+
     /** @protected */
     onEnable() {
         if (this.data.type === 'mesh' && (this.data.asset || this.data.renderAsset) && this.data.initialized) {
@@ -476,7 +481,7 @@ class CollisionComponent extends Component {
             // recreate the collision shape if the model asset is not loaded
             // or the shape does not exist
             if (asset && (!asset.resource || !this.data.shape)) {
-                (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this);
+                this.updateShape();
                 return;
             }
         }
@@ -487,7 +492,7 @@ class CollisionComponent extends Component {
             }
         } else if (this._compoundParent && this !== this._compoundParent) {
             if (this._compoundParent.shape.getNumChildShapes() === 0) {
-                (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system))).recreatePhysicalShapes(this._compoundParent);
+                this._compoundParent.updateShape();
             } else {
                 const transform = (/** @type {import('./system.js').CollisionComponentSystem<Shape, Backend>} */ (/** @type {unknown} */ (this.system)))._getNodeTransform(this.entity, this._compoundParent.entity);
                 this._compoundParent.shape.addChildShape(transform, this.data.shape);
